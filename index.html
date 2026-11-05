@@ -1,0 +1,1309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Spot Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #f1f4f9; --card: #ffffff; --text: #13294b; --muted: #5f6472;
+    --border: #d8e0ec; --accent: #13294b; --heading: #c93c1c; --header-bg: #13294b; --count-bg: #c93c1c;
+    --open: #1b7237; --closed: #a33a2b;
+    --empty: #1b7237; --some: #8f5e0e; --packed: #a33a2b;
+    --illini-navy: #13294b; --illini-orange: #e84a27; --none: #8a8a90;
+    --empty-tint: #e6f5ea; --some-tint: #fdf1da; --packed-tint: #fbe6e2; --none-tint: #ffffff;
+    --library-tile: #13294b; --academic-tile: #c93c1c; --union-tile: #1d6fa5; --food-pin: #7a3fa0;
+    --shadow: 0 1px 2px rgba(19, 41, 75, .06), 0 4px 12px rgba(19, 41, 75, .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1b30; --card: #1a2a44; --text: #f1f4fa; --muted: #a3b0c6;
+      --border: #2b3d5c; --accent: #ffb08f; --heading: #ff9a6e; --header-bg: #0a1424; --count-bg: #b8391a;
+      --open: #5ad08a; --closed: #ff8c7c;
+      --empty: #5ad08a; --some: #e8bc55; --packed: #ff8c7c;
+      --illini-navy: #0a1424; --illini-orange: #ff7a45; --none: #6e7c94;
+      --empty-tint: #17382c; --some-tint: #3a3118; --packed-tint: #402320; --none-tint: #1a2a44;
+      --library-tile: #3a5f99; --academic-tile: #b8391a; --union-tile: #1d6fa5; --food-pin: #b583d6;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 Inter, -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  header { position: sticky; top: 0; z-index: 10; background: var(--header-bg);
+    border-bottom: 3px solid var(--illini-orange); box-shadow: 0 2px 8px rgba(0, 0, 0, .15); }
+  .header-inner { padding: 14px 16px 12px; max-width: 640px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  h1 { margin: 0; font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em; color: #ffffff; }
+  .sub { color: #ffffff; margin: 2px 0 0; font-size: .85rem; }
+  .open-count { flex: none; color: #ffffff; background: var(--count-bg);
+    border-radius: 999px; padding: 4px 12px; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+  @media (max-width: 359px) {
+    .header-inner { gap: 8px; }
+    h1 { font-size: 1.15rem; }
+    .sub { font-size: .75rem; }
+    .open-count { padding: 4px 8px; font-size: .75rem; }
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 12px 16px 32px; display: grid; gap: 10px; }
+  #spot-list { display: grid; gap: 14px; }
+  .spot { position: relative; min-height: 94px; background: var(--none-tint); border-left: 5px solid var(--none); box-shadow: var(--shadow);
+    border-radius: 14px; padding: 12px 14px 12px 16px; transition: opacity .2s; }
+  .spot.empty { background: var(--empty-tint); border-left-color: var(--empty); }
+  .spot.some { background: var(--some-tint); border-left-color: var(--some); }
+  .spot.packed { background: var(--packed-tint); border-left-color: var(--packed); }
+  .spot.closed { opacity: .55; }
+  button.card-tap { display: block; width: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0;
+    background: none; color: inherit; text-align: left; font-weight: inherit; }
+  button.card-tap:focus-visible { outline: 2px solid var(--illini-orange); outline-offset: 4px; border-radius: 6px; }
+  .spot:has(.card-tap:hover) { box-shadow: 0 0 0 2px var(--illini-orange), var(--shadow); }
+  .toast { position: fixed; left: 50%; bottom: 16px; z-index: 20; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px);
+    padding: 12px 16px; border-radius: 12px; background: var(--illini-navy); color: #ffffff; border: 1px solid var(--illini-orange);
+    font-size: .9rem; font-weight: 600; box-shadow: 0 4px 16px rgba(0, 0, 0, .25); visibility: hidden; opacity: 0; transition: opacity .2s, visibility .2s; }
+  .toast { display: flex; align-items: center; gap: 12px; }
+  button.clear-reports { display: block; flex: none; width: auto; min-width: 0; min-height: 40px; margin-top: 6px; padding: 0 12px;
+    border-color: transparent; background: transparent; color: var(--muted); font-size: .85rem; text-decoration: underline; }
+  button.clear-reports:hover { color: var(--text); }
+  button.toast-undo { flex: none; min-width: 0; min-height: 36px; padding: 0 12px; border: 1px solid #ffffff; border-radius: 8px;
+    background: transparent; color: #ffffff; font-size: .85rem; }
+  button.toast-undo:hover { background: #ffffff; color: var(--illini-navy); }
+  .toast.show { visibility: visible; opacity: 1; }
+  .hint-row { display: flex; align-items: center; gap: 12px; }
+  .hint-row button.filters-toggle { flex: 1; }
+  .hint { margin: 0; color: var(--muted); font-size: .85rem; }
+  button.filters-toggle { flex: none; min-width: 0; min-height: 40px; padding: 0 14px; border-radius: 999px; border-width: 1px; font-size: .85rem;
+    background: var(--card); color: var(--text); }
+  button.filters-toggle::after { content: " \25BE"; }
+  button.filters-toggle[aria-expanded="true"]::after { content: " \25B4"; }
+  button.filters-toggle.active { background: var(--illini-navy); border-color: var(--illini-orange); color: #ffffff; }
+  .map-panel { display: grid; gap: 10px; }
+  .map-panel[hidden] { display: none; }
+  button.find-closest { flex: none; min-height: 44px; border-radius: 10px; border-width: 1px; background: var(--illini-navy); border-color: var(--illini-orange); color: #ffffff; }
+  .closest-result { font-size: .9rem; }
+  .closest-result:empty { display: none; }
+  .closest-result ol { margin: 4px 0 0; padding-left: 20px; }
+  .closest-result .closest-first { font-weight: 700; }
+  .closest-result .location-problem { margin: 0; color: var(--closed); }
+  .spot-map { position: relative; z-index: 0; height: 320px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: var(--card); }
+  .map-message { display: flex; height: 100%; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--muted); }
+  .map-note { margin: 0; color: var(--muted); font-size: .8rem; }
+  .map-pin { display: block; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, .5); }
+  .map-pin.library { background: var(--library-tile); }
+  .map-pin.academic { background: var(--academic-tile); }
+  .map-pin.union { background: var(--union-tile); }
+  .map-pin.is-closed { opacity: .45; }
+  .map-pin.food { width: 12px; height: 12px; background: var(--food-pin); border-width: 1.5px; }
+  .food-section { display: grid; gap: 8px; }
+  .food-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .food-list li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--card); box-shadow: var(--shadow); font-size: .875rem; }
+  .food-text { flex: 1; min-width: 0; }
+  a.food-walk { flex: none; min-width: 44px; min-height: 40px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--accent); font-size: .8rem; font-weight: 600; text-decoration: none; }
+  a.popup-walk { font-weight: 600; }
+  a.walk-link { position: absolute; top: 46px; right: 2px; width: 44px; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1px; border-radius: 10px; color: var(--accent); font-size: .7rem; font-weight: 600; text-decoration: none; }
+  a.walk-link svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  a.walk-link:hover, a.food-walk:hover { color: var(--illini-orange); }
+  a.walk-link:focus-visible, a.food-walk:focus-visible { outline: 2px solid var(--illini-orange); outline-offset: -2px; }
+  .food-name { font-weight: 600; }
+  .food-details { display: block; color: var(--muted); font-size: .8rem; }
+  .food-empty { margin: 0; color: var(--muted); font-size: .875rem; }
+  button.show-all-food { flex: none; width: 100%; min-height: 40px; margin-top: 6px; border-radius: 10px; border-width: 1px; font-size: .85rem; background: var(--card); color: var(--text); }
+  .map-pin.you { background: #ffffff; border: 5px solid var(--illini-orange); }
+  .filters-panel { display: grid; gap: 10px; }
+  .filters-panel[hidden] { display: none; }
+  .offer-filter { display: grid; gap: 6px; }
+  .offer-filter-label { color: var(--muted); font-size: .85rem; }
+  .offer-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+  button.offer { flex: 0 1 auto; min-height: 36px; padding: 0 12px; border-radius: 999px; border-width: 1px; font-size: .8rem;
+    background: var(--card); color: var(--text); }
+  button.offer[aria-pressed="true"] { background: var(--illini-navy); border-color: var(--illini-orange); color: #ffffff; }
+  .food-line { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--muted); font-size: .8rem; }
+  .food-line::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--food-pin); }
+  .offer-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .offer-tag { padding: 1px 7px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--muted);
+    font-size: .72rem; font-weight: 500; line-height: 1.5; }
+  .category-choices { display: flex; gap: 6px; flex-wrap: wrap; }
+  button.category { flex: 1 1 auto; min-height: 40px; padding: 0 8px; border-radius: 999px; border-width: 1px; font-size: .85rem;
+    background: var(--card); color: var(--text); }
+  button.category[aria-pressed="true"] { background: var(--illini-navy); border-color: var(--illini-orange); color: #ffffff; }
+  .card-main { display: flex; align-items: center; gap: 12px; }
+  .card-text { flex: 1; min-width: 0; display: block; padding-right: 32px; }
+  button.favorite { position: absolute; top: 2px; right: 2px; flex: none; display: flex; align-items: center; justify-content: center;
+    width: 44px; min-width: 0; min-height: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: none; }
+  button.favorite svg { width: 24px; height: 24px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linejoin: round; }
+  button.favorite:hover svg { stroke: var(--illini-orange); }
+  button.favorite[aria-pressed="true"] svg { fill: var(--illini-orange); stroke: var(--illini-orange); }
+  button.favorite:focus-visible { outline: 2px solid var(--illini-orange); outline-offset: -2px; }
+  .icon-tile { flex: none; display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 10px; }
+  .icon-tile.library { background: var(--library-tile); }
+  .icon-tile.academic { background: var(--academic-tile); }
+  .icon-tile.union { background: var(--union-tile); }
+  .icon-tile .spot-icon { width: 34px; height: 34px; margin: 0; stroke: #ffffff; stroke-width: 1.3; }
+  .category-section { display: grid; gap: 10px; }
+  .closed-spots { display: grid; gap: 14px; }
+  @media (min-width: 900px) {
+    .header-inner, main { max-width: 1040px; }
+    .category-section, .closed-spots { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    .category-heading { grid-column: 1 / -1; }
+  }
+  .category-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    margin: 4px 0 0; font-size: 1.05rem; font-weight: 700; color: var(--heading); }
+  .category-heading span { color: var(--muted); font-size: .8rem; font-weight: 500; white-space: nowrap; }
+  .meter-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; color: var(--muted); font-size: .8rem; }
+  .key-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  button.cancel { flex: 0 0 auto; min-width: 0; padding: 0 12px; color: var(--muted); border-color: transparent; }
+  .name { margin: 0; font-weight: 600; font-size: 1.05rem; line-height: 1.3; letter-spacing: -.01em; }
+  .status { flex: none; font-size: .85rem; font-weight: 700; white-space: nowrap; }
+  .status.open { color: var(--open); } .status.closed { color: var(--closed); }
+  .status.closing { color: var(--heading); }
+  .status.unknown { color: var(--muted); }
+  .report-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .report { flex: 1; color: var(--muted); font-size: .85rem; line-height: 1.25; margin: 0; min-width: 0;
+    display: flex; align-items: center; gap: 6px; }
+  .spot .buttons { margin-top: 10px; }
+  .name { display: flex; align-items: flex-start; gap: 8px; }
+  .spot-icon { flex: none; width: 20px; height: 20px; margin-top: 2px; fill: none; stroke: var(--heading);
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .meter { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; flex: none; }
+  .bar { width: 5px; border-radius: 2px; border: 1.5px solid var(--none); }
+  .bar-1 { height: 7px; } .bar-2 { height: 11px; } .bar-3 { height: 16px; }
+  .meter.empty .bar { border-color: var(--empty); } .meter.empty .filled { background: var(--empty); }
+  .meter.some .bar { border-color: var(--some); } .meter.some .filled { background: var(--some); }
+  .meter.packed .bar { border-color: var(--packed); } .meter.packed .filled { background: var(--packed); }
+  .report span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .floors { list-style: none; margin: 8px 0 0; padding: 8px 0 0; border-top: 1px solid var(--border);
+    display: grid; gap: 4px; font-size: .85rem; }
+  .floors li { display: flex; align-items: center; gap: 8px; }
+  .floor-name { font-weight: 600; }
+  .floor-level.empty { color: var(--empty); } .floor-level.some { color: var(--some); } .floor-level.packed { color: var(--packed); }
+  .floor-age { margin-left: auto; color: var(--muted); }
+  .where { margin: 10px 0 0; font-size: .8rem; font-weight: 600; color: var(--muted); }
+  .area-choices { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  button.area { flex: none; min-height: 36px; padding: 0 12px; border-radius: 999px; border-width: 1px; font-size: .8rem;
+    color: var(--accent); border-color: var(--border); background: var(--card); }
+  button.area[aria-pressed="true"] { background: var(--illini-navy); border-color: var(--illini-orange); color: #ffffff; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { flex: 1; min-width: 0; min-height: 42px; border-radius: 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--text); font: inherit; font-size: .9rem; cursor: pointer; }
+  button { font-weight: 600; border-width: 2px; }
+  button[data-level="empty"] { color: var(--empty); border-color: var(--empty); }
+  button[data-level="some"] { color: var(--some); border-color: var(--some); }
+  button[data-level="packed"] { color: var(--packed); border-color: var(--packed); }
+  button[data-level="empty"]:hover { background: var(--empty); color: #ffffff; }
+  button[data-level="some"]:hover { background: var(--some); color: #ffffff; }
+  button[data-level="packed"]:hover { background: var(--packed); color: #ffffff; }
+  .empty-now { border-radius: 14px; padding: 12px 18px; box-shadow: var(--shadow); font-size: .875rem;
+    background: var(--empty-tint); border-left: 5px solid var(--empty); }
+  .empty-now[hidden] { display: none; }
+  .empty-now.no-empty-spots { background: var(--card); border-left-color: var(--none); color: var(--muted); }
+  .empty-now h2 { margin: 0 0 4px; font-size: .95rem; color: var(--empty); }
+  .empty-now ul { margin: 0; padding-left: 18px; }
+  .search { position: relative; }
+  .search-icon { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%);
+    fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+  .search input { width: 100%; min-height: 46px; padding: 0 16px 0 42px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font: inherit; font-size: 1rem; box-shadow: var(--shadow); }
+  .search input::placeholder { color: var(--muted); }
+  .search input:focus { outline: 2px solid var(--illini-orange); outline-offset: 1px; }
+  button.clear-search { display: block; margin: 12px auto 0; flex: none; padding: 0 18px; color: var(--accent); }
+  button.closed-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%;
+    padding: 0 16px; color: var(--closed); border-color: var(--border); background: var(--card); }
+  button.closed-toggle::after { content: "Show"; color: var(--muted); font-weight: 500; font-size: .85rem; }
+  button.closed-toggle[aria-expanded="true"]::after { content: "Hide"; }
+  .all-closed { margin: 0; padding: 20px 18px; border-radius: 14px; background: var(--card); box-shadow: var(--shadow);
+    color: var(--muted); text-align: center; }
+  .note { max-width: 640px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: .8rem; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>Study Spot Finder</h1>
+      <p class="sub">Find empty study spots at UIUC</p>
+    </div>
+    <span class="open-count" id="open-count"></span>
+  </div>
+</header>
+<main>
+  <section class="empty-now" id="empty-now" aria-live="polite" hidden></section>
+  <div class="search">
+    <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+    <input type="search" id="spot-search" placeholder="Search: law, sie, gies" aria-label="Search study spots" autocomplete="off">
+  </div>
+  <div class="category-choices" id="category-choices" role="group" aria-label="Show one kind of place"></div>
+  <div class="hint-row">
+    <button class="filters-toggle" id="map-toggle" aria-expanded="false" aria-controls="map-panel">Map</button>
+    <button class="filters-toggle" id="food-toggle" aria-expanded="false" aria-controls="food-panel">Food</button>
+    <button class="filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="filters-panel">Filters</button>
+  </div>
+  <div class="map-panel" id="map-panel" hidden>
+    <button class="find-closest" id="find-closest">Find closest to me</button>
+    <div class="closest-result" id="closest-result" role="status"></div>
+    <div class="spot-map" id="spot-map"></div>
+    <p class="map-note">Your location stays on this device and isn't saved. Distances are straight lines, not walking routes.</p>
+  </div>
+  <section class="food-section map-panel" id="food-panel" aria-labelledby="food-heading" hidden>
+    <h2 class="category-heading" id="food-heading">Food nearby</h2>
+    <div class="offer-choices" id="food-modes" role="group" aria-label="Which food places to show">
+      <button class="offer" data-food-mode="open" aria-pressed="true">Open now</button>
+      <button class="offer" data-food-mode="late" aria-pressed="false">Late night (past 10pm)</button>
+      <button class="offer" data-food-mode="dining" aria-pressed="false">Dining halls</button>
+    </div>
+    <button class="find-closest" id="sort-food-by-distance">Sort by distance from me</button>
+    <div class="closest-result" id="food-location-result" role="status"></div>
+    <div id="food-list" role="status"></div>
+    <p class="map-note">Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters. Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.</p>
+    <p class="map-note">Your location stays on this device and isn't saved. Distances are straight lines, not walking routes.</p>
+  </section>
+  <div class="filters-panel" id="filters-panel" hidden>
+    <p class="hint">Tap the star on a spot to keep it at the top.</p>
+    <div class="offer-filter">
+      <span class="offer-filter-label" id="offer-filter-label">Show spots with</span>
+      <div class="offer-choices" id="offer-choices" role="group" aria-labelledby="offer-filter-label"></div>
+    </div>
+  </div>
+  <p class="meter-key" id="meter-key"></p>
+  <div id="spot-list"></div>
+</main>
+<p class="note">Hours checked against official pages through May 2027, including breaks and finals. Dates without published hours say so. Reports are saved only in this browser.</p>
+<div class="toast" id="report-toast" role="status"></div>
+<script id="app-logic">
+  // Everything in this block is pure logic with no screen access, so tests/run-tests.js can load it on its own.
+  // Hours per weekday, Sunday = 0, as [open, close] in minutes after midnight.
+  // A close past 24:00 runs into the next day. A null day is closed all day;
+  // null for the whole spot means the hours could not be confirmed.
+  // Checked against official pages (see PLAN.md for sources and dates).
+  const h = (hour) => Math.round(hour * 60);
+  const sameEveryDay = (open, close) => Array(7).fill([h(open), h(close)]);
+  // Floors people can report on separately, bottom floor first. Spots without floors only take whole-building reports.
+  const floors = (...names) => names.map((name) => ({ id: name.toLowerCase().replace(/\W+/g, "-"), name }));
+  // Break hours replace the weekly hours on these November 2026 dates; a null date is closed all day.
+  const nov = (days, hours) => Object.fromEntries(days.map((day) => [`2026-11-${day}`, hours]));
+  // Marks dates whose hours are not published, so the app says so instead of guessing.
+  const HOURS_UNCONFIRMED = "unconfirmed";
+  const dateKeyFor = (date) => {
+    const pad = (number) => String(number).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  };
+  // Special hours for every date from start to end ("YYYY-MM-DD"), optionally different on weekends.
+  function during(start, end, hours, weekendHours = hours) {
+    const [startYear, startMonth, startDay] = start.split("-").map(Number);
+    const entries = {};
+    for (let date = new Date(startYear, startMonth - 1, startDay); dateKeyFor(date) <= end;
+      date = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)) {
+      entries[dateKeyFor(date)] = date.getDay() % 6 === 0 ? weekendHours : hours;
+    }
+    return entries;
+  }
+  // Campus-wide winter closure: Dec 24 - Jan 3, plus MLK Day.
+  const winterClosure = { ...during("2026-12-24", "2027-01-03", null), ...during("2027-01-18", "2027-01-18", null) };
+  // The usual winter pattern: weekday hours Dec 18 - Jan 17, closed weekends and during the closure.
+  const winterWeekdays = (open, close) => ({ ...during("2026-12-18", "2027-01-17", [h(open), h(close)], null), ...winterClosure });
+  // Building locations as [latitude, longitude], from OpenStreetMap.
+  // What a spot offers, from first-hand knowledge of each place. Missing means not known, not "doesn't have it".
+  const offerLabels = { quiet: "Quiet", group: "Group rooms", outlets: "Outlets", food: "Food or coffee" };
+  const SPRING_BREAK = ["2027-03-13", "2027-03-21"];
+  // Summer 2027 hours aren't published yet, so dates after the spring semester say so.
+  const unconfirmedFrom = (start) => during(start, "2027-08-22", HOURS_UNCONFIRMED);
+  const springBreakWeekdays = (open, close) => during(...SPRING_BREAK, [h(open), h(close)], null);
+  const studySpots = [
+    { id: "grainger", location: [40.1124737, -88.22686], offers: ["quiet", "group", "outlets", "food"], specialHours: { ...during("2027-03-12", "2027-03-12", [h(0), h(17)]), ...during("2027-03-13", "2027-03-14", null), ...during("2027-03-15", "2027-03-19", [h(8), h(17)]),
+        ...during("2027-03-20", "2027-03-20", null), ...during("2027-03-21", "2027-03-21", [h(13), h(24)]), ...during("2027-05-08", "2027-05-09", [h(0), h(24)]),
+        ...during("2027-05-14", "2027-05-14", [h(0), h(17)]), ...unconfirmedFrom("2027-05-15"),
+        ...nov([20], [h(0), h(17)]), ...nov([21, 22, 26, 27, 28], null), ...nov([23, 24, 25], [h(8), h(17)]), ...nov([29], [h(13), h(24)]),
+        ...during("2026-12-12", "2026-12-13", [h(0), h(24)]), ...during("2026-12-18", "2026-12-18", [h(0), h(17)]),
+        ...during("2026-12-19", "2026-12-19", [h(9), h(17)]), ...during("2026-12-20", "2026-12-20", null),
+        ...during("2026-12-21", "2026-12-23", [h(8), h(17)]), ...winterClosure, ...during("2027-01-04", "2027-01-15", [h(8), h(17)], null),
+        ...during("2027-01-14", "2027-01-14", [h(13), h(17)]), ...during("2027-01-16", "2027-01-17", null), ...during("2027-01-19", "2027-01-19", [h(8), h(24)]) },
+      keywords: "engineering", type: "library", name: "Grainger Engineering Library",
+      areas: floors("Lower level", "1st floor", "2nd floor", "3rd floor", "4th floor"),
+      hours: [[h(10), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(10), h(24)]] },
+    { id: "main", location: [40.1046808, -88.22899], areas: floors("Basement", "1st floor", "2nd floor", "3rd floor", "4th floor", "5th floor"), offers: ["quiet", "group", "outlets"], specialHours: { ...during(...SPRING_BREAK, HOURS_UNCONFIRMED), ...unconfirmedFrom("2027-05-14"),
+        ...nov([21, 22, 26, 27, 28], null), ...nov([23, 24, 25], [h(8.5), h(17)]),
+        ...during("2026-12-18", "2026-12-23", [h(8.5), h(17)], null), ...winterClosure, ...during("2027-01-04", "2027-01-10", [h(8.5), h(17)], null),
+        ...during("2027-01-11", "2027-01-18", HOURS_UNCONFIRMED) },
+      type: "library", name: "Main Library",
+      hours: [[h(13), h(24)], [h(8.5), h(24)], [h(8.5), h(24)], [h(8.5), h(24)], [h(8.5), h(24)], [h(8.5), h(18)], [h(10), h(17)]] },
+    { id: "funk", location: [40.1028373, -88.2251326], areas: floors("1st floor", "2nd floor", "3rd floor", "4th floor"), offers: ["quiet", "group", "outlets"], specialHours: { ...during(...SPRING_BREAK, HOURS_UNCONFIRMED), ...unconfirmedFrom("2027-05-14"),
+        ...nov([21, 22, 26, 27, 28], null), ...nov([23, 24, 25], [h(8.5), h(17)]),
+        ...during("2026-12-18", "2026-12-23", [h(8.5), h(17)], null), ...winterClosure, ...during("2027-01-04", "2027-01-18", HOURS_UNCONFIRMED) },
+      keywords: "aces agriculture", type: "library", name: "Funk ACES Library",
+      hours: [[h(12), h(26)], [h(8.5), h(26)], [h(8.5), h(26)], [h(8.5), h(26)], [h(8.5), h(26)], [h(8.5), h(18)], [h(10), h(20)]] },
+    { id: "union", location: [40.1093924, -88.2272207], areas: floors("1st floor", "2nd floor"), offers: ["group", "outlets"], specialHours: { ...during(...SPRING_BREAK, HOURS_UNCONFIRMED), ...unconfirmedFrom("2027-05-14"),
+        ...nov([25], [h(7), h(17)]), ...nov([26, 27, 28, 29], null), ...during("2026-12-18", "2027-01-17", HOURS_UNCONFIRMED), ...winterClosure },
+      keywords: "iu student union", type: "union", name: "Illini Union", hours: sameEveryDay(7, 23) },
+    { id: "cif", location: [40.1125233, -88.2282768], areas: floors("1st floor", "2nd floor", "3rd floor", "4th floor"), offers: ["group", "outlets", "food"], specialHours: { ...during(...SPRING_BREAK, null), ...unconfirmedFrom("2027-05-14"),
+        ...nov([21, 22, 23, 24, 25, 26, 27, 28, 29], null), ...during("2026-12-18", "2027-01-10", null),
+        ...during("2027-01-11", "2027-01-17", [h(7), h(17)], null), ...during("2027-01-18", "2027-01-18", null) },
+      keywords: "classroom", type: "academic", name: "Campus Instructional Facility (CIF)",
+      hours: [[h(12), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(21)], [h(9), h(21)]] },
+    { id: "bif", location: [40.1035872, -88.2306061], areas: floors("1st floor", "2nd floor", "3rd floor", "4th floor"), offers: ["group", "outlets", "food"], specialHours: { ...springBreakWeekdays(7, 18), ...unconfirmedFrom("2027-05-14"),
+        ...nov([21, 22, 26, 27, 28, 29], null), ...nov([23, 24, 25], [h(7), h(18)]),
+        ...during("2026-12-12", "2026-12-12", [h(6), h(22)]), ...winterWeekdays(7, 18), ...during("2027-01-18", "2027-01-18", [h(7), h(18)]) },
+      keywords: "business gies", type: "academic", name: "Business Instructional Facility (BIF)",
+      hours: [[h(10), h(24)], [h(6), h(24)], [h(6), h(24)], [h(6), h(24)], [h(6), h(24)], [h(6), h(20)], [h(6), h(20)]] },
+    { id: "siebel", location: [40.1140246, -88.2244319], offers: ["group", "outlets", "food"], specialHours: { ...unconfirmedFrom("2027-05-14"),
+        ...nov([21, 22, 23, 24, 25, 28, 29], [h(7), h(18)]), ...nov([26, 27], null), ...during("2026-12-18", "2027-01-17", [h(7), h(21.5)]), ...winterClosure },
+      keywords: "cs computer science", type: "academic", name: "Siebel Center for CS", hours: sameEveryDay(7, 21.5),
+      areas: floors("Basement", "1st floor", "2nd floor", "3rd floor", "4th floor") },
+    { id: "design", location: [40.1027249, -88.2325807], areas: floors("1st floor", "2nd floor", "3rd floor"), offers: ["group", "outlets"], specialHours: { ...during(...SPRING_BREAK, null), ...unconfirmedFrom("2027-05-14"),
+        ...nov([21, 22, 23, 24, 25, 26, 27, 28, 29], null), ...during("2026-12-20", "2027-01-11", null), ...during("2027-01-18", "2027-01-18", null) },
+      keywords: "scd", type: "academic", name: "Siebel Center for Design", hours: sameEveryDay(7, 24) },
+    { id: "law", location: [40.1009806, -88.231491], areas: floors("1st floor", "2nd floor", "3rd floor", "4th floor"), offers: ["outlets"], specialHours: { ...during("2027-03-15", "2027-03-19", null), ...unconfirmedFrom("2027-05-15"),
+        ...nov([20], [h(8), h(17)]), ...nov([21, 22, 25, 26, 27, 28, 29], null), ...nov([23, 24], [h(9), h(17)]),
+        ...during("2026-12-18", "2026-12-18", [h(8), h(17)]), ...during("2026-12-19", "2027-01-03", null),
+        ...during("2027-01-04", "2027-01-15", [h(10), h(15)], null), ...during("2027-01-16", "2027-01-18", null) },
+      keywords: "jenner", type: "library", name: "Law Library",
+      hours: [null, [h(8), h(18)], [h(8), h(18)], [h(8), h(18)], [h(8), h(18)], [h(8), h(18)], null] },
+    { id: "everitt", location: [40.1109722, -88.2282631], areas: floors("Basement", "1st floor", "2nd floor", "3rd floor"), offers: ["group", "outlets"], specialHours: { ...springBreakWeekdays(7, 17.5), ...unconfirmedFrom("2027-05-14"),
+        ...nov([21, 22, 26, 27, 28, 29], null), ...nov([23, 24, 25], [h(7), h(17.5)]), ...winterWeekdays(7, 17.5) },
+      keywords: "bioengineering ece", type: "academic", name: "Everitt Laboratory",
+      hours: [null, [h(7), h(21)], [h(7), h(21)], [h(7), h(21)], [h(7), h(21)], [h(7), h(19)], null] },
+    { id: "lu", location: [40.1110842, -88.2250859], areas: floors("1st floor", "2nd floor", "3rd floor", "4th floor"), offers: ["group", "outlets"], specialHours: { ...springBreakWeekdays(7, 17.5), ...unconfirmedFrom("2027-05-14"),
+        ...nov([21, 22, 26, 27, 28, 29], null), ...nov([23, 24, 25], [h(7), h(17.5)]), ...winterWeekdays(7, 17) },
+      keywords: "mechse mechanical meb", type: "academic", name: "Sidney Lu Mechanical Engineering Building",
+      hours: [null, [h(6), h(21)], [h(6), h(21)], [h(6), h(21)], [h(6), h(21)], [h(6), h(18)], null] },
+  ];
+  // Food places from OpenStreetMap whose hours volunteers checked in 2026; older entries were left out as unreliable.
+  // Each day (Sunday = 0) lists [open, close] periods in minutes after midnight; a close past 1440 runs into the next day.
+  // Dining hall hours are University Housing's published schedule; lunch and light lunch are joined where one runs into the next.
+  // Field of Greens and the Kosher Kitchen at Lincoln/Allen keep their own hours, which aren't shown.
+  const diningHallKind = "Dining hall · meal plan or guest payment";
+  // The official schedule only covers the current week, so breaks and summer aren't known.
+  const diningHallUnknownDates = [["2026-11-21", "2026-11-29"], ["2026-12-18", "2027-01-18"], ["2027-03-13", "2027-03-21"], ["2027-05-14", "2027-08-22"]];
+  const diningWeek = (weekday, weekend) => [weekend, weekday, weekday, weekday, weekday, weekday, weekend];
+  const diningHalls = [
+    { name: "Ikenberry Dining Center", location: [40.10384, -88.23532],
+      hours: diningWeek([[420, 600], [630, 900], [990, 1200]], [[540, 840], [990, 1200]]) },
+    { name: "ISR Dining Center", location: [40.10975, -88.22128],
+      hours: diningWeek([[420, 600], [630, 840], [990, 1200]], [[540, 840], [990, 1200]]) },
+    { name: "Lincoln/Allen Dining Hall", location: [40.10409, -88.22043],
+      hours: diningWeek([[630, 810], [990, 1140]], [[630, 810], [990, 1140]]) },
+    { name: "PAR Dining Hall", location: [40.10002, -88.22039],
+      hours: diningWeek([[420, 600], [630, 870], [990, 1200]], [[630, 870], [990, 1200]]) },
+  ].map((hall) => ({ ...hall, kind: diningHallKind, isHall: true, checked: "2026-11", unknownDates: diningHallUnknownDates }));
+  // Private certified housing dining, from each hall's own website. Newman and Hendrick sell single meals to anyone;
+  // Bromley and Illini Tower don't say, so they're marked for residents. Meal times are joined where one runs into the next.
+  const publicMealsKind = "Private hall dining · anyone can pay per meal";
+  const residentMealsKind = "Private hall dining · residents' meal plans, ask about guests";
+  const weekdays = (hours) => [hours, hours, hours, hours, hours];
+  const privateHallDining = [
+    { name: "Bromley Hall", kind: residentMealsKind, location: [40.10695, -88.23497],
+      hours: diningWeek([[420, 600], [660, 870], [990, 1140]], [[630, 840], [990, 1140]]) },
+    { name: "Hendrick House", kind: publicMealsKind, location: [40.11091, -88.21992],
+      hours: [[[480, 570], [660, 840]], ...weekdays([[420, 570], [660, 900], [990, 1140]]), [[480, 570], [660, 840], [990, 1140]]] },
+    { name: "Illini Tower (The Dish)", kind: residentMealsKind, location: [40.10643, -88.23236],
+      hours: [[[660, 840], [990, 1200]], ...weekdays([[420, 600], [660, 840], [990, 1200]]), [[660, 840], [990, 1140]]] },
+    { name: "Newman Hall", kind: publicMealsKind, location: [40.10614, -88.22974],
+      hours: [[[570, 840], [1020, 1140]], [[420, 600], [660, 1290]], [[420, 600], [660, 1290]], [[420, 600], [660, 1290]], [[420, 600], [660, 1290]], [[420, 600], [660, 1200]], [[480, 600], [660, 1200]]] },
+  ].map((hall) => ({ ...hall, isHall: true, checked: "2026-11", unknownDates: diningHallUnknownDates }));
+  // University Housing's retail spots, from its published schedule. Those inside a hall use that hall's location.
+  const housingRetail = [
+    { name: "57 North", kind: "University Housing store", location: [40.10381, -88.23505], hours: Array(7).fill([[600, 1440]]) },
+    { name: "Caffeinator", kind: "University Housing cafe", location: [40.10384, -88.23532],
+      hours: [[[720, 1380]], [[420, 1380]], [[420, 1380]], [[420, 1380]], [[420, 1380]], [[420, 1080]], []] },
+    { name: "Corner Cafe", kind: "University Housing cafe", location: [40.0987, -88.22109],
+      hours: [[[420, 1080]], [[420, 1080]], [[420, 1080]], [[420, 1080]], [[420, 1080]], [], []] },
+    { name: "InfiniTEA", kind: "University Housing cafe", location: [40.11029, -88.2217],
+      hours: diningWeek([[420, 1320]], [[540, 1320]]) },
+    { name: "TerraByte", kind: "University Housing store", location: [40.11026, -88.22186],
+      hours: diningWeek([[420, 1440]], [[540, 1440]]) },
+    { name: "Urbana South Market", kind: "University Housing store", location: [40.10002, -88.22039], hours: Array(7).fill([[540, 1320]]) },
+  ].map((spot) => ({ ...spot, checked: "2026-11", unknownDates: diningHallUnknownDates }));
+  const foodPlaces = [
+    ...diningHalls,
+    ...privateHallDining,
+    ...housingRetail,
+    {"name": "Annapoorna Store", "kind": "Convenience store", "location": [40.11117, -88.24496], "hours": [[[600, 1200]], [[600, 1230]], [[600, 1230]], [[600, 1230]], [[600, 1230]], [[600, 1230]], [[600, 1230]]], "checked": "2026-10"},
+    {"name": "Atomic Wings", "kind": "Fast food", "location": [40.11041, -88.22924], "hours": [[[660, 1440]], [[660, 1440]], [[660, 1440]], [[660, 1440]], [[660, 1620]], [[660, 1620]], [[660, 1620]]], "checked": "2026-06"},
+    {"name": "Avionics", "kind": "Cafe", "location": [40.1152, -88.23853], "hours": [[[480, 900]], [[420, 1080]], [[420, 1080]], [[420, 1080]], [[420, 1080]], [[420, 1080]], [[480, 900]]], "checked": "2026-03"},
+    {"name": "Bab Plus", "kind": "Restaurant", "location": [40.10665, -88.22132], "hours": [[[660, 1230]], [[660, 1230]], [[660, 1230]], [[660, 1230]], [[660, 1230]], [[660, 1230]], [[660, 1230]]], "checked": "2026-05"},
+    {"name": "Bangkok Thai Restaurant & Pho 911", "kind": "Restaurant", "location": [40.11045, -88.23248], "hours": [[[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]]], "checked": "2026-08"},
+    {"name": "Basil Thai", "kind": "Restaurant", "location": [40.10642, -88.22168], "hours": [[[660, 1230]], [[660, 1230]], [[660, 1230]], [[660, 1230]], [[660, 1230]], [[660, 1230]], [[660, 1230]]], "checked": "2026-05"},
+    {"name": "Baskin-Robbins", "kind": "Ice cream", "location": [40.11045, -88.24391], "hours": [[[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]]], "checked": "2026-10"},
+    {"name": "bb.q Chicken", "kind": "Restaurant", "location": [40.10635, -88.22133], "hours": [[[690, 1260]], [], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1290]], [[690, 1290]]], "checked": "2026-05"},
+    {"name": "Blue Ethiopian Cuisine & Cafe", "kind": "Restaurant", "location": [40.11704, -88.24261], "hours": [[[660, 900], [1020, 1260]], [], [[660, 900], [1020, 1260]], [[660, 900], [1020, 1260]], [[660, 900], [1020, 1260]], [[660, 900], [1020, 1260]], [[660, 900], [1020, 1260]]], "checked": "2026-04"},
+    {"name": "Burrito King", "kind": "Fast food", "location": [40.11043, -88.23267], "hours": [[[660, 1620]], [[660, 1620]], [[660, 1620]], [[660, 1620]], [[660, 1620]], [[660, 1620]], [[660, 1620]]], "checked": "2026-08"},
+    {"name": "C-U La La Noodle", "kind": "Restaurant", "location": [40.11042, -88.23227], "hours": [[[660, 1530]], [[660, 1260]], [[660, 1530]], [[660, 1530]], [[660, 1530]], [[660, 1530]], [[660, 1530]]], "checked": "2026-08"},
+    {"name": "Cafe Sababa", "kind": "Cafe", "location": [40.10873, -88.23158], "hours": [[], [[690, 810]], [[690, 810]], [[690, 810]], [[690, 810]], [], []], "checked": "2026-08"},
+    {"name": "Caffe Bene", "kind": "Cafe", "location": [40.1104, -88.23089], "hours": [[[480, 1260]], [[480, 1260]], [[480, 1260]], [[480, 1260]], [[480, 1260]], [[480, 1260]], [[480, 1260]]], "checked": "2026-08"},
+    {"name": "Caffe Paradiso", "kind": "Cafe", "location": [40.10576, -88.21944], "hours": [[[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]]], "checked": "2026-07"},
+    {"name": "Chili Bistro", "kind": "Restaurant", "location": [40.11652, -88.2295], "hours": [[[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1320]], [[660, 1320]]], "checked": "2026-07"},
+    {"name": "Chipotle", "kind": "Fast food", "location": [40.1104, -88.23063], "hours": [[[630, 1380]], [[630, 1380]], [[630, 1380]], [[630, 1380]], [[630, 1380]], [[630, 1380]], [[630, 1380]]], "checked": "2026-05"},
+    {"name": "Choong Man Chicken", "kind": "Fast food", "location": [40.10982, -88.2405], "hours": [[[900, 1500]], [[900, 1500]], [[900, 1500]], [[900, 1500]], [[900, 1500]], [[900, 1500]], [[900, 1500]]], "checked": "2026-08"},
+    {"name": "Circle K", "kind": "Convenience store", "location": [40.11101, -88.21881], "hours": [[[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]]], "checked": "2026-08"},
+    {"name": "Circle K", "kind": "Convenience store", "location": [40.1018, -88.24433], "hours": [[[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]]], "checked": "2026-10"},
+    {"name": "Cocomero", "kind": "Restaurant", "location": [40.10999, -88.22908], "hours": [[[720, 1320]], [[720, 1320]], [[720, 1320]], [[720, 1320]], [[720, 1320]], [[720, 1320]], [[720, 1320]]], "checked": "2026-08"},
+    {"name": "Coffee Bar", "kind": "Cafe", "location": [40.11599, -88.21533], "hours": [[], [[390, 810]], [[390, 810]], [[390, 810]], [[390, 810]], [[390, 810]], []], "checked": "2026-06"},
+    {"name": "Cracked on Green", "kind": "Restaurant", "location": [40.11019, -88.22962], "hours": [[[480, 960]], [[480, 840]], [[480, 840]], [[480, 840]], [[480, 1560]], [[480, 1620]], [[480, 1620]]], "checked": "2026-06"},
+    {"name": "Dubai Grill", "kind": "Restaurant", "location": [40.10686, -88.22197], "hours": [[[540, 1200]], [[450, 1290]], [[450, 1290]], [[450, 1290]], [[450, 1290]], [[450, 1290]], [[540, 1290]]], "checked": "2026-05"},
+    {"name": "Dunkin'", "kind": "Fast food", "location": [40.11018, -88.23], "hours": [[[360, 1080]], [[360, 1080]], [[360, 1080]], [[360, 1080]], [[360, 1080]], [[360, 1080]], [[360, 1080]]], "checked": "2026-06"},
+    {"name": "Dunkin'", "kind": "Fast food", "location": [40.1105, -88.24394], "hours": [[[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]]], "checked": "2026-10"},
+    {"name": "Dutch Bros. Coffee", "kind": "Cafe", "location": [40.11042, -88.21897], "hours": [[[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1320]], [[300, 1380]], [[300, 1380]]], "checked": "2026-06"},
+    {"name": "Elite", "kind": "Fast food", "location": [40.11037, -88.23659], "hours": [[[600, 960]], [[480, 1020]], [[480, 1020]], [[480, 1020]], [[480, 1020]], [[480, 1020]], [[600, 960]]], "checked": "2026-03"},
+    {"name": "Espresso Royale", "kind": "Cafe", "location": [40.10682, -88.22363], "hours": [[[480, 1080]], [[420, 1140]], [[420, 1140]], [[420, 1140]], [[420, 1140]], [[420, 1140]], [[420, 1080]]], "checked": "2026-05"},
+    {"name": "Fat Sandwich Company", "kind": "Fast food", "location": [40.1092, -88.23162], "hours": [[[660, 1560]], [[660, 1560]], [[660, 1560]], [[660, 1560]], [[660, 1560]], [[660, 1560]], [[660, 1560]]], "checked": "2026-06"},
+    {"name": "Fiesta Cafe", "kind": "Restaurant", "location": [40.11477, -88.23848], "hours": [[[660, 1380]], [[660, 1380]], [[660, 1380]], [[660, 1380]], [[660, 1380]], [[660, 1380]], [[660, 1380]]], "checked": "2026-08"},
+    {"name": "Fresh International Market", "kind": "Convenience store", "location": [40.11115, -88.24447], "hours": [[[540, 1260]], [[540, 1260]], [[540, 1260]], [[540, 1260]], [[540, 1260]], [[540, 1320]], [[540, 1320]]], "checked": "2026-10"},
+    {"name": "Golden Harbor", "kind": "Restaurant", "location": [40.11115, -88.24379], "hours": [[[660, 885], [960, 1200]], [], [[660, 885], [960, 1260]], [[660, 885], [960, 1260]], [[660, 885], [960, 1260]], [[660, 885], [960, 1260]], [[660, 885], [960, 1260]]], "checked": "2026-10"},
+    {"name": "Golden Wok", "kind": "Fast food", "location": [40.11602, -88.23285], "hours": [[], [[660, 1185]], [[660, 1185]], [[660, 1185]], [[660, 1185]], [[660, 1185]], [[720, 1245]]], "checked": "2026-06"},
+    {"name": "Haypenny Market", "kind": "Convenience store", "location": [40.1169, -88.24185], "hours": [[[480, 1200]], [[480, 1200]], [[480, 1200]], [[480, 1200]], [[480, 1200]], [[480, 1200]], [[480, 1200]]], "checked": "2026-07"},
+    {"name": "Hey Bobo Café", "kind": "Cafe", "location": [40.11653, -88.2293], "hours": [[[420, 1200]], [[360, 1080]], [[360, 1080]], [[360, 1080]], [[360, 1080]], [[360, 1200]], [[420, 1200]]], "checked": "2026-07"},
+    {"name": "Indian Chaat Café", "kind": "Restaurant", "location": [40.10982, -88.241], "hours": [[[660, 900], [1020, 1260]], [[660, 900], [1020, 1320]], [[660, 900], [1020, 1320]], [[660, 900], [1020, 1320]], [[660, 900], [1020, 1320]], [[660, 900], [1020, 1320]], [[660, 900], [1020, 1320]]], "checked": "2026-03"},
+    {"name": "Insomnia Cookies", "kind": "Restaurant", "location": [40.10918, -88.23127], "hours": [[[720, 1440]], [[660, 1440]], [[660, 1440]], [[660, 1440]], [[660, 1500]], [[660, 1500]], [[720, 1500]]], "checked": "2026-06"},
+    {"name": "Jimmy John's", "kind": "Fast food", "location": [40.10556, -88.21938], "hours": [[[600, 1500]], [[600, 1500]], [[600, 1500]], [[600, 1500]], [[600, 1620]], [[600, 1620]], [[600, 1620]]], "checked": "2026-07"},
+    {"name": "Jimmy John's", "kind": "Fast food", "location": [40.11019, -88.23023], "hours": [[[600, 1440]], [[600, 1440]], [[600, 1440]], [[600, 1440]], [[600, 1620]], [[600, 1620]], [[600, 1620]]], "checked": "2026-06"},
+    {"name": "Jipbap Taste of Korea", "kind": "Restaurant", "location": [40.11138, -88.23058], "hours": [[[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]]], "checked": "2026-05"},
+    {"name": "Jurassic Grill", "kind": "Restaurant", "location": [40.1104, -88.23311], "hours": [[[660, 1440]], [[660, 1620]], [[660, 1620]], [[660, 1620]], [[660, 1620]], [[660, 1620]], [[660, 1620]]], "checked": "2026-06"},
+    {"name": "Kajiken", "kind": "Restaurant", "location": [40.11019, -88.2297], "hours": [[[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]]], "checked": "2026-08"},
+    {"name": "Latea Bubble Tea Lounge", "kind": "Cafe", "location": [40.11109, -88.23057], "hours": [[[720, 1260]], [[720, 1260]], [[720, 1260]], [[720, 1260]], [[720, 1260]], [[720, 1260]], [[720, 1260]]], "checked": "2026-05"},
+    {"name": "Les Gourmets Cuisine", "kind": "Restaurant", "location": [40.11691, -88.2427], "hours": [[[840, 1320]], [], [[660, 840], [960, 1260]], [[660, 840], [960, 1260]], [[660, 840], [960, 1260]], [[720, 1320]], [[720, 1320]]], "checked": "2026-07"},
+    {"name": "Little Caesars", "kind": "Fast food", "location": [40.10859, -88.24383], "hours": [[[600, 1320]], [[600, 1320]], [[600, 1320]], [[600, 1320]], [[600, 1320]], [[600, 1320]], [[600, 1320]]], "checked": "2026-08"},
+    {"name": "Mad Goat Coffee", "kind": "Cafe", "location": [40.11758, -88.24069], "hours": [[[420, 1200]], [[360, 1200]], [[360, 1200]], [[360, 1200]], [[360, 1200]], [[360, 1200]], [[420, 1200]]], "checked": "2026-01"},
+    {"name": "Maize", "kind": "Fast food", "location": [40.10956, -88.22716], "hours": [[], [[600, 1020]], [[600, 1020]], [[600, 1020]], [[600, 1020]], [[600, 1020]], []], "checked": "2026-08"},
+    {"name": "Maize", "kind": "Restaurant", "location": [40.10143, -88.24437], "hours": [[[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]]], "checked": "2026-10"},
+    {"name": "Mid Summer Lounge", "kind": "Restaurant", "location": [40.11019, -88.22945], "hours": [[[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]]], "checked": "2026-08"},
+    {"name": "Nando Milano", "kind": "Restaurant", "location": [40.11754, -88.24331], "hours": [[[960, 1260]], [[1020, 1290]], [[1020, 1290]], [[1020, 1290]], [[1020, 1290]], [[1020, 1320]], [[1020, 1320]]], "checked": "2026-03"},
+    {"name": "Naya Indian Cuisine", "kind": "Restaurant", "location": [40.11038, -88.23554], "hours": [[[660, 1410]], [[660, 1410]], [[660, 1410]], [[660, 1410]], [[660, 1410]], [[660, 1410]], [[660, 1410]]], "checked": "2026-06"},
+    {"name": "Noodles & Company", "kind": "Restaurant", "location": [40.11047, -88.23058], "hours": [[[645, 1320]], [[645, 1260]], [[645, 1260]], [[645, 1260]], [[645, 1260]], [[645, 1320]], [[645, 1320]]], "checked": "2026-03"},
+    {"name": "Northern Cuisine", "kind": "Restaurant", "location": [40.1104, -88.23325], "hours": [[[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1320]], [[660, 1320]]], "checked": "2026-06"},
+    {"name": "NYC Halal Bros", "kind": "Restaurant", "location": [40.10997, -88.23515], "hours": [[[660, 1560]], [[660, 1560]], [[660, 1560]], [[660, 1560]], [[660, 1620]], [[660, 1620]], [[660, 1620]]], "checked": "2026-09"},
+    {"name": "Paris Super Crepes", "kind": "Restaurant", "location": [40.11096, -88.23058], "hours": [[[720, 1350]], [[720, 1350]], [[720, 1350]], [[720, 1350]], [[720, 1350]], [[720, 1380]], [[720, 1380]]], "checked": "2026-05"},
+    {"name": "Pho Noodle Station", "kind": "Restaurant", "location": [40.11119, -88.23058], "hours": [[[690, 1290]], [[690, 1290]], [[690, 1290]], [[690, 1290]], [[690, 1290]], [[690, 1320]], [[690, 1320]]], "checked": "2026-05"},
+    {"name": "Pokelab Champaign", "kind": "Restaurant", "location": [40.11081, -88.23056], "hours": [[[690, 1290]], [[690, 1290]], [[690, 1290]], [[690, 1290]], [[690, 1290]], [[690, 1290]], [[690, 1290]]], "checked": "2026-05"},
+    {"name": "Qdoba", "kind": "Fast food", "location": [40.10991, -88.22906], "hours": [[[630, 1200]], [[630, 1200]], [[630, 1200]], [[630, 1200]], [[630, 1200]], [[630, 1200]], [[630, 1200]]], "checked": "2026-07"},
+    {"name": "Raising Cane's", "kind": "Fast food", "location": [40.11006, -88.23228], "hours": [[[600, 1620]], [[600, 1620]], [[600, 1620]], [[600, 1620]], [[600, 1620]], [[600, 1620]], [[600, 1620]]], "checked": "2026-10"},
+    {"name": "reFresh Eatery", "kind": "Fast food", "location": [40.11744, -88.21544], "hours": [[[360, 1560]], [[360, 1560]], [[360, 1560]], [[360, 1560]], [[360, 1560]], [[360, 1560]], [[360, 1560]]], "checked": "2026-06"},
+    {"name": "Rosati's Pizza", "kind": "Fast food", "location": [40.10654, -88.22169], "hours": [[], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1320]], [[660, 1320]]], "checked": "2026-05"},
+    {"name": "Royal BBQ", "kind": "Restaurant", "location": [40.11039, -88.23165], "hours": [[[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1320]], [[660, 1320]]], "checked": "2026-08"},
+    {"name": "Sakayana", "kind": "Restaurant", "location": [40.11014, -88.2331], "hours": [[[960, 1290]], [], [[960, 1260]], [[960, 1260]], [[960, 1260]], [[960, 1290]], [[960, 1290]]], "checked": "2026-06"},
+    {"name": "Sam's Cafe", "kind": "Restaurant", "location": [40.11699, -88.24267], "hours": [[[420, 840]], [[360, 840]], [[360, 840]], [[360, 840]], [[360, 840], [990, 1230]], [[360, 840], [990, 1230]], [[420, 810]]], "checked": "2026-06"},
+    {"name": "Shawarma Joint", "kind": "Restaurant", "location": [40.1102, -88.2293], "hours": [[[600, 1320]], [[600, 1320]], [[600, 1320]], [[600, 1320]], [[600, 1320]], [[600, 1320]], [[600, 1320]]], "checked": "2026-08"},
+    {"name": "Starbucks", "kind": "Cafe", "location": [40.10956, -88.22703], "hours": [[[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]]], "checked": "2026-08"},
+    {"name": "Subway", "kind": "Fast food", "location": [40.11044, -88.22955], "hours": [[[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]]], "checked": "2026-06"},
+    {"name": "Subway", "kind": "Fast food", "location": [40.10616, -88.22169], "hours": [[[540, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]]], "checked": "2026-05"},
+    {"name": "Suzu's Bakery", "kind": "Bakery", "location": [40.11683, -88.24218], "hours": [[[600, 1080]], [], [], [[480, 1080]], [[480, 1080]], [[480, 1140]], [[480, 1140]]], "checked": "2026-08"},
+    {"name": "Thai Fusion", "kind": "Restaurant", "location": [40.11019, -88.22979], "hours": [[[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]]], "checked": "2026-06"},
+    {"name": "Thai Fusion", "kind": "Restaurant", "location": [40.10953, -88.22712], "hours": [[], [[660, 1080]], [[660, 1080]], [[660, 1080]], [[660, 1080]], [[660, 1080]], []], "checked": "2026-08"},
+    {"name": "The Bread Company", "kind": "Restaurant", "location": [40.10668, -88.22362], "hours": [[], [[540, 645], [675, 885]], [[540, 645], [675, 990], [1020, 1200]], [[540, 645], [675, 990], [1020, 1200]], [[540, 645], [675, 990], [1020, 1200]], [[540, 645], [675, 990], [1020, 1260]], [[960, 1260]]], "checked": "2026-05"},
+    {"name": "The Caffeine Rx", "kind": "Cafe", "location": [40.1168, -88.24275], "hours": [[[540, 900]], [], [], [[480, 1080]], [[480, 1080]], [[480, 1080]], [[480, 1080]]], "checked": "2026-07"},
+    {"name": "The Scratching Post", "kind": "Cafe", "location": [40.11647, -88.23808], "hours": [[[840, 1320]], [], [], [[840, 1320]], [[840, 1320]], [[840, 1320]], [[840, 1320]]], "checked": "2026-08"},
+    {"name": "Vinny's By The Slice & More", "kind": "Restaurant", "location": [40.11051, -88.24002], "hours": [[], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], []], "checked": "2026-10"},
+    {"name": "Wingstop", "kind": "Fast food", "location": [40.11069, -88.24307], "hours": [[[630, 1500]], [[630, 1500]], [[630, 1500]], [[630, 1500]], [[630, 1500]], [[630, 1500]], [[630, 1500]]], "checked": "2026-08"},
+    {"name": "Yatai", "kind": "Restaurant", "location": [40.11605, -88.23119], "hours": [[[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]]], "checked": "2026-05"},
+    {"name": "Yummy Future Matcha House", "kind": "Cafe", "location": [40.11013, -88.2332], "hours": [[[360, 1380]], [[360, 1380]], [[360, 1380]], [[360, 1380]], [[360, 1380]], [[360, 1380]], [[360, 1380]]], "checked": "2026-08"},
+    {"name": "Yummy Future Original", "kind": "Cafe", "location": [40.11018, -88.22993], "hours": [[[540, 1320]], [[450, 1320]], [[450, 1320]], [[450, 1320]], [[450, 1320]], [[450, 1320]], [[540, 1380]]], "checked": "2026-08"},
+  ];
+  // Reports only count for this long, because rooms fill up and empty out.
+  const reportLifetimeMs = 60 * 60 * 1000;
+  // Lower rank sorts higher in the list. Open spots with no recent report sit between "some" and "packed".
+  const busynessRank = { empty: 0, some: 1, unknown: 2, packed: 3 };
+  const busynessLabels = { empty: "Empty", some: "Some seats", packed: "Packed" };
+
+  function formatTime(minutes) {
+    const hour24 = Math.floor(minutes / 60) % 24;
+    const minute = minutes % 60;
+    const suffix = hour24 < 12 ? "am" : "pm";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    return minute === 0 ? `${hour12}${suffix}` : `${hour12}:${String(minute).padStart(2, "0")}${suffix}`;
+  }
+
+  // Line icons, one per spot, that hint at what each place is. The tile behind each one shows the kind of place.
+  const spotIcons = {
+    grainger: { label: "Book and gear, for engineering", svg: '<path d="M3 13c3-1 6-1 9 1 3-2 6-2 9-1v7c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 14v7"/><circle cx="12" cy="6.5" r="2"/><path d="M12 2.5V4M12 9v1.5M8 6.5h1.5M14.5 6.5H16M9.2 3.7l1 1M13.8 8.3l1 1M14.8 3.7l-1 1M10.2 8.3l-1 1"/>' },
+    main: { label: "Columned library building", svg: '<path d="M3 9.5 12 4l9 5.5z"/><circle cx="12" cy="7.3" r=".8"/><path d="M6 11.5v6M10 11.5v6M14 11.5v6M18 11.5v6"/><path d="M4 17.5h16M2.5 20.5h19"/>' },
+    funk: { label: "Stalk of wheat, for agriculture", svg: '<path d="M12 22V8"/><path d="M12 8c-2-1-2.5-3-2-5 2 .6 3 2.6 2 5zM12 8c2-1 2.5-3 2-5-2 .6-3 2.6-2 5z"/><path d="M12 13c-2.5 0-4-1.5-4.5-4 2.5 0 4.2 1.5 4.5 4zM12 13c2.5 0 4-1.5 4.5-4-2.5 0-4.2 1.5-4.5 4z"/><path d="M12 18c-2.5 0-4-1.5-4.5-4 2.5 0 4.2 1.5 4.5 4zM12 18c2.5 0 4-1.5 4.5-4-2.5 0-4.2 1.5-4.5 4z"/>' },
+    union: { label: "Steaming cup on a saucer", svg: '<path d="M6 10h11v4.5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M17 11h1.3a2.5 2.5 0 0 1 0 5h-1.7"/><path d="M4 21.5h15"/><path d="M8.5 7c-.8-1 .8-2 0-3.2M11.5 7c-.8-1 .8-2 0-3.2M14.5 7c-.8-1 .8-2 0-3.2"/>' },
+    cif: { label: "Classroom board on a stand", svg: '<rect x="3" y="4" width="18" height="12" rx="1"/><path d="M6.5 8h6M6.5 11.5h4"/><path d="m14.5 12 2-3 2 2"/><path d="M12 16v2.5M8 21l4-2.5 4 2.5"/>' },
+    bif: { label: "Briefcase with a bar chart, for business", svg: '<rect x="3" y="8" width="18" height="12.5" rx="1.5"/><path d="M9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8"/><path d="M8 17.5V15M12 17.5v-5.5M16 17.5v-3.5"/>' },
+    siebel: { label: "Laptop showing code, for computer science", svg: '<rect x="4.5" y="4" width="15" height="11" rx="1.2"/><path d="M2.5 19h19l-2-4h-15z"/><path d="m9.5 7.5-2 2 2 2M14.5 7.5l2 2-2 2M12.7 7l-1.4 5"/>' },
+    design: { label: "Pencil and ruler, for design", svg: '<path d="M4 20l1-4L16 5a2 2 0 0 1 3 3L8 19z"/><path d="M14 7l3 3M5 16l3 3"/><path d="M14 21l7-7-2.5-2.5-7 7z"/><path d="m15.5 18.5-1-1M17.5 16.5l-1-1M19.5 14.5l-1-1"/>' },
+    law: { label: "Balance scales, for law", svg: '<path d="M12 3v17M7.5 21h9M5 6h14"/><path d="M5 6 2.5 12.5h5zM19 6l-2.5 6.5h5z"/><path d="M2.5 12.5a2.5 2.5 0 0 0 5 0M16.5 12.5a2.5 2.5 0 0 0 5 0"/>' },
+    everitt: { label: "Circuit chip with a lightning bolt, for electrical engineering", svg: '<rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9 3v3M12 3v3M15 3v3M9 18v3M12 18v3M15 18v3M3 9h3M3 12h3M3 15h3M18 9h3M18 12h3M18 15h3"/><path d="m12.8 8.5-2.6 4h3.6l-2.6 3"/>' },
+    lu: { label: "Two gears, for mechanical engineering", svg: '<circle cx="9" cy="10" r="2"/><circle cx="9" cy="10" r="5"/><path d="M9 3v2M9 15v2M2 10h2M14 10h2M4 5l1.5 1.5M12.5 13.5 14 15M14 5l-1.5 1.5M4 15l1.5-1.5"/><circle cx="17.5" cy="18" r="1"/><circle cx="17.5" cy="18" r="3"/><path d="M17.5 13.5V15M17.5 21v1.5M13 18h1.5M20.5 18H22"/>' },
+  };
+
+  function spotIcon(spotId) {
+    const icon = spotIcons[spotId];
+    return `<svg class="spot-icon" viewBox="0 0 24 24" role="img" aria-label="${icon.label}"><title>${icon.label}</title>${icon.svg}</svg>`;
+  }
+
+  // Three bars like phone signal: more filled bars means busier.
+  const filledBars = { empty: 1, some: 2, packed: 3, unknown: 0 };
+  function busynessMeter(level) {
+    const bars = [1, 2, 3].map((bar) =>
+      `<span class="bar bar-${bar}${bar <= filledBars[level] ? " filled" : ""}"></span>`).join("");
+    const label = level === "unknown" ? "No recent report" : busynessLabels[level];
+    return `<span class="meter ${level}" role="img" aria-label="Busyness: ${label}">${bars}</span>`;
+  }
+
+  const WALK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"/><path d="M9 14v-2a1 1 0 0 1 1-1h4"/><path d="M12.5 9l2 2-2 2"/></svg>';
+  const CLOSING_SOON_MINUTES = 60;
+  const NEARBY_FOOD_MILES = 0.25;
+  const LATE_FOOD_FILTER = "late-food";
+  const LATE_NIGHT_START = 22 * 60;
+  const EARLY_MORNING_END = 5 * 60;
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const daysLater = (date, days) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+
+  // A spot's [open, close] on a date, null if closed, or HOURS_UNCONFIRMED: special hours for that date first, then its weekly hours.
+  function hoursOn(spot, date) {
+    const dateKey = dateKeyFor(date);
+    return dateKey in (spot.specialHours ?? {}) ? spot.specialHours[dateKey] : spot.hours[date.getDay()];
+  }
+
+  // When a closed spot next opens: later today, tomorrow, a named day this week, or a date for longer closures.
+  function nextOpening(spot, now, minutes) {
+    const today = hoursOn(spot, now);
+    if (today && minutes < today[0]) return `opens ${formatTime(today[0])}`;
+    for (let daysAhead = 1; daysAhead <= 45; daysAhead++) {
+      const futureDate = daysLater(now, daysAhead);
+      const hours = hoursOn(spot, futureDate);
+      if (!hours) continue;
+      if (hours === HOURS_UNCONFIRMED) return "reopening not confirmed";
+      if (daysAhead === 1) return `opens ${formatTime(hours[0])}`;
+      if (daysAhead < 7) return `opens ${dayNames[futureDate.getDay()]} ${formatTime(hours[0])}`;
+      return `opens ${monthNames[futureDate.getMonth()]} ${futureDate.getDate()}, ${formatTime(hours[0])}`;
+    }
+    return "no open hours listed";
+  }
+
+  // Status for an open spot; in its last hour it warns instead, so nobody walks over just as it closes.
+  function openUntil(closeMinutes, closeTime, minutes) {
+    const minutesLeft = closeMinutes - minutes;
+    return minutesLeft < CLOSING_SOON_MINUTES
+      ? { isOpen: true, closingSoon: true, text: `Closes in ${minutesLeft} min` }
+      : { isOpen: true, text: `Open until ${formatTime(closeTime)}` };
+  }
+
+  function openStatus(spot, now) {
+    if (!spot.hours) return { isOpen: null, text: "Hours not confirmed" };
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const today = hoursOn(spot, now);
+    if (today === HOURS_UNCONFIRMED) return { isOpen: null, text: "Hours not confirmed" };
+    const yesterday = hoursOn(spot, daysLater(now, -1));
+    if (yesterday && yesterday[1] > h(24) && minutes < yesterday[1] - h(24)) {
+      return openUntil(yesterday[1] - h(24), yesterday[1], minutes);
+    }
+    if (today && minutes >= today[0] && minutes < today[1]) {
+      const tomorrow = hoursOn(spot, daysLater(now, 1));
+      const staysOpenOvernight = today[1] === h(24) && tomorrow?.[0] === 0;
+      if (staysOpenOvernight && today[0] === 0) return { isOpen: true, text: "Open 24 hours" };
+      if (staysOpenOvernight) return { isOpen: true, text: "Open overnight" };
+      return openUntil(today[1], today[1], minutes);
+    }
+    return { isOpen: false, text: `Closed · ${nextOpening(spot, now, minutes)}` };
+  }
+
+  // A search matches part of a spot's name or one of its nicknames, ignoring case and extra spaces.
+  function matchesSearch(spot, query) {
+    const cleanQuery = query.trim().toLowerCase();
+    return !cleanQuery || `${spot.name} ${spot.keywords ?? ""}`.toLowerCase().includes(cleanQuery);
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, (character) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+  }
+
+  // compact gives "12m ago" for the narrow card line; otherwise "12 min ago".
+  function describeAge(timestamp, nowMs = Date.now(), compact = false) {
+    const minutesAgo = Math.round((nowMs - timestamp) / 60000);
+    if (minutesAgo < 1) return "just now";
+    if (minutesAgo < 60) return compact ? `${minutesAgo}m ago` : `${minutesAgo} min ago`;
+    return compact ? `${Math.round(minutesAgo / 60)}h ago` : `${Math.round(minutesAgo / 60)} hr ago`;
+  }
+
+  // Whole-building reports are saved under the spot's id, floor reports under "spot/floor".
+  function reportKey(spot, area) {
+    return area ? `${spot.id}/${area.id}` : spot.id;
+  }
+
+  // Every report for a spot, whole building and each floor, newest first, as { area, report }. area is null for the whole building.
+  function reportsFor(spot, reports) {
+    return [null, ...(spot.areas ?? [])]
+      .map((area) => ({ area, report: reports[reportKey(spot, area)] }))
+      .filter(({ report }) => report)
+      .sort((a, b) => b.report.time - a.report.time);
+  }
+
+  // Recent reports for a spot, emptiest first; ties keep the newest first.
+  function recentReportsFor(spot, now, reports) {
+    return reportsFor(spot, reports)
+      .filter(({ report }) => now.getTime() - report.time < reportLifetimeMs)
+      .sort((a, b) => busynessRank[a.report.level] - busynessRank[b.report.level]);
+  }
+
+  // The emptiest report from the last hour anywhere in a spot, or null. One empty floor is reason enough to go.
+  function emptiestRecentReport(spot, now, reports) {
+    return recentReportsFor(spot, now, reports)[0] ?? null;
+  }
+
+  // Floors reported in the last hour, emptiest first, for the list on each card.
+  function recentFloorReports(spot, now, reports) {
+    return recentReportsFor(spot, now, reports).filter(({ area }) => area);
+  }
+
+  // How busy a spot is, from its emptiest report in the last hour, otherwise "unknown".
+  function recentLevel(spot, now, reports) {
+    return emptiestRecentReport(spot, now, reports)?.report.level ?? "unknown";
+  }
+
+  function isEmptyNow(spot, now, reports) {
+    return openStatus(spot, now).isOpen !== false && recentLevel(spot, now, reports) === "empty";
+  }
+
+  // Best spots first: open before closed, then emptiest first. Array.sort is stable, so ties keep list order.
+  function sortBestFirst(spots, now, reports) {
+    // Closing-soon spots sit below other open spots and above closed ones.
+    const statusRank = (status) => (status.isOpen === false ? 20 : status.closingSoon ? 10 : 0);
+    const sortRank = (spot) => statusRank(openStatus(spot, now)) + busynessRank[recentLevel(spot, now, reports)];
+    return [...spots].sort((a, b) => sortRank(a) - sortRank(b));
+  }
+
+  // The legend for the busyness meter, with bars matching the ones on the cards.
+  function meterKey() {
+    const keyEntries = [...Object.entries({ ...busynessLabels, empty: "Empty = plenty of free seats" }), ["unknown", "No recent report"]];
+    return keyEntries.map(([level, label]) =>
+      `<span class="key-item"><span aria-hidden="true">${busynessMeter(level)}</span>${label}</span>`).join("");
+  }
+
+  // The kinds of place, in the order their sections appear. Each id matches a spot's type.
+  const spotCategories = [
+    { id: "library", heading: "Libraries", buttonLabel: "Libraries" },
+    { id: "academic", heading: "Academic buildings", buttonLabel: "Academic" },
+    { id: "union", heading: "Student union", buttonLabel: "Union" },
+  ];
+
+  // Spots matching the search and chosen category ("all" for every kind), best first, split into open and closed.
+  // Spots with unknown hours count as open, since they might be.
+  // True when a spot offers everything chosen; choosing nothing matches every spot.
+  function hasAllOffers(spot, offerIds) {
+    return offerIds.every((offerId) => spot.offers?.includes(offerId));
+  }
+
+  // Favorites come out separately, open or closed, so each spot appears once.
+  function spotsToShow(spots, now, reports, query, categoryId = "all", favoriteIds = [], offerIds = []) {
+    const spotOffers = offerIds.filter((offerId) => offerId !== LATE_FOOD_FILTER);
+    const needsLateFood = offerIds.includes(LATE_FOOD_FILTER);
+    const matching = sortBestFirst(spots, now, reports).filter((spot) =>
+      matchesSearch(spot, query) && (categoryId === "all" || spot.type === categoryId) && hasAllOffers(spot, spotOffers)
+      && (!needsLateFood || nearestFood(spot, foodPlaces, now, true) !== null));
+    const isClosed = (spot) => openStatus(spot, now).isOpen === false;
+    const isFavorite = (spot) => favoriteIds.includes(spot.id);
+    const others = matching.filter((spot) => !isFavorite(spot));
+    return {
+      favoriteSpots: matching.filter(isFavorite).sort((a, b) => isClosed(a) - isClosed(b)),
+      openSpots: others.filter((spot) => !isClosed(spot)),
+      closedSpots: others.filter(isClosed),
+    };
+  }
+
+  // The reports after taking one back: the earlier report returns, or the entry goes if there wasn't one.
+  function undoReport(reports, key, previousReport) {
+    const restored = { ...reports };
+    if (previousReport) restored[key] = previousReport;
+    else delete restored[key];
+    return restored;
+  }
+
+  // The reports without any for this spot, whole building or a floor.
+  function clearSpotReports(spot, reports) {
+    const remaining = { ...reports };
+    for (const area of [null, ...(spot.areas ?? [])]) delete remaining[reportKey(spot, area)];
+    return remaining;
+  }
+
+  // Opens walking directions from the viewer's current location; only the destination is in the link.
+  function walkingDirectionsUrl([latitude, longitude]) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=walking`;
+  }
+
+  // A link that opens directions in a new tab, labeled for screen readers with where it goes.
+  function walkLink(name, location, className = "walk-link") {
+    return `<a class="${className}" href="${walkingDirectionsUrl(location)}" target="_blank" rel="noopener"
+      aria-label="Walking directions to ${escapeHtml(name)}">${className === "walk-link" ? WALK_ICON : ""}<span>Walk</span></a>`;
+  }
+
+  // Straight-line distance between two [latitude, longitude] points, in miles.
+  function distanceMiles([lat1, lon1], [lat2, lon2]) {
+    const toRadians = (degrees) => degrees * Math.PI / 180;
+    const halfChord = Math.sin(toRadians(lat2 - lat1) / 2) ** 2
+      + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(toRadians(lon2 - lon1) / 2) ** 2;
+    return 2 * 3958.8 * Math.asin(Math.sqrt(halfChord));
+  }
+
+  function describeMiles(miles) {
+    return miles < 0.1 ? "less than 0.1 mi" : `${miles.toFixed(1)} mi`;
+  }
+
+  // Open spots nearest first; spots with unknown hours count as open, since they might be.
+  function closestOpenSpots(spots, here, now) {
+    return spots
+      .filter((spot) => openStatus(spot, now).isOpen !== false)
+      .map((spot) => ({ spot, miles: distanceMiles(here, spot.location) }))
+      .sort((a, b) => a.miles - b.miles);
+  }
+
+  // A food place's status now, in the same wording as study spots. Hours don't include holidays.
+  function foodStatus(place, now) {
+    const today = dateKeyFor(now);
+    if (place.unknownDates?.some(([start, end]) => today >= start && today <= end)) {
+      return { isOpen: null, text: "Hours not confirmed" };
+    }
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const lastNight = place.hours[(now.getDay() + 6) % 7].find(([, close]) => close > 1440 && minutes < close - 1440);
+    if (lastNight) return openUntil(lastNight[1] - 1440, lastNight[1], minutes);
+    const current = place.hours[now.getDay()].find(([open, close]) => minutes >= open && minutes < close);
+    if (current) {
+      const isAlwaysOpen = current[0] === 0 && current[1] === 1440 && place.hours[(now.getDay() + 1) % 7][0]?.[0] === 0;
+      return isAlwaysOpen ? { isOpen: true, text: "Open 24 hours" } : openUntil(current[1], current[1], minutes);
+    }
+    const laterToday = place.hours[now.getDay()].find(([open]) => minutes < open);
+    if (laterToday) return { isOpen: false, text: `Closed · opens ${formatTime(laterToday[0])}` };
+    for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
+      const day = (now.getDay() + daysAhead) % 7;
+      const [nextPeriod] = place.hours[day];
+      if (!nextPeriod) continue;
+      return { isOpen: false, text: `Closed · opens ${daysAhead === 1 ? "" : `${dayNames[day]} `}${formatTime(nextPeriod[0])}` };
+    }
+    return { isOpen: false, text: "Closed" };
+  }
+
+  // Late night means still serving past 10pm tonight. In the small hours, that's anything open now.
+  function isLateNight(place, now) {
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    if (minutes < EARLY_MORNING_END) return foodStatus(place, now).isOpen;
+    return place.hours[now.getDay()].some(([, close]) => close >= LATE_NIGHT_START && close > minutes);
+  }
+
+  // Places to list for a mode, nearest first when the location is known, otherwise by name.
+  // "open" and "late" depend on the time; "dining" shows every campus and private dining hall, open or not.
+  function foodToShow(places, now, mode, here = null) {
+    const modeTests = {
+      open: (place) => foodStatus(place, now).isOpen,
+      late: (place) => isLateNight(place, now),
+      dining: (place) => place.isHall === true,
+    };
+    const matches = places.filter(modeTests[mode]);
+    const withDistance = matches.map((place) => ({ place, miles: here ? distanceMiles(here, place.location) : null }));
+    return withDistance.sort((a, b) => (here ? a.miles - b.miles : a.place.name.localeCompare(b.place.name)));
+  }
+
+  // The nearest food within a short walk of a spot, or null. Meals only for a hall's residents don't count.
+  function nearestFood(spot, places, now, lateOnly = false) {
+    const usable = places.filter((place) => place.kind !== residentMealsKind);
+    const [nearest] = foodToShow(usable, now, lateOnly ? "late" : "open", spot.location);
+    return nearest && nearest.miles <= NEARBY_FOOD_MILES ? nearest : null;
+  }
+
+  // The message for a location error, with what to try. Codes come from the browser's geolocation API.
+  function locationErrorMessage(errorCode) {
+    if (errorCode === 1) return "Location is turned off for this page. Allow it in your browser settings, then try again.";
+    if (errorCode === 3) return "Finding your location took too long. Please try again.";
+    return "Couldn't find your location. Please try again, or use the map to find a spot.";
+  }
+
+  // What to say when no spot is empty right now, or null when something is empty or everything is closed.
+  function noEmptySpotsMessage(spots, now, reports) {
+    if (spots.some((spot) => isEmptyNow(spot, now, reports))) return null;
+    if (spots.every((spot) => openStatus(spot, now).isOpen === false)) return null;
+    return spots.some((spot) => recentLevel(spot, now, reports) !== "unknown")
+      ? "No open spots reported empty in the last hour."
+      : "No recent reports. Tap a spot to add one.";
+  }
+
+  // The message shown after a report. wasSaved is false when the browser can't store it.
+  function reportConfirmation(spot, area, level, wasSaved) {
+    const place = `${spot.name}${area ? `, ${area.name}` : ""}`;
+    return wasSaved
+      ? `Saved: ${busynessLabels[level]} at ${place}`
+      : `Reported ${busynessLabels[level]} at ${place}, but this browser can't keep it after a reload`;
+  }
+
+  // The Filters button says how many are on, so a folded panel can't hide why spots are missing.
+  function filtersButtonLabel(offerIds) {
+    return offerIds.length ? `Filters (${offerIds.length})` : "Filters";
+  }
+
+  // Adds the filter if it isn't chosen yet, otherwise removes it.
+  function toggleOffer(offerIds, offerId) {
+    return offerIds.includes(offerId) ? offerIds.filter((id) => id !== offerId) : [...offerIds, offerId];
+  }
+
+  // The label on the button that clears whatever is hiding every spot.
+  function clearButtonLabel(query, offerIds) {
+    if (query.trim() && offerIds.length) return "Clear search and filters";
+    return offerIds.length ? "Clear filters" : "Clear search";
+  }
+
+  // Adds the spot if it isn't a favorite yet, otherwise removes it.
+  function toggleFavorite(favoriteIds, spotId) {
+    return favoriteIds.includes(spotId) ? favoriteIds.filter((id) => id !== spotId) : [...favoriteIds, spotId];
+  }
+
+  // Keeps only ids of real spots, in case saved data is damaged or a spot was removed.
+  function cleanFavorites(savedIds, spots) {
+    return Array.isArray(savedIds) ? savedIds.filter((id) => spots.some((spot) => spot.id === id)) : [];
+  }
+</script>
+<script>
+  function loadReports() {
+    try { return JSON.parse(localStorage.getItem("busynessReports") || "{}"); } catch { return {}; }
+  }
+  function loadFavorites() {
+    try { return cleanFavorites(JSON.parse(localStorage.getItem("favoriteSpots") || "[]"), studySpots); } catch { return []; }
+  }
+  function saveFavorites(ids) {
+    try { localStorage.setItem("favoriteSpots", JSON.stringify(ids)); } catch { /* storage unavailable: keep in memory */ }
+  }
+  // Returns whether the reports were stored, so the confirmation message can be honest.
+  function saveReports(reports) {
+    try {
+      localStorage.setItem("busynessReports", JSON.stringify(reports));
+      return true;
+    } catch {
+      return false; // Storage unavailable: reports stay in memory until the page reloads.
+    }
+  }
+
+  let reports = loadReports();
+  // The one card whose report choices are showing, or null when all cards are closed.
+  let expandedSpotId = null;
+  // The floor picked in the open report choices, or null for the whole building.
+  let pickedAreaId = null;
+  let searchText = "";
+  let selectedCategoryId = "all";
+  let selectedOfferIds = [];
+  let favoriteIds = loadFavorites();
+  // Closed spots sit folded under one row until someone opens it.
+  let showClosed = false;
+
+  function renderEmptyNow(now) {
+    const emptySpots = studySpots.filter((spot) => isEmptyNow(spot, now, reports));
+    const panel = document.getElementById("empty-now");
+    const message = noEmptySpotsMessage(studySpots, now, reports);
+    panel.classList.toggle("no-empty-spots", Boolean(message));
+    panel.hidden = emptySpots.length === 0 && !message;
+    if (message) {
+      panel.textContent = message;
+      return;
+    }
+    panel.innerHTML = `<h2>Empty now</h2><ul>${emptySpots.map((spot) => {
+      const { area, report } = emptiestRecentReport(spot, now, reports);
+      const status = openStatus(spot, now);
+      return `<li>${spot.name}${area ? ` · ${area.name}` : ""} · reported ${describeAge(report.time)}${status.closingSoon ? ` · ${status.text.toLowerCase()}` : ""}</li>`;
+    }).join("")}</ul>`;
+  }
+
+  function renderCategoryButtons() {
+    document.getElementById("category-choices").innerHTML = [{ id: "all", buttonLabel: "All" }, ...spotCategories].map((category) =>
+      `<button class="category" data-category="${category.id}" aria-pressed="${category.id === selectedCategoryId}">${category.buttonLabel}</button>`).join("");
+  }
+
+  let toastTimer = null;
+  // Shows a message, with an Undo button when onUndo is given. Longer with Undo, so there's time to tap it.
+  function showToast(message, onUndo = null) {
+    const toast = document.getElementById("report-toast");
+    toast.innerHTML = "";
+    const text = document.createElement("span");
+    text.textContent = message;
+    toast.appendChild(text);
+    if (onUndo) {
+      const undoButton = document.createElement("button");
+      undoButton.className = "toast-undo";
+      undoButton.textContent = "Undo";
+      undoButton.addEventListener("click", onUndo);
+      toast.appendChild(undoButton);
+    }
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), onUndo ? 7000 : 4000);
+  }
+
+  function renderOfferButtons() {
+    document.getElementById("offer-choices").innerHTML = Object.entries(offerLabels).map(([offerId, label]) =>
+      `<button class="offer" data-offer="${offerId}" aria-pressed="${selectedOfferIds.includes(offerId)}">${label}</button>`).join("")
+      + `<button class="offer" data-offer="${LATE_FOOD_FILTER}" aria-pressed="${selectedOfferIds.includes(LATE_FOOD_FILTER)}">Late food nearby</button>`;
+    const filtersToggle = document.getElementById("filters-toggle");
+    filtersToggle.textContent = filtersButtonLabel(selectedOfferIds);
+    filtersToggle.classList.toggle("active", selectedOfferIds.length > 0);
+  }
+
+  function renderFavoritesSection(favoriteSpots, now) {
+    if (favoriteSpots.length === 0) return;
+    const openCount = favoriteSpots.filter((spot) => openStatus(spot, now).isOpen !== false).length;
+    const section = document.createElement("section");
+    section.className = "category-section";
+    section.innerHTML = `<h2 class="category-heading">Favorites <span>${openCount} of ${favoriteSpots.length} open</span></h2>`;
+    for (const spot of favoriteSpots) section.appendChild(spotCard(spot, now));
+    document.getElementById("spot-list").appendChild(section);
+  }
+
+  function renderCategorySection(category, openSpots, closedSpots, now) {
+    const sectionOpenSpots = openSpots.filter((spot) => spot.type === category.id);
+    if (sectionOpenSpots.length === 0) return;
+    const closedCount = closedSpots.filter((spot) => spot.type === category.id).length;
+    const section = document.createElement("section");
+    section.className = "category-section";
+    section.innerHTML = `<h2 class="category-heading">${category.heading}
+      <span>${sectionOpenSpots.length} of ${sectionOpenSpots.length + closedCount} open</span></h2>`;
+    for (const spot of sectionOpenSpots) section.appendChild(spotCard(spot, now));
+    document.getElementById("spot-list").appendChild(section);
+  }
+
+  // The Report panel: a floor picker for spots with floors, then Empty / Some seats / Packed.
+  function reportChoices(spot) {
+    const areaPicker = spot.areas
+      ? `<p class="where">Where are you?</p><div class="area-choices">${[null, ...spot.areas].map((area) =>
+          `<button class="area" data-action="pick-area" data-area="${area?.id ?? ""}"
+            aria-pressed="${(area?.id ?? null) === pickedAreaId}">${area?.name ?? "Whole building"}</button>`).join("")}</div>`
+      : "";
+    const offerTags = spot.offers?.length ? `<span class="offer-tags">${spot.offers.map((offerId) =>
+      `<span class="offer-tag">${offerLabels[offerId]}</span>`).join("")}</span>` : "";
+    return `${offerTags}${areaPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
+        `<button data-spot="${spot.id}" data-level="${busynessLevel}">${label}</button>`).join("")}
+        <button class="cancel" data-action="close">Cancel</button></div>
+        ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}`;
+  }
+
+  function render() {
+    const now = new Date();
+    renderEmptyNow(now);
+    const openCount = studySpots.filter((spot) => openStatus(spot, now).isOpen).length;
+    document.getElementById("open-count").textContent = `${openCount} of ${studySpots.length} open`;
+    const list = document.getElementById("spot-list");
+    list.innerHTML = "";
+    const { favoriteSpots, openSpots, closedSpots } = spotsToShow(studySpots, now, reports, searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    const favoriteOpen = favoriteSpots.some((spot) => openStatus(spot, now).isOpen !== false);
+    const selectedCategory = spotCategories.find((category) => category.id === selectedCategoryId);
+    if (favoriteSpots.length + openSpots.length + closedSpots.length === 0) {
+      const noMatchReason = searchText.trim() ? ` match "${escapeHtml(searchText.trim())}"` : " match those filters";
+      list.innerHTML = `<div class="all-closed">No spots${selectedCategory ? ` in ${selectedCategory.heading}` : ""}${noMatchReason}${searchText.trim() && selectedOfferIds.length ? " with those filters" : ""}.
+        <button class="clear-search" data-action="clear-search">${clearButtonLabel(searchText, selectedOfferIds)}</button></div>`;
+    } else if (openSpots.length === 0 && !favoriteOpen) {
+      list.innerHTML = `<p class="all-closed">${searchText.trim() || selectedOfferIds.length ? "Every matching spot" : "Every spot"}${selectedCategory ? ` in ${selectedCategory.heading}` : ""} is closed right now.</p>`;
+    }
+    renderFavoritesSection(favoriteSpots, now);
+    for (const category of spotCategories) renderCategorySection(category, openSpots, closedSpots, now);
+    if (closedSpots.length) {
+      list.insertAdjacentHTML("beforeend", `<button class="closed-toggle" data-action="toggle-closed"
+        aria-expanded="${showClosed}">Closed now (${closedSpots.length})</button>`);
+      if (showClosed) {
+        const closedList = document.createElement("div");
+        closedList.className = "closed-spots";
+        for (const spot of closedSpots) closedList.appendChild(spotCard(spot, now));
+        list.appendChild(closedList);
+      }
+    }
+  }
+
+  // The card's line naming nearby food; closed spots skip it, since you wouldn't be heading there now.
+  function foodLine(spot, status, now) {
+    if (status.isOpen === false) return "";
+    const lateOnly = selectedOfferIds.includes(LATE_FOOD_FILTER);
+    const nearby = nearestFood(spot, foodPlaces, now, lateOnly);
+    if (!nearby) return "";
+    return `<span class="food-line">${lateOnly ? "Late food" : "Food"}: ${escapeHtml(nearby.place.name)} · ${describeMiles(nearby.miles)}</span>`;
+  }
+
+  function spotCard(spot, now) {
+      const status = openStatus(spot, now);
+      const report = reportsFor(spot, reports)[0]?.report;
+      const floorReports = recentFloorReports(spot, now, reports);
+      const level = recentLevel(spot, now, reports);
+      const card = document.createElement("section");
+      card.className = `spot ${level}`;
+      if (status.isOpen === false) card.classList.add("closed");
+      const summary = `
+        <span class="card-main">
+          <span class="icon-tile ${spot.type}">${spotIcon(spot.id)}</span>
+          <span class="card-text">
+            <span class="name">${spot.name}</span>
+            <span class="report-row">
+              <span class="status ${status.isOpen === null ? "unknown" : status.closingSoon ? "closing" : status.isOpen ? "open" : "closed"}">${status.text}</span>
+              <span class="report">${busynessMeter(level)}<span>${report
+                ? `<span class="visually-hidden">Last report ${busynessLabels[report.level]}, </span>${describeAge(report.time, Date.now(), true)}`
+                : ""}</span></span>
+            </span>
+            ${foodLine(spot, status, now)}
+          </span>
+        </span>`;
+      // Open spots are tappable to report; closed ones are not, since nobody is there to report.
+      const isFavorite = favoriteIds.includes(spot.id);
+      card.innerHTML = `
+        ${walkLink(spot.name, spot.location)}
+        <button class="favorite" data-spot="${spot.id}" data-action="toggle-favorite" aria-pressed="${isFavorite}"
+          aria-label="${isFavorite ? "Remove" : "Add"} ${spot.name} ${isFavorite ? "from" : "to"} favorites">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>
+        </button>
+        ${status.isOpen === false ? `<div>${summary}</div>`
+          : `<button class="card-tap" data-spot="${spot.id}" data-action="open"
+              aria-expanded="${spot.id === expandedSpotId}">${summary}<span class="visually-hidden">, tap to report how busy it is</span></button>`}
+        ${floorReports.length ? `<ul class="floors" aria-label="Floors reported in the last hour">${floorReports.map(({ area, report: floorReport }) =>
+          `<li>${busynessMeter(floorReport.level)}<span class="floor-name">${area.name}</span>
+            <span class="floor-level ${floorReport.level}">${busynessLabels[floorReport.level]}</span>
+            <span class="floor-age">${describeAge(floorReport.time, Date.now(), true)}</span></li>`).join("")}</ul>` : ""}
+        ${spot.id === expandedSpotId ? reportChoices(spot) : ""}`;
+      return card;
+  }
+
+  document.getElementById("spot-list").addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    if (button.dataset.action === "toggle-favorite") {
+      const spotId = button.dataset.spot;
+      favoriteIds = toggleFavorite(favoriteIds, spotId);
+      saveFavorites(favoriteIds);
+      render();
+      // The list was redrawn, so put keyboard focus back on the same star.
+      document.querySelector(`button.favorite[data-spot="${spotId}"]`)?.focus();
+      return;
+    }
+    if (button.dataset.action === "clear-search") {
+      searchText = "";
+      selectedOfferIds = [];
+      renderOfferButtons();
+      const searchBox = document.getElementById("spot-search");
+      searchBox.value = "";
+      searchBox.focus();
+    } else if (button.dataset.action === "open") {
+      // Tapping the open card again folds its choices away.
+      expandedSpotId = expandedSpotId === button.dataset.spot ? null : button.dataset.spot;
+      pickedAreaId = null;
+    } else if (button.dataset.action === "clear-reports") {
+      const spot = studySpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      const reportsBefore = reports;
+      reports = clearSpotReports(spot, reports);
+      saveReports(reports);
+      expandedSpotId = null;
+      showToast(`Cleared your reports for ${spot.name}`, () => {
+        reports = reportsBefore;
+        saveReports(reports);
+        render();
+        showToast("Reports restored");
+      });
+    } else if (button.dataset.action === "toggle-closed") {
+      showClosed = !showClosed;
+    } else if (button.dataset.action === "pick-area") {
+      pickedAreaId = button.dataset.area || null;
+    } else if (button.dataset.action === "close") {
+      expandedSpotId = null;
+    } else if (button.dataset.level) {
+      const spot = studySpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      const area = spot.areas?.find((spotArea) => spotArea.id === pickedAreaId) ?? null;
+      const key = reportKey(spot, area);
+      const previousReport = reports[key];
+      reports[key] = { level: button.dataset.level, time: Date.now() };
+      showToast(reportConfirmation(spot, area, button.dataset.level, saveReports(reports)), () => {
+        reports = undoReport(reports, key, previousReport);
+        saveReports(reports);
+        render();
+        showToast("Report undone");
+      });
+      expandedSpotId = null;
+    }
+    render();
+  });
+
+  document.getElementById("category-choices").addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    selectedCategoryId = button.dataset.category;
+    renderCategoryButtons();
+    render();
+  });
+
+  // The map is built the first time it's opened, so map images only load for people who use it.
+  let spotMap = null;
+  const spotPins = new Map();
+  let youAreHerePin = null;
+  let foodPinLayer = null;
+  let foodMode = "open";
+  let lastKnownLocation = null;
+  let showAllFood = false;
+  const FOOD_LIST_LENGTH = 10;
+
+  function renderFood() {
+    const now = new Date();
+    const results = foodToShow(foodPlaces, now, foodMode, lastKnownLocation);
+    const listed = showAllFood ? results : results.slice(0, FOOD_LIST_LENGTH);
+    const foodList = document.getElementById("food-list");
+    if (results.length === 0) {
+      foodList.innerHTML = `<p class="food-empty">${foodMode === "late" ? "Nothing listed is open late right now." : "Nothing listed is open right now."} Try again later, or check the map.</p>`;
+    } else {
+      foodList.innerHTML = `<ul class="food-list">${listed.map(({ place, miles }) => {
+        const status = foodStatus(place, now);
+        const statusClass = status.isOpen === null ? "unknown" : status.closingSoon ? "closing" : status.isOpen ? "open" : "closed";
+        return `<li><span class="food-text"><span class="food-name">${escapeHtml(place.name)}</span>
+          <span class="status ${statusClass}">${status.text}</span>
+          <span class="food-details">${place.kind}${miles === null ? "" : ` · ${describeMiles(miles)}`}</span></span>
+          ${walkLink(place.name, place.location, "walk-link food-walk")}</li>`;
+      }).join("")}</ul>${results.length > FOOD_LIST_LENGTH
+        ? `<button class="show-all-food" id="show-all-food">${showAllFood ? "Show fewer" : `Show all ${results.length}`}</button>`
+        : ""}`;
+    }
+    if (!spotMap) return;
+    foodPinLayer.clearLayers();
+    for (const { place } of results) {
+      L.marker(place.location, { title: place.name, alt: place.name, icon: L.divIcon({ className: "", html: `<span class="map-pin food"></span>`, iconSize: [12, 12], iconAnchor: [6, 6] }) })
+        .bindPopup(`<strong>${escapeHtml(place.name)}</strong><br>${place.kind}<br>${foodStatus(place, now).text}<br>${walkLink(place.name, place.location, "popup-walk")}`)
+        .addTo(foodPinLayer);
+    }
+  }
+
+  function pinIcon(className) {
+    return L.divIcon({ className: "", html: `<span class="map-pin ${className}"></span>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+  }
+
+  function refreshPins() {
+    if (!spotMap) return;
+    const now = new Date();
+    for (const spot of studySpots) {
+      const status = openStatus(spot, now);
+      spotPins.get(spot.id)
+        .setIcon(pinIcon(`${spot.type}${status.isOpen === false ? " is-closed" : ""}`))
+        .setPopupContent(`<strong>${spot.name}</strong><br>${status.text}<br>${walkLink(spot.name, spot.location, "popup-walk")}`);
+    }
+  }
+
+  function buildMap() {
+    if (spotMap) return;
+    const mapElement = document.getElementById("spot-map");
+    if (typeof L === "undefined") {
+      mapElement.innerHTML = `<div class="map-message">The map couldn't load. Check your internet connection. "Find closest to me" still works.</div>`;
+      return;
+    }
+    spotMap = L.map(mapElement).fitBounds(studySpots.map((spot) => spot.location), { padding: [24, 24] });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(spotMap);
+    for (const spot of studySpots) {
+      spotPins.set(spot.id, L.marker(spot.location, { title: spot.name, alt: spot.name, icon: pinIcon(spot.type) }).bindPopup("").addTo(spotMap));
+    }
+    foodPinLayer = L.layerGroup().addTo(spotMap);
+    refreshPins();
+  }
+
+  function showClosestSpots(here) {
+    lastKnownLocation = here;
+    renderFood();
+    const result = document.getElementById("closest-result");
+    const closest = closestOpenSpots(studySpots, here, new Date()).slice(0, 3);
+    if (closest.length === 0) {
+      result.innerHTML = `<p class="location-problem">No spots are open right now.</p>`;
+    } else {
+      result.innerHTML = `Closest open spots:<ol>${closest.map(({ spot, miles }, index) =>
+        `<li class="${index === 0 ? "closest-first" : ""}">${spot.name} · ${describeMiles(miles)}</li>`).join("")}</ol>`;
+    }
+    if (!spotMap) return;
+    if (youAreHerePin) youAreHerePin.setLatLng(here);
+    else youAreHerePin = L.marker(here, { title: "You are here", alt: "You are here", icon: pinIcon("you"), zIndexOffset: 1000 }).addTo(spotMap);
+    const nearbyPoints = [here, ...closest.map(({ spot }) => spot.location)];
+    spotMap.fitBounds(nearbyPoints, { padding: [40, 40], maxZoom: 17 });
+  }
+
+  // Asks for the location, reporting progress and problems in the given element.
+  function requestLocation(result, onFound) {
+    if (!navigator.geolocation || !window.isSecureContext) {
+      // Browsers only share location with secure pages, so no setting can fix this one.
+      result.innerHTML = `<p class="location-problem">Your location isn't available when the app is opened this way. It needs a secure web link.</p>`;
+      return;
+    }
+    result.textContent = "Finding your location...";
+    navigator.geolocation.getCurrentPosition(
+      (position) => onFound([position.coords.latitude, position.coords.longitude]),
+      (error) => { result.innerHTML = `<p class="location-problem">${locationErrorMessage(error.code)}</p>`; },
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
+  }
+
+  document.getElementById("find-closest").addEventListener("click", () => {
+    requestLocation(document.getElementById("closest-result"), showClosestSpots);
+  });
+
+  document.getElementById("sort-food-by-distance").addEventListener("click", () => {
+    const result = document.getElementById("food-location-result");
+    requestLocation(result, (here) => {
+      result.textContent = "";
+      showClosestSpots(here);
+    });
+  });
+
+  document.getElementById("food-toggle").addEventListener("click", (event) => {
+    const panel = document.getElementById("food-panel");
+    panel.hidden = !panel.hidden;
+    event.currentTarget.setAttribute("aria-expanded", String(!panel.hidden));
+    if (!panel.hidden) renderFood();
+  });
+
+  document.getElementById("food-modes").addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    foodMode = button.dataset.foodMode;
+    showAllFood = false;
+    for (const modeButton of document.querySelectorAll("[data-food-mode]")) {
+      modeButton.setAttribute("aria-pressed", String(modeButton === button));
+    }
+    renderFood();
+  });
+
+  document.getElementById("food-list").addEventListener("click", (event) => {
+    if (event.target.id !== "show-all-food") return;
+    showAllFood = !showAllFood;
+    renderFood();
+  });
+
+  document.getElementById("map-toggle").addEventListener("click", (event) => {
+    const panel = document.getElementById("map-panel");
+    panel.hidden = !panel.hidden;
+    event.currentTarget.setAttribute("aria-expanded", String(!panel.hidden));
+    if (panel.hidden) return;
+    buildMap();
+    spotMap?.invalidateSize();
+    renderFood();
+    // The location may have been found from the Food panel before the map existed.
+    if (lastKnownLocation) showClosestSpots(lastKnownLocation);
+  });
+
+  document.getElementById("filters-toggle").addEventListener("click", (event) => {
+    const panel = document.getElementById("filters-panel");
+    panel.hidden = !panel.hidden;
+    event.currentTarget.setAttribute("aria-expanded", String(!panel.hidden));
+  });
+
+  document.getElementById("offer-choices").addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    selectedOfferIds = toggleOffer(selectedOfferIds, button.dataset.offer);
+    renderOfferButtons();
+    document.querySelector(`button.offer[data-offer="${button.dataset.offer}"]`).focus();
+    render();
+  });
+
+  document.getElementById("spot-search").addEventListener("input", (event) => {
+    searchText = event.target.value;
+    render();
+  });
+
+  document.getElementById("meter-key").innerHTML = meterKey();
+  renderCategoryButtons();
+  renderOfferButtons();
+  render();
+  setInterval(() => {
+    render();
+    refreshPins();
+    if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
+  }, 60000);
+</script>
+</body>
+</html>
