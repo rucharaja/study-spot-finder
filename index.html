@@ -65,6 +65,7 @@
   .toast { display: flex; align-items: center; gap: 12px; }
   button.clear-reports { display: block; flex: none; width: auto; min-width: 0; min-height: 40px; margin-top: 6px; padding: 0 12px;
     border-color: transparent; background: transparent; color: var(--muted); font-size: .85rem; text-decoration: underline; }
+  .history-line { margin: 8px 0 0; color: var(--muted); font-size: .8rem; }
   button.clear-reports:hover { color: var(--text); }
   button.toast-undo { flex: none; min-width: 0; min-height: 36px; padding: 0 12px; border: 1px solid #ffffff; border-radius: 8px;
     background: transparent; color: #ffffff; font-size: .85rem; }
@@ -544,6 +545,9 @@
 
   const WALK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"/><path d="M9 14v-2a1 1 0 0 1 1-1h4"/><path d="M12.5 9l2 2-2 2"/></svg>';
   const CLOSING_SOON_MINUTES = 60;
+  const HISTORY_LIMIT = 2000;
+  const PATTERN_MIN_REPORTS = 3;
+  const fullDayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const NEARBY_FOOD_MILES = 0.25;
   const LATE_FOOD_FILTER = "late-food";
   const LATE_NIGHT_START = 22 * 60;
@@ -821,6 +825,56 @@
       : "No recent reports. Tap a spot to add one.";
   }
 
+  // Adds a report to the long-term history, dropping the oldest entries past the limit.
+  function addToHistory(history, spotId, level, time) {
+    return [...history, { spotId, level, time }].slice(-HISTORY_LIMIT);
+  }
+
+  // The day and part of the day a report falls in. Late night counts toward the evening it started.
+  function timeBlock(time) {
+    const date = new Date(time);
+    const hour = date.getHours();
+    if (hour < 5) return { day: (date.getDay() + 6) % 7, part: "late nights" };
+    if (hour < 12) return { day: date.getDay(), part: "mornings" };
+    if (hour < 17) return { day: date.getDay(), part: "afternoons" };
+    if (hour < 22) return { day: date.getDay(), part: "evenings" };
+    return { day: date.getDay(), part: "late nights" };
+  }
+
+  // The strongest pattern in a spot's history: empty patterns come first, then packed ones. Null if there's none yet.
+  function historyPattern(spotId, history) {
+    const blocks = new Map();
+    for (const entry of history.filter((item) => item.spotId === spotId)) {
+      const { day, part } = timeBlock(entry.time);
+      const block = blocks.get(`${day}-${part}`) ?? { day, part, total: 0, empty: 0, packed: 0 };
+      block.total += 1;
+      if (entry.level === "empty") block.empty += 1;
+      if (entry.level === "packed") block.packed += 1;
+      blocks.set(`${day}-${part}`, block);
+    }
+    const strongest = (level) => [...blocks.values()]
+      .filter((block) => block.total >= PATTERN_MIN_REPORTS && block[level] / block.total >= 0.5)
+      .sort((a, b) => b[level] / b.total - a[level] / a.total || b.total - a.total)[0];
+    const found = strongest("empty") ? { ...strongest("empty"), level: "empty" } : strongest("packed") && { ...strongest("packed"), level: "packed" };
+    return found ? { dayName: fullDayNames[found.day], part: found.part, level: found.level, count: found[found.level], total: found.total } : null;
+  }
+
+  // The line shown in a spot's panel about what its history says so far.
+  function historyMessage(spotId, history) {
+    const count = history.filter((entry) => entry.spotId === spotId).length;
+    if (count === 0) return "Your history: no reports yet. Report here over time to see when it's usually quiet.";
+    const pattern = historyPattern(spotId, history);
+    if (pattern) return `Your history: usually ${pattern.level} on ${pattern.dayName} ${pattern.part} (${pattern.count} of ${pattern.total} reports).`;
+    return `Your history: ${count} ${count === 1 ? "report" : "reports"} so far. It takes ${PATTERN_MIN_REPORTS} at a similar time to spot a pattern.`;
+  }
+
+  // Keeps only well-formed entries, in case saved data is damaged.
+  function cleanHistory(saved) {
+    return Array.isArray(saved)
+      ? saved.filter((entry) => typeof entry?.spotId === "string" && typeof entry?.level === "string" && Number.isFinite(entry?.time))
+      : [];
+  }
+
   // The message shown after a report. wasSaved is false when the browser can't store it.
   function reportConfirmation(spot, area, level, wasSaved) {
     const place = `${spot.name}${area ? `, ${area.name}` : ""}`;
@@ -859,6 +913,12 @@
   function loadReports() {
     try { return JSON.parse(localStorage.getItem("busynessReports") || "{}"); } catch { return {}; }
   }
+  function loadHistory() {
+    try { return cleanHistory(JSON.parse(localStorage.getItem("reportHistory") || "[]")); } catch { return []; }
+  }
+  function saveHistory(entries) {
+    try { localStorage.setItem("reportHistory", JSON.stringify(entries)); } catch { /* storage unavailable: keep in memory */ }
+  }
   function loadFavorites() {
     try { return cleanFavorites(JSON.parse(localStorage.getItem("favoriteSpots") || "[]"), studySpots); } catch { return []; }
   }
@@ -884,6 +944,7 @@
   let selectedCategoryId = "all";
   let selectedOfferIds = [];
   let favoriteIds = loadFavorites();
+  let reportHistory = loadHistory();
   // Closed spots sit folded under one row until someone opens it.
   let showClosed = false;
 
@@ -969,10 +1030,13 @@
       : "";
     const offerTags = spot.offers?.length ? `<span class="offer-tags">${spot.offers.map((offerId) =>
       `<span class="offer-tag">${offerLabels[offerId]}</span>`).join("")}</span>` : "";
-    return `${offerTags}${areaPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
+    const hasHistory = reportHistory.some((entry) => entry.spotId === spot.id);
+    const historyLine = `<p class="history-line">${historyMessage(spot.id, reportHistory)}</p>`;
+    return `${offerTags}${historyLine}${areaPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
         `<button data-spot="${spot.id}" data-level="${busynessLevel}">${label}</button>`).join("")}
         <button class="cancel" data-action="close">Cancel</button></div>
-        ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}`;
+        ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}
+        ${hasHistory ? `<button class="clear-reports" data-spot="${spot.id}" data-action="forget-history">Forget my history</button>` : ""}`;
   }
 
   function render() {
@@ -1091,6 +1155,18 @@
         render();
         showToast("Reports restored");
       });
+    } else if (button.dataset.action === "forget-history") {
+      const spot = studySpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      const historyBefore = reportHistory;
+      reportHistory = reportHistory.filter((entry) => entry.spotId !== spot.id);
+      saveHistory(reportHistory);
+      expandedSpotId = null;
+      showToast(`Forgot your history for ${spot.name}`, () => {
+        reportHistory = historyBefore;
+        saveHistory(reportHistory);
+        render();
+        showToast("History restored");
+      });
     } else if (button.dataset.action === "toggle-closed") {
       showClosed = !showClosed;
     } else if (button.dataset.action === "pick-area") {
@@ -1102,9 +1178,14 @@
       const area = spot.areas?.find((spotArea) => spotArea.id === pickedAreaId) ?? null;
       const key = reportKey(spot, area);
       const previousReport = reports[key];
+      const historyBefore = reportHistory;
       reports[key] = { level: button.dataset.level, time: Date.now() };
+      reportHistory = addToHistory(reportHistory, spot.id, button.dataset.level, reports[key].time);
+      saveHistory(reportHistory);
       showToast(reportConfirmation(spot, area, button.dataset.level, saveReports(reports)), () => {
         reports = undoReport(reports, key, previousReport);
+        reportHistory = historyBefore;
+        saveHistory(reportHistory);
         saveReports(reports);
         render();
         showToast("Report undone");
