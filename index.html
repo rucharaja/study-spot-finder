@@ -65,6 +65,8 @@
   .toast { display: flex; align-items: center; gap: 12px; }
   button.clear-reports { display: block; flex: none; width: auto; min-width: 0; min-height: 40px; margin-top: 6px; padding: 0 12px;
     border-color: transparent; background: transparent; color: var(--muted); font-size: .85rem; text-decoration: underline; }
+  button.share-spot { display: block; flex: none; width: 100%; min-height: 42px; margin-top: 10px; border-radius: 10px; border-width: 1px;
+    background: var(--card); color: var(--accent); font-size: .9rem; }
   .history-line { margin: 8px 0 0; color: var(--muted); font-size: .8rem; }
   button.clear-reports:hover { color: var(--text); }
   button.toast-undo { flex: none; min-width: 0; min-height: 36px; padding: 0 12px; border: 1px solid #ffffff; border-radius: 8px;
@@ -563,6 +565,8 @@
 
   const WALK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"/><path d="M9 14v-2a1 1 0 0 1 1-1h4"/><path d="M12.5 9l2 2-2 2"/></svg>';
   const CLOSING_SOON_MINUTES = 60;
+  const APP_LINK = "https://rucharaja.github.io/study-spot-finder/";
+  const shareLevelWords = { empty: "It's empty right now.", some: "There are some seats right now.", packed: "It's packed right now." };
   const HISTORY_LIMIT = 2000;
   const PATTERN_MIN_REPORTS = 3;
   const fullDayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -905,6 +909,14 @@
     return `${dayNames[time.getDay()]}, ${monthNames[time.getMonth()]} ${time.getDate()} at ${formatTime(time.getHours() * 60 + time.getMinutes())}`;
   }
 
+  // The text for sharing a spot, using the viewer's most useful report from the last hour if there is one.
+  function shareMessage(spot, now, reports) {
+    const recent = emptiestRecentReport(spot, now, reports);
+    if (!recent) return `I'm studying at ${spot.name}. Find a study spot: ${APP_LINK}`;
+    const place = `${spot.name}${recent.area ? `, ${recent.area.name}` : ""}`;
+    return `I'm at ${place}. ${shareLevelWords[recent.report.level]} Find a study spot: ${APP_LINK}`;
+  }
+
   // The message shown after a report. wasSaved is false when the browser can't store it.
   function reportConfirmation(spot, area, level, wasSaved) {
     const place = `${spot.name}${area ? `, ${area.name}` : ""}`;
@@ -1041,6 +1053,25 @@
     if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
   }
 
+  // Uses the phone's share sheet when there is one; otherwise copies the text to paste anywhere.
+  async function shareSpot(spot) {
+    const message = shareMessage(spot, new Date(), reports);
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: message });
+        return;
+      } catch (error) {
+        if (error.name === "AbortError") return; // The person closed the share sheet, which is not a problem.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(message);
+      showToast("Copied. Paste it to a friend.");
+    } catch {
+      showToast(message);
+    }
+  }
+
   function renderOfferButtons() {
     document.getElementById("offer-choices").innerHTML = Object.entries(offerLabels).map(([offerId, label]) =>
       `<button class="offer" data-offer="${offerId}" aria-pressed="${selectedOfferIds.includes(offerId)}">${label}</button>`).join("")
@@ -1087,6 +1118,7 @@
         `<button data-spot="${spot.id}" data-level="${busynessLevel}">${label}</button>`).join("")}
         <button class="cancel" data-action="close">Cancel</button></div>
         ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}
+        <button class="share-spot" data-spot="${spot.id}" data-action="share-spot">Share this spot</button>
         ${hasHistory ? `<button class="clear-reports" data-spot="${spot.id}" data-action="forget-history">Forget my history</button>` : ""}`;
   }
 
@@ -1206,6 +1238,9 @@
         render();
         showToast("Reports restored");
       });
+    } else if (button.dataset.action === "share-spot") {
+      shareSpot(studySpots.find((studySpot) => studySpot.id === button.dataset.spot));
+      return;
     } else if (button.dataset.action === "forget-history") {
       const spot = studySpots.find((studySpot) => studySpot.id === button.dataset.spot);
       const historyBefore = reportHistory;
