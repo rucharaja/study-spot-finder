@@ -71,6 +71,15 @@
     background: transparent; color: #ffffff; font-size: .85rem; }
   button.toast-undo:hover { background: #ffffff; color: var(--illini-navy); }
   .toast.show { visibility: visible; opacity: 1; }
+  .plan-picker { display: grid; gap: 6px; }
+  .plan-picker input { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font: inherit; font-size: 1rem; }
+  .plan-picker input:focus { outline: 2px solid var(--illini-orange); outline-offset: 1px; }
+  .plan-picker .location-problem[hidden], .plan-banner[hidden] { display: none; }
+  .plan-picker .location-problem { margin: 0; color: var(--closed); font-size: .85rem; }
+  .plan-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 12px;
+    background: var(--illini-navy); border: 1px solid var(--illini-orange); color: #ffffff; font-size: .9rem; font-weight: 600; }
+  button.plan-reset { flex: none; min-width: 0; min-height: 36px; padding: 0 12px; border: 1px solid #ffffff; border-radius: 8px; background: transparent; color: #ffffff; font-size: .85rem; }
   .hint-row { display: flex; align-items: center; gap: 12px; }
   .hint-row button.filters-toggle { flex: 1; }
   .hint { margin: 0; color: var(--muted); font-size: .85rem; }
@@ -263,12 +272,21 @@
   </section>
   <div class="filters-panel" id="filters-panel" hidden>
     <p class="hint">Tap the star on a spot to keep it at the top.</p>
+    <div class="plan-picker">
+      <label class="offer-filter-label" for="view-time">Show what's open at</label>
+      <input type="datetime-local" id="view-time">
+      <p class="location-problem" id="view-time-error" role="alert" hidden>Pick a time in the future.</p>
+    </div>
     <div class="offer-filter">
       <span class="offer-filter-label" id="offer-filter-label">Show spots with</span>
       <div class="offer-choices" id="offer-choices" role="group" aria-labelledby="offer-filter-label"></div>
     </div>
   </div>
   <p class="meter-key" id="meter-key"></p>
+  <div class="plan-banner" id="plan-banner" role="status" hidden>
+    <span id="plan-banner-text"></span>
+    <button class="plan-reset" id="plan-reset">Back to now</button>
+  </div>
   <div id="spot-list"></div>
 </main>
 <p class="note">Hours checked against official pages through May 2027, including breaks and finals. Dates without published hours say so. Reports are saved only in this browser.</p>
@@ -875,6 +893,18 @@
       : [];
   }
 
+  // Turns the date box's value into a planning time. Empty, invalid, or past values give null, meaning "now".
+  function parseViewTime(value, now) {
+    if (!value) return null;
+    const picked = new Date(value);
+    return Number.isNaN(picked.getTime()) || picked.getTime() <= now.getTime() ? null : picked;
+  }
+
+  // A planning time in words, like "Sat, Nov 14 at 2pm".
+  function describeViewTime(time) {
+    return `${dayNames[time.getDay()]}, ${monthNames[time.getMonth()]} ${time.getDate()} at ${formatTime(time.getHours() * 60 + time.getMinutes())}`;
+  }
+
   // The message shown after a report. wasSaved is false when the browser can't store it.
   function reportConfirmation(spot, area, level, wasSaved) {
     const place = `${spot.name}${area ? `, ${area.name}` : ""}`;
@@ -943,6 +973,11 @@
   let searchText = "";
   let selectedCategoryId = "all";
   let selectedOfferIds = [];
+  // A future time being planned for, or null when showing right now.
+  let viewTime = null;
+  const displayTime = () => viewTime ?? new Date();
+  // Reports describe right now, so they don't apply to a planned time.
+  const visibleReports = () => (viewTime ? {} : reports);
   let favoriteIds = loadFavorites();
   let reportHistory = loadHistory();
   // Closed spots sit folded under one row until someone opens it.
@@ -953,7 +988,8 @@
     const panel = document.getElementById("empty-now");
     const message = noEmptySpotsMessage(studySpots, now, reports);
     panel.classList.toggle("no-empty-spots", Boolean(message));
-    panel.hidden = emptySpots.length === 0 && !message;
+    // While planning, the "tap a spot" advice doesn't apply, because reports are only for right now.
+    panel.hidden = emptySpots.length === 0 && (!message || viewTime !== null);
     if (message) {
       panel.textContent = message;
       return;
@@ -990,13 +1026,28 @@
     toastTimer = setTimeout(() => toast.classList.remove("show"), onUndo ? 7000 : 4000);
   }
 
+  function updatePlanBanner() {
+    document.getElementById("plan-banner").hidden = viewTime === null;
+    if (viewTime) document.getElementById("plan-banner-text").textContent = `Showing ${describeViewTime(viewTime)}`;
+  }
+
+  // Redraws everything that depends on the time being shown.
+  function applyViewTime() {
+    expandedSpotId = null;
+    updatePlanBanner();
+    renderOfferButtons();
+    render();
+    refreshPins();
+    if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
+  }
+
   function renderOfferButtons() {
     document.getElementById("offer-choices").innerHTML = Object.entries(offerLabels).map(([offerId, label]) =>
       `<button class="offer" data-offer="${offerId}" aria-pressed="${selectedOfferIds.includes(offerId)}">${label}</button>`).join("")
       + `<button class="offer" data-offer="${LATE_FOOD_FILTER}" aria-pressed="${selectedOfferIds.includes(LATE_FOOD_FILTER)}">Late food nearby</button>`;
     const filtersToggle = document.getElementById("filters-toggle");
-    filtersToggle.textContent = filtersButtonLabel(selectedOfferIds);
-    filtersToggle.classList.toggle("active", selectedOfferIds.length > 0);
+    filtersToggle.textContent = filtersButtonLabel(viewTime ? [...selectedOfferIds, "time"] : selectedOfferIds);
+    filtersToggle.classList.toggle("active", selectedOfferIds.length > 0 || viewTime !== null);
   }
 
   function renderFavoritesSection(favoriteSpots, now) {
@@ -1040,13 +1091,13 @@
   }
 
   function render() {
-    const now = new Date();
-    renderEmptyNow(now);
+    const now = displayTime();
+    renderEmptyNow(new Date());
     const openCount = studySpots.filter((spot) => openStatus(spot, now).isOpen).length;
     document.getElementById("open-count").textContent = `${openCount} of ${studySpots.length} open`;
     const list = document.getElementById("spot-list");
     list.innerHTML = "";
-    const { favoriteSpots, openSpots, closedSpots } = spotsToShow(studySpots, now, reports, searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    const { favoriteSpots, openSpots, closedSpots } = spotsToShow(studySpots, now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
     const favoriteOpen = favoriteSpots.some((spot) => openStatus(spot, now).isOpen !== false);
     const selectedCategory = spotCategories.find((category) => category.id === selectedCategoryId);
     if (favoriteSpots.length + openSpots.length + closedSpots.length === 0) {
@@ -1054,13 +1105,13 @@
       list.innerHTML = `<div class="all-closed">No spots${selectedCategory ? ` in ${selectedCategory.heading}` : ""}${noMatchReason}${searchText.trim() && selectedOfferIds.length ? " with those filters" : ""}.
         <button class="clear-search" data-action="clear-search">${clearButtonLabel(searchText, selectedOfferIds)}</button></div>`;
     } else if (openSpots.length === 0 && !favoriteOpen) {
-      list.innerHTML = `<p class="all-closed">${searchText.trim() || selectedOfferIds.length ? "Every matching spot" : "Every spot"}${selectedCategory ? ` in ${selectedCategory.heading}` : ""} is closed right now.</p>`;
+      list.innerHTML = `<p class="all-closed">${searchText.trim() || selectedOfferIds.length ? "Every matching spot" : "Every spot"}${selectedCategory ? ` in ${selectedCategory.heading}` : ""} is closed ${viewTime ? "at that time" : "right now"}.</p>`;
     }
     renderFavoritesSection(favoriteSpots, now);
     for (const category of spotCategories) renderCategorySection(category, openSpots, closedSpots, now);
     if (closedSpots.length) {
       list.insertAdjacentHTML("beforeend", `<button class="closed-toggle" data-action="toggle-closed"
-        aria-expanded="${showClosed}">Closed now (${closedSpots.length})</button>`);
+        aria-expanded="${showClosed}">Closed ${viewTime ? "then" : "now"} (${closedSpots.length})</button>`);
       if (showClosed) {
         const closedList = document.createElement("div");
         closedList.className = "closed-spots";
@@ -1081,9 +1132,9 @@
 
   function spotCard(spot, now) {
       const status = openStatus(spot, now);
-      const report = reportsFor(spot, reports)[0]?.report;
-      const floorReports = recentFloorReports(spot, now, reports);
-      const level = recentLevel(spot, now, reports);
+      const report = reportsFor(spot, visibleReports())[0]?.report;
+      const floorReports = recentFloorReports(spot, now, visibleReports());
+      const level = recentLevel(spot, now, visibleReports());
       const card = document.createElement("section");
       card.className = `spot ${level}`;
       if (status.isOpen === false) card.classList.add("closed");
@@ -1109,7 +1160,7 @@
           aria-label="${isFavorite ? "Remove" : "Add"} ${spot.name} ${isFavorite ? "from" : "to"} favorites">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>
         </button>
-        ${status.isOpen === false ? `<div>${summary}</div>`
+        ${status.isOpen === false || viewTime ? `<div>${summary}</div>`
           : `<button class="card-tap" data-spot="${spot.id}" data-action="open"
               aria-expanded="${spot.id === expandedSpotId}">${summary}<span class="visually-hidden">, tap to report how busy it is</span></button>`}
         ${floorReports.length ? `<ul class="floors" aria-label="Floors reported in the last hour">${floorReports.map(({ area, report: floorReport }) =>
@@ -1214,7 +1265,7 @@
   const FOOD_LIST_LENGTH = 10;
 
   function renderFood() {
-    const now = new Date();
+    const now = displayTime();
     const results = foodToShow(foodPlaces, now, foodMode, lastKnownLocation);
     const listed = showAllFood ? results : results.slice(0, FOOD_LIST_LENGTH);
     const foodList = document.getElementById("food-list");
@@ -1247,7 +1298,7 @@
 
   function refreshPins() {
     if (!spotMap) return;
-    const now = new Date();
+    const now = displayTime();
     for (const spot of studySpots) {
       const status = openStatus(spot, now);
       spotPins.get(spot.id)
@@ -1279,7 +1330,7 @@
     lastKnownLocation = here;
     renderFood();
     const result = document.getElementById("closest-result");
-    const closest = closestOpenSpots(studySpots, here, new Date()).slice(0, 3);
+    const closest = closestOpenSpots(studySpots, here, displayTime()).slice(0, 3);
     if (closest.length === 0) {
       result.innerHTML = `<p class="location-problem">No spots are open right now.</p>`;
     } else {
@@ -1307,6 +1358,19 @@
       { enableHighAccuracy: true, timeout: 15000 },
     );
   }
+
+  document.getElementById("view-time").addEventListener("change", (event) => {
+    viewTime = parseViewTime(event.target.value, new Date());
+    document.getElementById("view-time-error").hidden = viewTime !== null || !event.target.value;
+    applyViewTime();
+  });
+
+  document.getElementById("plan-reset").addEventListener("click", () => {
+    viewTime = null;
+    document.getElementById("view-time").value = "";
+    document.getElementById("view-time-error").hidden = true;
+    applyViewTime();
+  });
 
   document.getElementById("find-closest").addEventListener("click", () => {
     requestLocation(document.getElementById("closest-result"), showClosestSpots);
