@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Study Spot Finder</title>
+<script>
+  // Apply saved display settings before the page draws, so it doesn't flash the wrong theme.
+  try {
+    const theme = localStorage.getItem("theme");
+    if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+    if (localStorage.getItem("textSize") === "large") document.documentElement.dataset.text = "large";
+  } catch { /* storage unavailable: use the defaults */ }
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -27,7 +35,7 @@
     --shadow: 0 1px 2px rgba(19, 41, 75, .06), 0 4px 12px rgba(19, 41, 75, .06);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #0f1b30; --card: #1a2a44; --text: #f1f4fa; --muted: #a3b0c6;
+    :root:not([data-theme="light"]) { --bg: #0f1b30; --card: #1a2a44; --text: #f1f4fa; --muted: #a3b0c6;
       --border: #2b3d5c; --accent: #ffb08f; --heading: #ff9a6e; --header-bg: #0a1424; --count-bg: #b8391a;
       --open: #5ad08a; --closed: #ff8c7c;
       --empty: #5ad08a; --some: #e8bc55; --packed: #ff8c7c;
@@ -36,9 +44,18 @@
       --library-tile: #3a5f99; --academic-tile: #b8391a; --union-tile: #1d6fa5; --food-pin: #b583d6;
       --shadow: 0 1px 2px rgba(0, 0, 0, .4); }
   }
+  :root[data-theme="dark"] { --bg: #0f1b30; --card: #1a2a44; --text: #f1f4fa; --muted: #a3b0c6;
+      --border: #2b3d5c; --accent: #ffb08f; --heading: #ff9a6e; --header-bg: #0a1424; --count-bg: #b8391a;
+      --open: #5ad08a; --closed: #ff8c7c;
+      --empty: #5ad08a; --some: #e8bc55; --packed: #ff8c7c;
+      --illini-navy: #0a1424; --illini-orange: #ff7a45; --none: #6e7c94;
+      --empty-tint: #17382c; --some-tint: #3a3118; --packed-tint: #402320; --none-tint: #1a2a44;
+      --library-tile: #3a5f99; --academic-tile: #b8391a; --union-tile: #1d6fa5; --food-pin: #b583d6;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+  html[data-text="large"] { font-size: 112.5%; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.45 Inter, -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    font: 1rem/1.45 Inter, -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   header { position: sticky; top: 0; z-index: 10; background: var(--header-bg);
     border-bottom: 3px solid var(--illini-orange); box-shadow: 0 2px 8px rgba(0, 0, 0, .15); }
   .header-inner { padding: 14px 16px 12px; max-width: 640px; margin: 0 auto;
@@ -185,6 +202,7 @@
   .report { flex: 1; color: var(--muted); font-size: .85rem; line-height: 1.25; margin: 0; min-width: 0;
     display: flex; align-items: center; gap: 6px; }
   .spot .buttons { margin-top: 10px; }
+  .spot .buttons button[data-level] { padding: 0 6px; min-width: 64px; }
   .name { display: flex; align-items: flex-start; gap: 8px; }
   .spot-icon { flex: none; width: 20px; height: 20px; margin-top: 2px; fill: none; stroke: var(--heading);
     stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -237,6 +255,23 @@
   button.closed-toggle[aria-expanded="true"]::after { content: "Hide"; }
   .all-closed { margin: 0; padding: 20px 18px; border-radius: 14px; background: var(--card); box-shadow: var(--shadow);
     color: var(--muted); text-align: center; }
+  .settings { max-width: 640px; margin: 0 auto 16px; padding: 0 16px; }
+  .settings summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--accent); }
+  .settings-body { display: grid; gap: 14px; padding: 4px 0 8px; }
+  .setting { display: grid; gap: 6px; }
+  .setting button.offer { justify-self: start; }
+  .switch-row { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; }
+  .switch-row input { width: 20px; height: 20px; }
+  .setting textarea, .notes textarea { width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font: inherit; font-size: 1rem; resize: vertical; }
+  .week-hours { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: .8rem; color: var(--muted); }
+  .week-hours dt { font-weight: 600; color: var(--text); }
+  .week-hours dd { margin: 0; }
+  .notes { display: grid; gap: 4px; margin-top: 10px; }
+  .notes label { font-size: .8rem; font-weight: 600; color: var(--muted); }
+  .spot-distance { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+  .spot.closed.expanded { opacity: 1; }
+  .sort-choices { display: flex; gap: 6px; flex-wrap: wrap; }
   .note { max-width: 640px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: .8rem; text-align: center; }
 </style>
 </head>
@@ -296,6 +331,14 @@
       <span class="offer-filter-label" id="offer-filter-label">Show spots with</span>
       <div class="offer-choices" id="offer-choices" role="group" aria-labelledby="offer-filter-label"></div>
     </div>
+    <div class="offer-filter">
+      <span class="offer-filter-label" id="sort-label">Order spots by</span>
+      <div class="sort-choices" role="group" aria-labelledby="sort-label">
+        <button class="offer" data-sort="best" aria-pressed="true">Best first</button>
+        <button class="offer" data-sort="near" aria-pressed="false">Nearest first</button>
+      </div>
+      <div class="closest-result" id="sort-location-result" role="status"></div>
+    </div>
   </div>
   <p class="meter-key" id="meter-key"></p>
   <div class="plan-banner" id="plan-banner" role="status" hidden>
@@ -304,6 +347,28 @@
   </div>
   <div id="spot-list"></div>
 </main>
+<details class="settings" id="settings">
+  <summary>Settings and backup</summary>
+  <div class="settings-body">
+    <div class="setting">
+      <span class="offer-filter-label" id="theme-label">Theme</span>
+      <div class="offer-choices" role="group" aria-labelledby="theme-label">
+        <button class="offer" data-theme-choice="system">System</button>
+        <button class="offer" data-theme-choice="light">Light</button>
+        <button class="offer" data-theme-choice="dark">Dark</button>
+      </div>
+    </div>
+    <label class="switch-row"><input type="checkbox" id="large-text"> Larger text</label>
+    <div class="setting">
+      <span class="offer-filter-label">Back up favorites, notes, and history</span>
+      <p class="map-note">Copy the code here, then paste it on your other device, or in the home screen app, and tap Restore.</p>
+      <button class="offer" id="copy-backup">Copy backup code</button>
+      <textarea id="backup-code" rows="3" aria-label="Backup code to restore" placeholder="Paste a backup code here"></textarea>
+      <button class="offer" id="restore-backup">Restore from code</button>
+    </div>
+    <p class="map-note">On a keyboard: press / to search, and Esc to close an open spot.</p>
+  </div>
+</details>
 <p class="note">Hours checked against official pages through May 2027, including breaks and finals. Dates without published hours say so. Reports are saved only in this browser.</p>
 <div class="toast" id="report-toast" role="status"></div>
 <script id="app-logic">
@@ -626,6 +691,11 @@
 
   const WALK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"/><path d="M9 14v-2a1 1 0 0 1 1-1h4"/><path d="M12.5 9l2 2-2 2"/></svg>';
   const CLOSING_SOON_MINUTES = 60;
+  const SOON_OPENING_MINUTES = 120;
+  const OPEN_LATE_FROM = 23 * 60;
+  const BACKUP_PREFIX = "SSF1:";
+  const OPEN_LATE_FILTER = "open-late";
+  const NOTE_LIMIT = 500;
   const APP_LINK = "https://rucharaja.github.io/study-spot-finder/";
   const shareLevelWords = { empty: "It's empty right now.", some: "There are some seats right now.", packed: "It's packed right now." };
   const HISTORY_LIMIT = 2000;
@@ -648,15 +718,24 @@
   }
 
   // When a closed spot next opens: later today, tomorrow, a named day this week, or a date for longer closures.
+  // "in 45 min" or "in 1 hr 20 min" for a wait of up to two hours, otherwise null.
+  function shortWait(minutesUntil) {
+    if (minutesUntil > SOON_OPENING_MINUTES) return null;
+    if (minutesUntil < 60) return `in ${minutesUntil} min`;
+    const hours = Math.floor(minutesUntil / 60);
+    const extra = minutesUntil % 60;
+    return `in ${hours} hr${extra ? ` ${extra} min` : ""}`;
+  }
+
   function nextOpening(spot, now, minutes) {
     const today = hoursOn(spot, now);
-    if (today && minutes < today[0]) return `opens ${formatTime(today[0])}`;
+    if (today && today !== HOURS_UNCONFIRMED && minutes < today[0]) return `opens ${shortWait(today[0] - minutes) ?? formatTime(today[0])}`;
     for (let daysAhead = 1; daysAhead <= 45; daysAhead++) {
       const futureDate = daysLater(now, daysAhead);
       const hours = hoursOn(spot, futureDate);
       if (!hours) continue;
       if (hours === HOURS_UNCONFIRMED) return "reopening not confirmed";
-      if (daysAhead === 1) return `opens ${formatTime(hours[0])}`;
+      if (daysAhead === 1) return `opens ${shortWait(24 * 60 - minutes + hours[0]) ?? formatTime(hours[0])}`;
       if (daysAhead < 7) return `opens ${dayNames[futureDate.getDay()]} ${formatTime(hours[0])}`;
       return `opens ${monthNames[futureDate.getMonth()]} ${futureDate.getDate()}, ${formatTime(hours[0])}`;
     }
@@ -786,11 +865,13 @@
 
   // Favorites come out separately, open or closed, so each spot appears once.
   function spotsToShow(spots, now, reports, query, categoryId = "all", favoriteIds = [], offerIds = []) {
-    const spotOffers = offerIds.filter((offerId) => offerId !== LATE_FOOD_FILTER);
+    const spotOffers = offerIds.filter((offerId) => offerId !== LATE_FOOD_FILTER && offerId !== OPEN_LATE_FILTER);
     const needsLateFood = offerIds.includes(LATE_FOOD_FILTER);
+    const needsOpenLate = offerIds.includes(OPEN_LATE_FILTER);
     const matching = sortBestFirst(spots, now, reports).filter((spot) =>
       matchesSearch(spot, query) && (categoryId === "all" || spot.type === categoryId) && hasAllOffers(spot, spotOffers)
-      && (!needsLateFood || nearestFood(spot, foodPlaces, now, true) !== null));
+      && (!needsLateFood || nearestFood(spot, foodPlaces, now, true) !== null)
+      && (!needsOpenLate || isOpenLateTonight(spot, now)));
     const isClosed = (spot) => openStatus(spot, now).isOpen === false;
     const isFavorite = (spot) => favoriteIds.includes(spot.id);
     const others = matching.filter((spot) => !isFavorite(spot));
@@ -862,12 +943,13 @@
       return isAlwaysOpen ? { isOpen: true, text: "Open 24 hours" } : openUntil(current[1], current[1], minutes);
     }
     const laterToday = place.hours[now.getDay()].find(([open]) => minutes < open);
-    if (laterToday) return { isOpen: false, text: `Closed · opens ${formatTime(laterToday[0])}` };
+    if (laterToday) return { isOpen: false, text: `Closed · opens ${shortWait(laterToday[0] - minutes) ?? formatTime(laterToday[0])}` };
     for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
       const day = (now.getDay() + daysAhead) % 7;
       const [nextPeriod] = place.hours[day];
       if (!nextPeriod) continue;
-      return { isOpen: false, text: `Closed · opens ${daysAhead === 1 ? "" : `${dayNames[day]} `}${formatTime(nextPeriod[0])}` };
+      const soon = daysAhead === 1 ? shortWait(24 * 60 - minutes + nextPeriod[0]) : null;
+      return { isOpen: false, text: `Closed · opens ${soon ?? `${daysAhead === 1 ? "" : `${dayNames[day]} `}${formatTime(nextPeriod[0])}`}` };
     }
     return { isOpen: false, text: "Closed" };
   }
@@ -977,12 +1059,87 @@
     return `${dayNames[time.getDay()]}, ${monthNames[time.getMonth()]} ${time.getDate()} at ${formatTime(time.getHours() * 60 + time.getMinutes())}`;
   }
 
+  // A link that opens the app straight to one spot.
+  function spotLink(spot) {
+    return `${APP_LINK}?spot=${encodeURIComponent(spot.id)}`;
+  }
+
+  // The spot named in a link's "?spot=" part, or null if there isn't a real one.
+  function spotFromLink(search, spots) {
+    const match = /[?&]spot=([^&#]*)/.exec(search ?? "");
+    if (!match) return null;
+    let spotId;
+    try { spotId = decodeURIComponent(match[1]); } catch { return null; }
+    return spots.find((spot) => spot.id === spotId) ?? null;
+  }
+
+  // 1. A spot's hours for the next seven days, starting today, including breaks and holidays.
+  function weekHours(spot, now, startsToday = true) {
+    return [0, 1, 2, 3, 4, 5, 6].map((daysAhead) => {
+      const date = daysLater(now, daysAhead);
+      const hours = hoursOn(spot, date);
+      const label = daysAhead === 0 && startsToday ? "Today" : `${dayNames[date.getDay()]} ${monthNames[date.getMonth()]} ${date.getDate()}`;
+      let text = "Closed";
+      if (hours === HOURS_UNCONFIRMED) text = "Hours not confirmed";
+      else if (hours?.[0] === 0 && hours[1] === h(24)) text = "Open 24 hours";
+      else if (hours) text = `${formatTime(hours[0])} – ${formatTime(hours[1])}`;
+      return { label, text };
+    });
+  }
+
+  // 3. Open late means open at 11pm tonight; in the small hours, it means open now.
+  function isOpenLateTonight(spot, now) {
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    if (minutes < EARLY_MORNING_END || minutes >= OPEN_LATE_FROM) return openStatus(spot, now).isOpen === true;
+    const elevenTonight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 0);
+    return openStatus(spot, elevenTonight).isOpen === true;
+  }
+
+  // 4. Spots nearest first from a location; spots without one keep their order at the end.
+  function sortByDistance(spots, here) {
+    return [...spots].sort((a, b) => distanceMiles(here, a.location) - distanceMiles(here, b.location));
+  }
+
+  // 2. Notes are short private text per spot; anything else in saved data is dropped.
+  function cleanNotes(saved, spots) {
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+    return Object.fromEntries(Object.entries(saved)
+      .filter(([spotId, note]) => spots.some((spot) => spot.id === spotId) && typeof note === "string" && note.trim())
+      .map(([spotId, note]) => [spotId, note.slice(0, NOTE_LIMIT)]));
+  }
+
+  // 6. A backup code holds everything saved, so it can be pasted into another browser. It's URL-encoded JSON, which
+  // keeps any character safe to copy and paste.
+  function makeBackup(data) {
+    return `${BACKUP_PREFIX}${encodeURIComponent(JSON.stringify({ version: 1, ...data }))}`;
+  }
+
+  // Reads a backup code back, keeping only valid parts; null if it isn't a backup at all.
+  function readBackup(code, spots) {
+    const trimmed = (code ?? "").trim();
+    if (!trimmed.startsWith(BACKUP_PREFIX)) return null;
+    try {
+      const data = JSON.parse(decodeURIComponent(trimmed.slice(BACKUP_PREFIX.length)));
+      const reports = data.reports && typeof data.reports === "object" && !Array.isArray(data.reports) ? data.reports : {};
+      return {
+        favorites: cleanFavorites(data.favorites, spots),
+        history: cleanHistory(data.history),
+        notes: cleanNotes(data.notes, spots),
+        reports: Object.fromEntries(Object.entries(reports).filter(([, report]) =>
+          report && typeof report.level === "string" && report.level in busynessLabels && Number.isFinite(report.time))),
+      };
+    } catch {
+      return null;
+    }
+  }
+
   // The text for sharing a spot, using the viewer's most useful report from the last hour if there is one.
   function shareMessage(spot, now, reports) {
     const recent = emptiestRecentReport(spot, now, reports);
-    if (!recent) return `I'm studying at ${spot.name}. Find a study spot: ${APP_LINK}`;
+    const link = spotLink(spot);
+    if (!recent) return `I'm studying at ${spot.name}. Find a study spot: ${link}`;
     const place = `${spot.name}${recent.area ? `, ${recent.area.name}` : ""}`;
-    return `I'm at ${place}. ${shareLevelWords[recent.report.level]} Find a study spot: ${APP_LINK}`;
+    return `I'm at ${place}. ${shareLevelWords[recent.report.level]} Find a study spot: ${link}`;
   }
 
   // The message shown after a report. wasSaved is false when the browser can't store it.
@@ -1029,6 +1186,12 @@
   function saveHistory(entries) {
     try { localStorage.setItem("reportHistory", JSON.stringify(entries)); } catch { /* storage unavailable: keep in memory */ }
   }
+  function loadNotes() {
+    try { return cleanNotes(JSON.parse(localStorage.getItem("spotNotes") || "{}"), allSpots); } catch { return {}; }
+  }
+  function saveNotes(notes) {
+    try { localStorage.setItem("spotNotes", JSON.stringify(notes)); } catch { /* storage unavailable: keep in memory */ }
+  }
   function loadFavorites() {
     try { return cleanFavorites(JSON.parse(localStorage.getItem("favoriteSpots") || "[]"), allSpots); } catch { return []; }
   }
@@ -1068,6 +1231,9 @@
   const visibleReports = () => (viewTime ? {} : reports);
   let favoriteIds = loadFavorites();
   let reportHistory = loadHistory();
+  let spotNotes = loadNotes();
+  // "best" keeps best-first order; "near" sorts by distance once the location is known.
+  let sortMode = "best";
   // Closed spots sit folded under one row until someone opens it.
   let showClosed = false;
 
@@ -1151,7 +1317,8 @@
   function renderOfferButtons() {
     document.getElementById("offer-choices").innerHTML = Object.entries(offerLabels).map(([offerId, label]) =>
       `<button class="offer" data-offer="${offerId}" aria-pressed="${selectedOfferIds.includes(offerId)}">${label}</button>`).join("")
-      + `<button class="offer" data-offer="${LATE_FOOD_FILTER}" aria-pressed="${selectedOfferIds.includes(LATE_FOOD_FILTER)}">Late food nearby</button>`;
+      + `<button class="offer" data-offer="${LATE_FOOD_FILTER}" aria-pressed="${selectedOfferIds.includes(LATE_FOOD_FILTER)}">Late food nearby</button>`
+      + `<button class="offer" data-offer="${OPEN_LATE_FILTER}" aria-pressed="${selectedOfferIds.includes(OPEN_LATE_FILTER)}">Open past 11pm</button>`;
     const filtersToggle = document.getElementById("filters-toggle");
     filtersToggle.textContent = filtersButtonLabel(viewTime ? [...selectedOfferIds, "time"] : selectedOfferIds);
     filtersToggle.classList.toggle("active", selectedOfferIds.length > 0 || viewTime !== null);
@@ -1180,17 +1347,31 @@
   }
 
   // The Report panel: a floor picker for spots with floors, then Empty / Some seats / Packed.
+  // What every panel shows: what the spot offers, this week's hours, and private notes.
+  function spotInfo(spot) {
+    const offerTags = spot.offers?.length ? `<span class="offer-tags">${spot.offers.map((offerId) =>
+      `<span class="offer-tag">${offerLabels[offerId]}</span>`).join("")}</span>` : "";
+    const hours = weekHours(spot, displayTime(), viewTime === null).map(({ label, text }) => `<dt>${label}</dt><dd>${text}</dd>`).join("");
+    return `${offerTags}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>
+      <div class="notes"><label for="note-${spot.id}">My notes (only on this device)</label>
+        <textarea id="note-${spot.id}" data-note-spot="${spot.id}" rows="2" maxlength="${NOTE_LIMIT}"
+          placeholder="Like: outlets by the east windows">${escapeHtml(spotNotes[spot.id] ?? "")}</textarea></div>`;
+  }
+
+  // The panel for a spot that can't be reported on right now: closed, or while planning ahead.
+  function infoPanel(spot) {
+    return `${spotInfo(spot)}<div class="buttons"><button class="cancel" data-action="close">Close</button></div>`;
+  }
+
   function reportChoices(spot) {
     const areaPicker = spot.areas
       ? `<p class="where">Where are you?</p><div class="area-choices">${[null, ...spot.areas].map((area) =>
           `<button class="area" data-action="pick-area" data-area="${area?.id ?? ""}"
             aria-pressed="${(area?.id ?? null) === pickedAreaId}">${area?.name ?? "Whole building"}</button>`).join("")}</div>`
       : "";
-    const offerTags = spot.offers?.length ? `<span class="offer-tags">${spot.offers.map((offerId) =>
-      `<span class="offer-tag">${offerLabels[offerId]}</span>`).join("")}</span>` : "";
     const hasHistory = reportHistory.some((entry) => entry.spotId === spot.id);
     const historyLine = `<p class="history-line">${historyMessage(spot.id, reportHistory)}</p>`;
-    return `${offerTags}${historyLine}${areaPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
+    return `${spotInfo(spot)}${historyLine}${areaPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
         `<button data-spot="${spot.id}" data-level="${busynessLevel}">${label}</button>`).join("")}
         <button class="cancel" data-action="close">Cancel</button></div>
         ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}
@@ -1205,7 +1386,12 @@
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     const list = document.getElementById("spot-list");
     list.innerHTML = "";
-    const { favoriteSpots, openSpots, closedSpots } = spotsToShow(currentSpots(), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    const shown = spotsToShow(currentSpots(), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    // Nearest first keeps the same groups, but orders each by distance once the location is known.
+    const byDistance = (spots) => (sortMode === "near" && lastKnownLocation ? sortByDistance(spots, lastKnownLocation) : spots);
+    const favoriteSpots = byDistance(shown.favoriteSpots);
+    const openSpots = byDistance(shown.openSpots);
+    const closedSpots = byDistance(shown.closedSpots);
     const favoriteOpen = favoriteSpots.some((spot) => openStatus(spot, now).isOpen !== false);
     const selectedCategory = spotCategories.find((category) => category.id === selectedCategoryId);
     if (favoriteSpots.length + openSpots.length + closedSpots.length === 0) {
@@ -1246,6 +1432,7 @@
       const card = document.createElement("section");
       card.className = `spot ${level}`;
       if (status.isOpen === false) card.classList.add("closed");
+      if (spot.id === expandedSpotId) card.classList.add("expanded");
       const summary = `
         <span class="card-main">
           <span class="icon-tile ${spot.type}">${spotIcon(spot.id)}</span>
@@ -1256,6 +1443,7 @@
               <span class="report">${busynessMeter(level)}<span>${report
                 ? `<span class="visually-hidden">Last report ${busynessLabels[report.level]}, </span>${describeAge(report.time, Date.now(), true)}`
                 : ""}</span></span>
+              ${sortMode === "near" && lastKnownLocation ? `<span class="spot-distance">${describeMiles(distanceMiles(lastKnownLocation, spot.location))}</span>` : ""}
             </span>
             ${foodLine(spot, status, now)}
           </span>
@@ -1268,14 +1456,13 @@
           aria-label="${isFavorite ? "Remove" : "Add"} ${spot.name} ${isFavorite ? "from" : "to"} favorites">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>
         </button>
-        ${status.isOpen === false || viewTime ? `<div>${summary}</div>`
-          : `<button class="card-tap" data-spot="${spot.id}" data-action="open"
-              aria-expanded="${spot.id === expandedSpotId}">${summary}<span class="visually-hidden">, tap to report how busy it is</span></button>`}
+        <button class="card-tap" data-spot="${spot.id}" data-action="open"
+          aria-expanded="${spot.id === expandedSpotId}">${summary}<span class="visually-hidden">, tap to ${status.isOpen === false || viewTime ? "see hours and notes" : "report how busy it is"}</span></button>
         ${floorReports.length ? `<ul class="floors" aria-label="Floors reported in the last hour">${floorReports.map(({ area, report: floorReport }) =>
           `<li>${busynessMeter(floorReport.level)}<span class="floor-name">${area.name}</span>
             <span class="floor-level ${floorReport.level}">${busynessLabels[floorReport.level]}</span>
             <span class="floor-age">${describeAge(floorReport.time, Date.now(), true)}</span></li>`).join("")}</ul>` : ""}
-        ${spot.id === expandedSpotId ? reportChoices(spot) : ""}`;
+        ${spot.id === expandedSpotId ? (status.isOpen === false || viewTime ? infoPanel(spot) : reportChoices(spot)) : ""}`;
       return card;
   }
 
@@ -1585,6 +1772,125 @@
     render();
   });
 
+  // 4. Nearest first asks for the location the first time.
+  function setSortMode(mode) {
+    sortMode = mode;
+    for (const button of document.querySelectorAll("[data-sort]")) button.setAttribute("aria-pressed", String(button.dataset.sort === mode));
+    render();
+  }
+
+  document.querySelector(".sort-choices").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-sort]");
+    if (!button) return;
+    const result = document.getElementById("sort-location-result");
+    if (button.dataset.sort === "near" && !lastKnownLocation) {
+      requestLocation(result, (here) => {
+        result.textContent = "";
+        showClosestSpots(here);
+        setSortMode("near");
+      });
+      return;
+    }
+    result.textContent = "";
+    setSortMode(button.dataset.sort);
+  });
+
+  // 2. Notes save as you type, without redrawing, so the text box keeps its place.
+  document.getElementById("spot-list").addEventListener("input", (event) => {
+    const spotId = event.target.dataset?.noteSpot;
+    if (!spotId) return;
+    const text = event.target.value.slice(0, NOTE_LIMIT);
+    if (text.trim()) spotNotes = { ...spotNotes, [spotId]: text };
+    else spotNotes = Object.fromEntries(Object.entries(spotNotes).filter(([id]) => id !== spotId));
+    saveNotes(spotNotes);
+  });
+
+  // 7 and 8. Display settings, remembered in this browser.
+  function applyDisplaySettings(theme, largeText) {
+    if (theme === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+    if (largeText) document.documentElement.dataset.text = "large";
+    else delete document.documentElement.dataset.text;
+    for (const button of document.querySelectorAll("[data-theme-choice]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.themeChoice === theme));
+    }
+    document.getElementById("large-text").checked = largeText;
+  }
+
+  document.querySelector(".settings-body").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-theme-choice]");
+    if (!button) return;
+    const theme = button.dataset.themeChoice;
+    try { localStorage.setItem("theme", theme); } catch { /* storage unavailable: keep for this visit */ }
+    applyDisplaySettings(theme, document.documentElement.dataset.text === "large");
+  });
+
+  document.getElementById("large-text").addEventListener("change", (event) => {
+    try { localStorage.setItem("textSize", event.target.checked ? "large" : "normal"); } catch { /* storage unavailable */ }
+    applyDisplaySettings(document.documentElement.dataset.theme ?? "system", event.target.checked);
+  });
+
+  // 6. Backup and restore.
+  document.getElementById("copy-backup").addEventListener("click", async () => {
+    const code = makeBackup({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports });
+    const box = document.getElementById("backup-code");
+    try {
+      await navigator.clipboard.writeText(code);
+      showToast("Backup code copied. Paste it into Restore on your other device.");
+    } catch {
+      box.value = code;
+      box.select();
+      showToast("Copy the code from the box below.");
+    }
+  });
+
+  document.getElementById("restore-backup").addEventListener("click", () => {
+    const box = document.getElementById("backup-code");
+    const restored = readBackup(box.value, allSpots);
+    if (!restored) {
+      showToast("That isn't a backup code. Copy it again from your other device.");
+      return;
+    }
+    const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports };
+    const apply = (data) => {
+      favoriteIds = data.favorites;
+      reportHistory = data.history;
+      spotNotes = data.notes;
+      reports = data.reports;
+      saveFavorites(favoriteIds);
+      saveHistory(reportHistory);
+      saveNotes(spotNotes);
+      saveReports(reports);
+      render();
+    };
+    apply(restored);
+    box.value = "";
+    const count = (amount, word) => `${amount} ${word}${amount === 1 ? "" : "s"}`;
+    showToast(`Restored ${count(restored.favorites.length, "favorite")}, ${count(Object.keys(restored.notes).length, "note")}, and ${count(restored.history.length, "history report")}.`, () => {
+      apply(before);
+      showToast("Restore undone");
+    });
+  });
+
+  // 9. Keyboard shortcuts: "/" searches, Escape closes an open spot or leaves the search box.
+  document.addEventListener("keydown", (event) => {
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName);
+    if (event.key === "/" && !typing && !event.metaKey && !event.ctrlKey) {
+      event.preventDefault();
+      document.getElementById("spot-search").focus();
+      return;
+    }
+    if (event.key !== "Escape") return;
+    if (expandedSpotId) {
+      const closingId = expandedSpotId;
+      expandedSpotId = null;
+      render();
+      document.querySelector(`.card-tap[data-spot="${closingId}"]`)?.focus();
+    } else if (typing) {
+      event.target.blur();
+    }
+  });
+
   document.getElementById("spot-search").addEventListener("input", (event) => {
     searchText = event.target.value;
     render();
@@ -1592,8 +1898,23 @@
 
   document.getElementById("meter-key").innerHTML = meterKey();
   renderOfferButtons();
+  applyDisplaySettings(document.documentElement.dataset.theme ?? "system", document.documentElement.dataset.text === "large");
+  // 5. A shared link opens on its spot, switching campus if needed.
+  const linkedSpot = spotFromLink(location.search, allSpots);
+  if (linkedSpot) selectedCampus = linkedSpot.campus ?? "uiuc";
+  const linkedSpotId = linkedSpot?.id ?? null;
   applyCampus();
+  if (linkedSpotId) {
+    expandedSpotId = linkedSpotId;
+    if (openStatus(linkedSpot, new Date()).isOpen === false) showClosed = true;
+    // Drop "?spot=" from the address so a later reload starts normally.
+    history.replaceState(null, "", location.pathname);
+    render();
+    document.querySelector(`.card-tap[data-spot="${linkedSpotId}"]`)?.scrollIntoView({ block: "center" });
+  }
   setInterval(() => {
+    // Redrawing would interrupt someone typing a note, so wait for the next minute instead.
+    if (document.activeElement?.dataset?.noteSpot) return;
     render();
     refreshPins();
     if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
