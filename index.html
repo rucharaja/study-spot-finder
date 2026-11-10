@@ -143,6 +143,9 @@
   .offer-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
   .offer-tag { padding: 1px 7px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--muted);
     font-size: .72rem; font-weight: 500; line-height: 1.5; }
+  .campus-choices { display: flex; gap: 6px; }
+  button.campus { flex: 1; min-height: 36px; border-radius: 999px; border-width: 1px; font-size: .85rem; background: var(--card); color: var(--text); }
+  button.campus[aria-pressed="true"] { background: var(--illini-navy); border-color: var(--illini-orange); color: #ffffff; }
   .category-choices { display: flex; gap: 6px; flex-wrap: wrap; }
   button.category { flex: 1 1 auto; min-height: 40px; padding: 0 8px; border-radius: 999px; border-width: 1px; font-size: .85rem;
     background: var(--card); color: var(--text); }
@@ -242,12 +245,16 @@
   <div class="header-inner">
     <div>
       <h1>Study Spot Finder</h1>
-      <p class="sub">Find empty study spots at UIUC</p>
+      <p class="sub" id="tagline">Find empty study spots at UIUC</p>
     </div>
     <span class="open-count" id="open-count"></span>
   </div>
 </header>
 <main>
+  <div class="campus-choices" id="campus-choices" role="group" aria-label="Campus">
+    <button class="campus" data-campus="uiuc" aria-pressed="true">UIUC</button>
+    <button class="campus" data-campus="uic" aria-pressed="false">UIC</button>
+  </div>
   <section class="empty-now" id="empty-now" aria-live="polite" hidden></section>
   <div class="search">
     <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
@@ -396,6 +403,48 @@
       keywords: "mechse mechanical meb", type: "academic", name: "Sidney Lu Mechanical Engineering Building",
       hours: [null, [h(6), h(21)], [h(6), h(21)], [h(6), h(21)], [h(6), h(21)], [h(6), h(18)], null] },
   ];
+
+  // UIC spots, kept apart from UIUC so each campus shows only its own. Hours come from the UIC Library's calendar
+  // (libcal.uic.edu) and UIC Student Centers (studentcenters.uic.edu). Dates without posted hours say so.
+  const uicSpots = [
+    { id: "daley", campus: "uic", type: "library", name: "Richard J. Daley Library", offers: [], location: [41.87188, -87.65049],
+      keywords: "main library uic",
+      hours: [null, [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(21)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(7), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-11-29", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "idea", campus: "uic", type: "library", name: "IDEA Commons (Daley Library)", offers: [], location: [41.87196, -87.65036],
+      keywords: "24 hour daley uic",
+      hours: [[h(12), h(19)], [h(7), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(21)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(0), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-11-30", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "lhs", campus: "uic", type: "library", name: "Library of the Health Sciences", offers: [], location: [41.87188, -87.67091],
+      keywords: "lhs health medical uic",
+      hours: [[h(11), h(19)], [h(7), h(22)], [h(7), h(22)], [h(7), h(22)], [h(7), h(22)], [h(7), h(19)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(7), h(19)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-05", "2026-12-05", [h(11), h(19)]), ...during("2026-12-06", "2026-12-06", [h(11), h(23)]),
+        ...during("2026-12-07", "2026-12-10", [h(7), h(23)]), ...during("2026-12-20", "2026-12-20", null),
+        ...during("2026-12-21", "2026-12-22", [h(7), h(19)]), ...during("2026-12-23", "2026-12-23", [h(8), h(17)]),
+        ...during("2026-12-24", "2026-12-25", null), ...during("2026-12-27", "2027-01-01", null),
+        ...during("2027-01-03", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "sce", campus: "uic", type: "union", name: "Student Center East", offers: [], location: [41.87197, -87.64794],
+      keywords: "sce uic",
+      hours: sameEveryDay(6.5, 22),
+      specialHours: { ...during("2026-11-26", "2026-11-26", null), ...during("2026-12-25", "2026-12-25", null),
+        ...during("2027-01-01", "2027-01-01", null), ...during("2027-01-02", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "scw", campus: "uic", type: "union", name: "Student Center West", offers: [], location: [41.87077, -87.67454],
+      keywords: "scw uic",
+      hours: [[h(6.5), h(17)], [h(6.5), h(20)], [h(6.5), h(20)], [h(6.5), h(20)], [h(6.5), h(20)], [h(6.5), h(20)], [h(6.5), h(17)]],
+      specialHours: { ...during("2026-11-26", "2026-11-26", null), ...during("2026-12-25", "2026-12-25", null),
+        ...during("2027-01-01", "2027-01-01", null), ...during("2027-01-02", "2027-08-22", HOURS_UNCONFIRMED) } },
+  ];
+  const allSpots = [...studySpots, ...uicSpots];
+  const campuses = { uiuc: "UIUC", uic: "UIC" };
+  const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce" };
+
+  // The spots on one campus; UIUC spots don't name a campus.
+  function spotsOnCampus(spots, campus) {
+    return spots.filter((spot) => (spot.campus ?? "uiuc") === campus);
+  }
   // Food places from OpenStreetMap whose hours volunteers checked in 2026; older entries were left out as unreliable.
   // Each day (Sunday = 0) lists [open, close] periods in minutes after midnight; a close past 1440 runs into the next day.
   // Dining hall hours are University Housing's published schedule; lunch and light lunch are joined where one runs into the next.
@@ -555,6 +604,12 @@
     lu: { label: "Two gears, for mechanical engineering", svg: '<circle cx="9" cy="10" r="2"/><circle cx="9" cy="10" r="5"/><path d="M9 3v2M9 15v2M2 10h2M14 10h2M4 5l1.5 1.5M12.5 13.5 14 15M14 5l-1.5 1.5M4 15l1.5-1.5"/><circle cx="17.5" cy="18" r="1"/><circle cx="17.5" cy="18" r="3"/><path d="M17.5 13.5V15M17.5 21v1.5M13 18h1.5M20.5 18H22"/>' },
   };
 
+  spotIcons.daley = spotIcons.main;
+  spotIcons.idea = { label: "Lightbulb, for the 24-hour study space", svg: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/>' };
+  spotIcons.lhs = { label: "Medical cross, for health sciences", svg: '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>' };
+  spotIcons.sce = spotIcons.union;
+  spotIcons.scw = spotIcons.union;
+
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
     return `<svg class="spot-icon" viewBox="0 0 24 24" role="img" aria-label="${icon.label}"><title>${icon.label}</title>${icon.svg}</svg>`;
@@ -706,6 +761,13 @@
     const keyEntries = [...Object.entries({ ...busynessLabels, empty: "Empty = plenty of free seats" }), ["unknown", "No recent report"]];
     return keyEntries.map(([level, label]) =>
       `<span class="key-item"><span aria-hidden="true">${busynessMeter(level)}</span>${label}</span>`).join("");
+  }
+
+  // UIC calls its buildings student centers rather than a union.
+  function categoryLabels(category, campus) {
+    return campus === "uic" && category.id === "union"
+      ? { heading: "Student centers", buttonLabel: "Centers" }
+      : { heading: category.heading, buttonLabel: category.buttonLabel };
   }
 
   // The kinds of place, in the order their sections appear. Each id matches a spot's type.
@@ -968,7 +1030,7 @@
     try { localStorage.setItem("reportHistory", JSON.stringify(entries)); } catch { /* storage unavailable: keep in memory */ }
   }
   function loadFavorites() {
-    try { return cleanFavorites(JSON.parse(localStorage.getItem("favoriteSpots") || "[]"), studySpots); } catch { return []; }
+    try { return cleanFavorites(JSON.parse(localStorage.getItem("favoriteSpots") || "[]"), allSpots); } catch { return []; }
   }
   function saveFavorites(ids) {
     try { localStorage.setItem("favoriteSpots", JSON.stringify(ids)); } catch { /* storage unavailable: keep in memory */ }
@@ -990,6 +1052,14 @@
   let pickedAreaId = null;
   let searchText = "";
   let selectedCategoryId = "all";
+  function loadCampus() {
+    try { return localStorage.getItem("campus") === "uic" ? "uic" : "uiuc"; } catch { return "uiuc"; }
+  }
+  function saveCampus(campus) {
+    try { localStorage.setItem("campus", campus); } catch { /* storage unavailable: keep in memory */ }
+  }
+  let selectedCampus = loadCampus();
+  const currentSpots = () => spotsOnCampus(allSpots, selectedCampus);
   let selectedOfferIds = [];
   // A future time being planned for, or null when showing right now.
   let viewTime = null;
@@ -1002,9 +1072,9 @@
   let showClosed = false;
 
   function renderEmptyNow(now) {
-    const emptySpots = studySpots.filter((spot) => isEmptyNow(spot, now, reports));
+    const emptySpots = currentSpots().filter((spot) => isEmptyNow(spot, now, reports));
     const panel = document.getElementById("empty-now");
-    const message = noEmptySpotsMessage(studySpots, now, reports);
+    const message = noEmptySpotsMessage(currentSpots(), now, reports);
     panel.classList.toggle("no-empty-spots", Boolean(message));
     // While planning, the "tap a spot" advice doesn't apply, because reports are only for right now.
     panel.hidden = emptySpots.length === 0 && (!message || viewTime !== null);
@@ -1020,8 +1090,8 @@
   }
 
   function renderCategoryButtons() {
-    document.getElementById("category-choices").innerHTML = [{ id: "all", buttonLabel: "All" }, ...spotCategories].map((category) =>
-      `<button class="category" data-category="${category.id}" aria-pressed="${category.id === selectedCategoryId}">${category.buttonLabel}</button>`).join("");
+    document.getElementById("category-choices").innerHTML = [{ id: "all", buttonLabel: "All" }, ...spotCategories.filter((category) => currentSpots().some((spot) => spot.type === category.id))].map((category) =>
+      `<button class="category" data-category="${category.id}" aria-pressed="${category.id === selectedCategoryId}">${category.id === "all" ? "All" : categoryLabels(category, selectedCampus).buttonLabel}</button>`).join("");
   }
 
   let toastTimer = null;
@@ -1103,7 +1173,7 @@
     const closedCount = closedSpots.filter((spot) => spot.type === category.id).length;
     const section = document.createElement("section");
     section.className = "category-section";
-    section.innerHTML = `<h2 class="category-heading">${category.heading}
+    section.innerHTML = `<h2 class="category-heading">${categoryLabels(category, selectedCampus).heading}
       <span>${sectionOpenSpots.length} of ${sectionOpenSpots.length + closedCount} open</span></h2>`;
     for (const spot of sectionOpenSpots) section.appendChild(spotCard(spot, now));
     document.getElementById("spot-list").appendChild(section);
@@ -1131,11 +1201,11 @@
   function render() {
     const now = displayTime();
     renderEmptyNow(new Date());
-    const openCount = studySpots.filter((spot) => openStatus(spot, now).isOpen).length;
-    document.getElementById("open-count").textContent = `${openCount} of ${studySpots.length} open`;
+    const openCount = currentSpots().filter((spot) => openStatus(spot, now).isOpen).length;
+    document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     const list = document.getElementById("spot-list");
     list.innerHTML = "";
-    const { favoriteSpots, openSpots, closedSpots } = spotsToShow(studySpots, now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    const { favoriteSpots, openSpots, closedSpots } = spotsToShow(currentSpots(), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
     const favoriteOpen = favoriteSpots.some((spot) => openStatus(spot, now).isOpen !== false);
     const selectedCategory = spotCategories.find((category) => category.id === selectedCategoryId);
     if (favoriteSpots.length + openSpots.length + closedSpots.length === 0) {
@@ -1233,7 +1303,7 @@
       expandedSpotId = expandedSpotId === button.dataset.spot ? null : button.dataset.spot;
       pickedAreaId = null;
     } else if (button.dataset.action === "clear-reports") {
-      const spot = studySpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
       const reportsBefore = reports;
       reports = clearSpotReports(spot, reports);
       saveReports(reports);
@@ -1245,10 +1315,10 @@
         showToast("Reports restored");
       });
     } else if (button.dataset.action === "share-spot") {
-      shareSpot(studySpots.find((studySpot) => studySpot.id === button.dataset.spot));
+      shareSpot(allSpots.find((studySpot) => studySpot.id === button.dataset.spot));
       return;
     } else if (button.dataset.action === "forget-history") {
-      const spot = studySpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
       const historyBefore = reportHistory;
       reportHistory = reportHistory.filter((entry) => entry.spotId !== spot.id);
       saveHistory(reportHistory);
@@ -1266,7 +1336,7 @@
     } else if (button.dataset.action === "close") {
       expandedSpotId = null;
     } else if (button.dataset.level) {
-      const spot = studySpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
       const area = spot.areas?.find((spotArea) => spotArea.id === pickedAreaId) ?? null;
       const key = reportKey(spot, area);
       const previousReport = reports[key];
@@ -1285,6 +1355,33 @@
       expandedSpotId = null;
     }
     render();
+  });
+
+  function applyCampus() {
+    for (const button of document.querySelectorAll("button.campus")) {
+      button.setAttribute("aria-pressed", String(button.dataset.campus === selectedCampus));
+    }
+    document.getElementById("tagline").textContent = `Find empty study spots at ${campuses[selectedCampus]}`;
+    document.getElementById("spot-search").placeholder = searchHints[selectedCampus];
+    // A kind of place this campus doesn't have would show an empty list.
+    if (!currentSpots().some((spot) => spot.type === selectedCategoryId)) selectedCategoryId = "all";
+    expandedSpotId = null;
+    showClosed = false;
+    renderCategoryButtons();
+    render();
+    if (spotMap) {
+      refreshPins();
+      spotMap.fitBounds(currentSpots().map((spot) => spot.location), { padding: [24, 24] });
+    }
+    if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
+  }
+
+  document.getElementById("campus-choices").addEventListener("click", (event) => {
+    const button = event.target.closest("button.campus");
+    if (!button || button.dataset.campus === selectedCampus) return;
+    selectedCampus = button.dataset.campus;
+    saveCampus(selectedCampus);
+    applyCampus();
   });
 
   document.getElementById("category-choices").addEventListener("click", (event) => {
@@ -1306,6 +1403,11 @@
   const FOOD_LIST_LENGTH = 10;
 
   function renderFood() {
+    if (selectedCampus === "uic") {
+      document.getElementById("food-list").innerHTML = `<p class="food-empty">Food for UIC isn't in the app yet. Switch to UIUC to see food there.</p>`;
+      foodPinLayer?.clearLayers();
+      return;
+    }
     const now = displayTime();
     const results = foodToShow(foodPlaces, now, foodMode, lastKnownLocation);
     const listed = showAllFood ? results : results.slice(0, FOOD_LIST_LENGTH);
@@ -1340,9 +1442,16 @@
   function refreshPins() {
     if (!spotMap) return;
     const now = displayTime();
-    for (const spot of studySpots) {
+    for (const spot of allSpots) {
+      const pin = spotPins.get(spot.id);
+      const onCampus = (spot.campus ?? "uiuc") === selectedCampus;
+      if (onCampus && !spotMap.hasLayer(pin)) pin.addTo(spotMap);
+      if (!onCampus) {
+        pin.remove();
+        continue;
+      }
       const status = openStatus(spot, now);
-      spotPins.get(spot.id)
+      pin
         .setIcon(pinIcon(`${spot.type}${status.isOpen === false ? " is-closed" : ""}`))
         .setPopupContent(`<strong>${spot.name}</strong><br>${status.text}<br>${walkLink(spot.name, spot.location, "popup-walk")}`);
     }
@@ -1355,13 +1464,13 @@
       mapElement.innerHTML = `<div class="map-message">The map couldn't load. Check your internet connection. "Find closest to me" still works.</div>`;
       return;
     }
-    spotMap = L.map(mapElement).fitBounds(studySpots.map((spot) => spot.location), { padding: [24, 24] });
+    spotMap = L.map(mapElement).fitBounds(currentSpots().map((spot) => spot.location), { padding: [24, 24] });
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(spotMap);
-    for (const spot of studySpots) {
-      spotPins.set(spot.id, L.marker(spot.location, { title: spot.name, alt: spot.name, icon: pinIcon(spot.type) }).bindPopup("").addTo(spotMap));
+    for (const spot of allSpots) {
+      spotPins.set(spot.id, L.marker(spot.location, { title: spot.name, alt: spot.name, icon: pinIcon(spot.type) }).bindPopup(""));
     }
     foodPinLayer = L.layerGroup().addTo(spotMap);
     refreshPins();
@@ -1371,7 +1480,7 @@
     lastKnownLocation = here;
     renderFood();
     const result = document.getElementById("closest-result");
-    const closest = closestOpenSpots(studySpots, here, displayTime()).slice(0, 3);
+    const closest = closestOpenSpots(currentSpots(), here, displayTime()).slice(0, 3);
     if (closest.length === 0) {
       result.innerHTML = `<p class="location-problem">No spots are open right now.</p>`;
     } else {
@@ -1482,9 +1591,8 @@
   });
 
   document.getElementById("meter-key").innerHTML = meterKey();
-  renderCategoryButtons();
   renderOfferButtons();
-  render();
+  applyCampus();
   setInterval(() => {
     render();
     refreshPins();
