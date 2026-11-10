@@ -134,6 +134,9 @@
   .food-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .food-list li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--card); box-shadow: var(--shadow); font-size: .875rem; }
   .food-text { flex: 1; min-width: 0; }
+  button.food-tap { display: block; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; text-align: left; font-weight: inherit; }
+  button.food-tap:focus-visible { outline: 2px solid var(--illini-orange); outline-offset: 4px; border-radius: 6px; }
+  .food-search { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 1rem; }
   a.food-walk { flex: none; min-width: 44px; min-height: 40px; display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--accent); font-size: .8rem; font-weight: 600; text-decoration: none; }
   a.popup-walk { font-weight: 600; }
@@ -272,6 +275,21 @@
   .spot-distance { color: var(--muted); font-size: .8rem; white-space: nowrap; }
   .spot.closed.expanded { opacity: 1; }
   .sort-choices { display: flex; gap: 6px; flex-wrap: wrap; }
+  .special-tag { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--heading);
+    color: var(--heading); font-size: .72rem; font-weight: 600; }
+  .history-grid { border-collapse: separate; border-spacing: 3px; margin-top: 6px; font-size: .7rem; color: var(--muted); }
+  .history-grid th { font-weight: 600; text-align: center; padding: 0 2px; }
+  .history-grid th[scope="row"] { text-align: left; }
+  .history-grid td { width: 22px; height: 14px; border-radius: 3px; border: 1px solid var(--border); }
+  .history-grid td.empty { background: var(--empty); border-color: var(--empty); }
+  .history-grid td.some { background: var(--some); border-color: var(--some); }
+  .history-grid td.packed { background: var(--packed); border-color: var(--packed); }
+  .session-choices { display: flex; gap: 6px; }
+  .session-choices button.share-spot { flex: 1 1 0; width: auto; min-width: 0; margin-top: 10px; }
+  .session-banner { position: sticky; top: 76px; z-index: 5; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  }
   .note { max-width: 640px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: .8rem; text-align: center; }
 </style>
 </head>
@@ -316,6 +334,7 @@
     </div>
     <button class="find-closest" id="sort-food-by-distance">Sort by distance from me</button>
     <div class="closest-result" id="food-location-result" role="status"></div>
+    <input type="search" id="food-search" class="food-search" placeholder="Search food: pizza, coffee" aria-label="Search food">
     <div id="food-list" role="status"></div>
     <p class="map-note">Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters. Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.</p>
     <p class="map-note">Your location stays on this device and isn't saved. Distances are straight lines, not walking routes.</p>
@@ -341,6 +360,10 @@
     </div>
   </div>
   <p class="meter-key" id="meter-key"></p>
+  <div class="plan-banner session-banner" id="session-banner" hidden>
+    <span id="session-text" aria-live="off"></span>
+    <button class="plan-reset" id="session-stop">Stop</button>
+  </div>
   <div class="plan-banner" id="plan-banner" role="status" hidden>
     <span id="plan-banner-text"></span>
     <button class="plan-reset" id="plan-reset">Back to now</button>
@@ -365,6 +388,11 @@
       <button class="offer" id="copy-backup">Copy backup code</button>
       <textarea id="backup-code" rows="3" aria-label="Backup code to restore" placeholder="Paste a backup code here"></textarea>
       <button class="offer" id="restore-backup">Restore from code</button>
+    </div>
+    <div class="setting">
+      <span class="offer-filter-label">Reset</span>
+      <button class="offer" id="reset-data">Erase all my data on this device</button>
+      <p class="map-note">Removes favorites, notes, reports, history, and settings. You can undo right after.</p>
     </div>
     <p class="map-note">On a keyboard: press / to search, and Esc to close an open spot.</p>
   </div>
@@ -556,7 +584,33 @@
       hours: diningWeek([[420, 1440]], [[540, 1440]]) },
     { name: "Urbana South Market", kind: "University Housing store", location: [40.10002, -88.22039], hours: Array(7).fill([[540, 1320]]) },
   ].map((spot) => ({ ...spot, checked: "2026-11", unknownDates: diningHallUnknownDates }));
+  // Food near UIC from OpenStreetMap, again only places whose hours were checked in 2026.
+  const uicFoodPlaces = [
+    {"name": "7-Eleven", "kind": "Convenience store", "location": [41.86945, -87.66501], "hours": [[[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]]], "checked": "2026-09", "campus": "uic"},
+    {"name": "Athena Greek Restaurant", "kind": "Restaurant", "location": [41.87872, -87.64762], "hours": [[[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1320]], [[660, 1320]]], "checked": "2026-03", "campus": "uic"},
+    {"name": "Belly Bowl", "kind": "Restaurant", "location": [41.8696, -87.65579], "hours": [[[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]]], "checked": "2026-10", "campus": "uic"},
+    {"name": "Chick-fil-A", "kind": "Fast food", "location": [41.87212, -87.64783], "hours": [[], [[450, 1200]], [[450, 1200]], [[450, 1200]], [[450, 1200]], [], [[540, 960]]], "checked": "2026-10", "campus": "uic"},
+    {"name": "Conte Di Savolia", "kind": "Restaurant", "location": [41.86945, -87.66327], "hours": [[[540, 960]], [[540, 1080]], [[540, 1080]], [[540, 1080]], [[540, 1080]], [[540, 1080]], [[540, 1080]]], "checked": "2026-02", "campus": "uic"},
+    {"name": "Dark Matter Coffee - Meddle", "kind": "Cafe", "location": [41.8779, -87.64286], "hours": [[[420, 1020]], [[420, 1020]], [[420, 1020]], [[420, 1020]], [[420, 1020]], [[420, 1020]], [[420, 1020]]], "checked": "2026-06", "campus": "uic"},
+    {"name": "Gathers Tea Bar", "kind": "Cafe", "location": [41.86952, -87.65743], "hours": [[[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]]], "checked": "2026-02", "campus": "uic"},
+    {"name": "Greek Islands", "kind": "Restaurant", "location": [41.87899, -87.64751], "hours": [[[660, 1260]], [], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1290]], [[660, 1290]]], "checked": "2026-03", "campus": "uic"},
+    {"name": "Ground Up", "kind": "Cafe", "location": [41.87677, -87.64971], "hours": [[[450, 1020]], [[360, 1080]], [[360, 1080]], [[360, 1080]], [[360, 1080]], [[360, 1080]], [[450, 1020]]], "checked": "2026-06", "campus": "uic"},
+    {"name": "Izakaya Yume", "kind": "Restaurant", "location": [41.87779, -87.64457], "hours": [[[630, 1230]], [[630, 1230]], [[630, 1230]], [[630, 1230]], [[630, 1230]], [[630, 1230]], [[630, 1230]]], "checked": "2026-06", "campus": "uic"},
+    {"name": "Lou Mitchell's Restaurant", "kind": "Restaurant", "location": [41.87782, -87.64213], "hours": [[[420, 840]], [], [], [[360, 840]], [[360, 840]], [[360, 840]], [[420, 840]]], "checked": "2026-10", "campus": "uic"},
+    {"name": "Market at Halsted", "kind": "Convenience store", "location": [41.8722, -87.64781], "hours": [[[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]], [[0, 1440]]], "checked": "2026-10", "campus": "uic"},
+    {"name": "Moka & Co", "kind": "Cafe", "location": [41.87808, -87.64707], "hours": [[[360, 1320]], [[360, 1320]], [[360, 1320]], [[360, 1320]], [[360, 1320]], [[360, 1320]], [[360, 1320]]], "checked": "2026-04", "campus": "uic"},
+    {"name": "Mr Greek Gyros", "kind": "Fast food", "location": [41.87807, -87.6474], "hours": [[], [[540, 1440]], [[540, 1440]], [[540, 1440]], [[540, 1500]], [[540, 1500]], [[540, 1500]]], "checked": "2026-03", "campus": "uic"},
+    {"name": "Onimaki", "kind": "Restaurant", "location": [41.8695, -87.66271], "hours": [[[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]]], "checked": "2026-05", "campus": "uic"},
+    {"name": "Panda Express", "kind": "Fast food", "location": [41.87211, -87.64811], "hours": [[], [[660, 1080]], [[660, 1080]], [[660, 1080]], [[660, 1080]], [[660, 1080]], []], "checked": "2026-10", "campus": "uic"},
+    {"name": "Paris Baguette", "kind": "Bakery", "location": [41.87779, -87.64476], "hours": [[[540, 1200]], [[540, 1200]], [[540, 1200]], [[540, 1200]], [[540, 1200]], [[540, 1200]], [[540, 1200]]], "checked": "2026-06", "campus": "uic"},
+    {"name": "SALT Burgers + Fries", "kind": "Fast food", "location": [41.86929, -87.65579], "hours": [[[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1260]]], "checked": "2026-10", "campus": "uic"},
+    {"name": "Sang's Kitchen", "kind": "Restaurant", "location": [41.87785, -87.64457], "hours": [[[660, 1170]], [[690, 1170]], [[690, 1170]], [[690, 1170]], [[690, 1170]], [[690, 1170]], [[660, 1170]]], "checked": "2026-06", "campus": "uic"},
+    {"name": "So Gong Dong Tofu & Korean BBQ", "kind": "Restaurant", "location": [41.87774, -87.64457], "hours": [[[660, 1170]], [[660, 1170]], [[660, 1170]], [[660, 1170]], [[660, 1170]], [[660, 1170]], [[660, 1170]]], "checked": "2026-06", "campus": "uic"},
+    {"name": "Xi'an Cuisine", "kind": "Restaurant", "location": [41.87783, -87.6467], "hours": [[[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]]], "checked": "2026-06", "campus": "uic"},
+    {"name": "Zeus Restaurant", "kind": "Restaurant", "location": [41.87807, -87.64757], "hours": [[[720, 1140]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[720, 1320]]], "checked": "2026-03", "campus": "uic"},
+  ];
   const foodPlaces = [
+    ...uicFoodPlaces,
     ...diningHalls,
     ...privateHallDining,
     ...housingRetail,
@@ -691,6 +745,8 @@
 
   const WALK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"/><path d="M9 14v-2a1 1 0 0 1 1-1h4"/><path d="M12.5 9l2 2-2 2"/></svg>';
   const CLOSING_SOON_MINUTES = 60;
+  const WALK_MINUTES_PER_MILE = 20;
+  const DAY_PARTS = ["mornings", "afternoons", "evenings", "late nights"];
   const SOON_OPENING_MINUTES = 120;
   const OPEN_LATE_FROM = 23 * 60;
   const BACKUP_PREFIX = "SSF1:";
@@ -979,6 +1035,75 @@
     const usable = places.filter((place) => place.kind !== residentMealsKind);
     const [nearest] = foodToShow(usable, now, lateOnly ? "late" : "open", spot.location);
     return nearest && nearest.miles <= NEARBY_FOOD_MILES ? nearest : null;
+  }
+
+  // 1. The food on one campus; UIUC places don't name a campus.
+  function foodOnCampus(places, campus) {
+    return places.filter((place) => (place.campus ?? "uiuc") === campus);
+  }
+
+  // 4. Walking time at about 3 miles an hour, never less than a minute.
+  function walkMinutes(miles) {
+    return Math.max(1, Math.round(miles * WALK_MINUTES_PER_MILE));
+  }
+
+  function describeDistance(miles) {
+    return `${describeMiles(miles)} · ${walkMinutes(miles)} min walk`;
+  }
+
+  // 5. True when today's hours come from a special date (a break, holiday, or finals) rather than the usual week.
+  function hasSpecialHours(spot, now) {
+    const special = spot.specialHours?.[dateKeyFor(now)];
+    if (special === undefined || special === HOURS_UNCONFIRMED) return false;
+    return JSON.stringify(special) !== JSON.stringify(spot.hours?.[now.getDay()] ?? null);
+  }
+
+  // 6. A food search matches part of the name or the kind of place, ignoring case and extra spaces.
+  function matchesFoodSearch(place, query) {
+    const cleanQuery = query.trim().toLowerCase();
+    return !cleanQuery || `${place.name} ${place.kind}`.toLowerCase().includes(cleanQuery);
+  }
+
+  // 7. A food place's hours for the next seven days, starting today.
+  function foodWeekHours(place, now) {
+    return [0, 1, 2, 3, 4, 5, 6].map((daysAhead) => {
+      const date = daysLater(now, daysAhead);
+      const label = daysAhead === 0 ? "Today" : `${dayNames[date.getDay()]} ${monthNames[date.getMonth()]} ${date.getDate()}`;
+      const key = dateKeyFor(date);
+      if (place.unknownDates?.some(([start, end]) => key >= start && key <= end)) return { label, text: "Hours not confirmed" };
+      const periods = place.hours[date.getDay()];
+      if (periods.length === 0) return { label, text: "Closed" };
+      if (periods.length === 1 && periods[0][0] === 0 && periods[0][1] === 1440) return { label, text: "Open 24 hours" };
+      return { label, text: periods.map(([open, close]) => `${formatTime(open)} – ${formatTime(close)}`).join(", ") };
+    });
+  }
+
+  // 8. A grid of the viewer's reports for one spot: one row per weekday, one column per part of the day.
+  function historyGrid(spotId, history) {
+    const cells = Array.from({ length: 7 }, () => DAY_PARTS.map(() => ({ empty: 0, some: 0, packed: 0 })));
+    for (const entry of history.filter((item) => item.spotId === spotId)) {
+      const { day, part } = timeBlock(entry.time);
+      const cell = cells[day][DAY_PARTS.indexOf(part)];
+      if (entry.level in cell) cell[entry.level] += 1;
+    }
+    // Each cell shows its most common report; ties go to the busier level, so "empty" is never overstated.
+    return cells.map((row) => row.map((cell) => {
+      const total = cell.empty + cell.some + cell.packed;
+      if (total === 0) return { total, level: null };
+      const level = ["packed", "some", "empty"].reduce((best, next) => (cell[next] > cell[best] ? next : best), "packed");
+      return { total, level };
+    }));
+  }
+
+  // 3. Minutes and seconds left in a study session, like "24:05".
+  function formatTimer(msLeft) {
+    const totalSeconds = Math.max(0, Math.ceil(msLeft / 1000));
+    return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+  }
+
+  // True when a spot that's open now will be closed before the session ends.
+  function closesBeforeSessionEnds(spot, now, endTime) {
+    return openStatus(spot, now).isOpen === true && openStatus(spot, new Date(endTime - 60000)).isOpen === false;
   }
 
   // The message for a location error, with what to try. Codes come from the browser's geolocation API.
@@ -1358,6 +1483,17 @@
           placeholder="Like: outlets by the east windows">${escapeHtml(spotNotes[spot.id] ?? "")}</textarea></div>`;
   }
 
+  // A small chart of the viewer's own reports: rows are days, columns are parts of the day, colored by the usual level.
+  function historyGridHtml(spotId) {
+    const grid = historyGrid(spotId, reportHistory);
+    const partLabels = ["Morn", "Aft", "Eve", "Late"];
+    const header = `<tr><th></th>${partLabels.map((label) => `<th scope="col">${label}</th>`).join("")}</tr>`;
+    const rows = grid.map((row, day) => `<tr><th scope="row">${dayNames[day]}</th>${row.map(({ total, level }, part) =>
+      `<td class="${level ?? "none"}" title="${level ? `${busynessLabels[level]}, ${total} ${total === 1 ? "report" : "reports"}` : "No reports"}">`
+      + `<span class="visually-hidden">${dayNames[day]} ${DAY_PARTS[part]}: ${level ? busynessLabels[level] : "no reports"}</span></td>`).join("")}</tr>`).join("");
+    return `<table class="history-grid" aria-label="Your reports by day and time">${header}${rows}</table>`;
+  }
+
   // The panel for a spot that can't be reported on right now: closed, or while planning ahead.
   function infoPanel(spot) {
     return `${spotInfo(spot)}<div class="buttons"><button class="cancel" data-action="close">Close</button></div>`;
@@ -1370,11 +1506,15 @@
             aria-pressed="${(area?.id ?? null) === pickedAreaId}">${area?.name ?? "Whole building"}</button>`).join("")}</div>`
       : "";
     const hasHistory = reportHistory.some((entry) => entry.spotId === spot.id);
-    const historyLine = `<p class="history-line">${historyMessage(spot.id, reportHistory)}</p>`;
+    const historyLine = `<p class="history-line">${historyMessage(spot.id, reportHistory)}</p>${hasHistory ? historyGridHtml(spot.id) : ""}`;
     return `${spotInfo(spot)}${historyLine}${areaPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
         `<button data-spot="${spot.id}" data-level="${busynessLevel}">${label}</button>`).join("")}
         <button class="cancel" data-action="close">Cancel</button></div>
         ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}
+        <div class="session-choices">
+          <button class="share-spot" data-spot="${spot.id}" data-action="start-session" data-minutes="25">Study here 25 min</button>
+          <button class="share-spot" data-spot="${spot.id}" data-action="start-session" data-minutes="50">Study here 50 min</button>
+        </div>
         <button class="share-spot" data-spot="${spot.id}" data-action="share-spot">Share this spot</button>
         ${hasHistory ? `<button class="clear-reports" data-spot="${spot.id}" data-action="forget-history">Forget my history</button>` : ""}`;
   }
@@ -1443,8 +1583,9 @@
               <span class="report">${busynessMeter(level)}<span>${report
                 ? `<span class="visually-hidden">Last report ${busynessLabels[report.level]}, </span>${describeAge(report.time, Date.now(), true)}`
                 : ""}</span></span>
-              ${sortMode === "near" && lastKnownLocation ? `<span class="spot-distance">${describeMiles(distanceMiles(lastKnownLocation, spot.location))}</span>` : ""}
+              ${sortMode === "near" && lastKnownLocation ? `<span class="spot-distance">${describeDistance(distanceMiles(lastKnownLocation, spot.location))}</span>` : ""}
             </span>
+            ${hasSpecialHours(spot, now) ? `<span class="special-tag">Special hours today</span>` : ""}
             ${foodLine(spot, status, now)}
           </span>
         </span>`;
@@ -1501,6 +1642,9 @@
         render();
         showToast("Reports restored");
       });
+    } else if (button.dataset.action === "start-session") {
+      startSession(button.dataset.spot, Number(button.dataset.minutes));
+      return;
     } else if (button.dataset.action === "share-spot") {
       shareSpot(allSpots.find((studySpot) => studySpot.id === button.dataset.spot));
       return;
@@ -1587,27 +1731,34 @@
   let foodMode = "open";
   let lastKnownLocation = null;
   let showAllFood = false;
+  let foodSearchText = "";
+  let expandedFoodKey = null;
   const FOOD_LIST_LENGTH = 10;
 
   function renderFood() {
-    if (selectedCampus === "uic") {
-      document.getElementById("food-list").innerHTML = `<p class="food-empty">Food for UIC isn't in the app yet. Switch to UIUC to see food there.</p>`;
-      foodPinLayer?.clearLayers();
-      return;
-    }
     const now = displayTime();
-    const results = foodToShow(foodPlaces, now, foodMode, lastKnownLocation);
+    const campusFood = foodOnCampus(foodPlaces, selectedCampus).filter((place) => matchesFoodSearch(place, foodSearchText));
+    const results = foodToShow(campusFood, now, foodMode, lastKnownLocation);
     const listed = showAllFood ? results : results.slice(0, FOOD_LIST_LENGTH);
     const foodList = document.getElementById("food-list");
-    if (results.length === 0) {
+    if (results.length === 0 && foodSearchText.trim()) {
+      const listName = { open: "open right now", late: "open late tonight", dining: "in the dining halls" }[foodMode];
+      foodList.innerHTML = `<p class="food-empty">Nothing ${listName} matches "${escapeHtml(foodSearchText.trim())}". Try another list above.</p>`;
+    } else if (results.length === 0 && foodMode === "dining") {
+      foodList.innerHTML = `<p class="food-empty">No dining halls are listed for ${campuses[selectedCampus]} yet.</p>`;
+    } else if (results.length === 0) {
       foodList.innerHTML = `<p class="food-empty">${foodMode === "late" ? "Nothing listed is open late right now." : "Nothing listed is open right now."} Try again later, or check the map.</p>`;
     } else {
       foodList.innerHTML = `<ul class="food-list">${listed.map(({ place, miles }) => {
         const status = foodStatus(place, now);
         const statusClass = status.isOpen === null ? "unknown" : status.closingSoon ? "closing" : status.isOpen ? "open" : "closed";
-        return `<li><span class="food-text"><span class="food-name">${escapeHtml(place.name)}</span>
-          <span class="status ${statusClass}">${status.text}</span>
-          <span class="food-details">${place.kind}${miles === null ? "" : ` · ${describeMiles(miles)}`}</span></span>
+        const foodKey = `${place.name}|${place.location.join(",")}`;
+        const isExpanded = expandedFoodKey === foodKey;
+        const week = isExpanded ? `<dl class="week-hours">${foodWeekHours(place, now).map(({ label, text }) => `<dt>${label}</dt><dd>${text}</dd>`).join("")}</dl>` : "";
+        return `<li><button class="food-text food-tap" data-food-key="${escapeHtml(foodKey)}" aria-expanded="${isExpanded}">
+            <span class="food-name">${escapeHtml(place.name)}</span>
+            <span class="status ${statusClass}">${status.text}</span>
+            <span class="food-details">${place.kind}${miles === null ? "" : ` · ${describeDistance(miles)}`}</span>${week}</button>
           ${walkLink(place.name, place.location, "walk-link food-walk")}</li>`;
       }).join("")}</ul>${results.length > FOOD_LIST_LENGTH
         ? `<button class="show-all-food" id="show-all-food">${showAllFood ? "Show fewer" : `Show all ${results.length}`}</button>`
@@ -1672,7 +1823,7 @@
       result.innerHTML = `<p class="location-problem">No spots are open right now.</p>`;
     } else {
       result.innerHTML = `Closest open spots:<ol>${closest.map(({ spot, miles }, index) =>
-        `<li class="${index === 0 ? "closest-first" : ""}">${spot.name} · ${describeMiles(miles)}</li>`).join("")}</ol>`;
+        `<li class="${index === 0 ? "closest-first" : ""}">${spot.name} · ${describeDistance(miles)}</li>`).join("")}</ol>`;
     }
     if (!spotMap) return;
     if (youAreHerePin) youAreHerePin.setLatLng(here);
@@ -1739,7 +1890,20 @@
     renderFood();
   });
 
+  document.getElementById("food-search").addEventListener("input", (event) => {
+    foodSearchText = event.target.value;
+    showAllFood = false;
+    renderFood();
+  });
+
   document.getElementById("food-list").addEventListener("click", (event) => {
+    const foodButton = event.target.closest(".food-tap");
+    if (foodButton) {
+      expandedFoodKey = expandedFoodKey === foodButton.dataset.foodKey ? null : foodButton.dataset.foodKey;
+      renderFood();
+      document.querySelector(`.food-tap[data-food-key="${CSS.escape(foodButton.dataset.foodKey)}"]`)?.focus();
+      return;
+    }
     if (event.target.id !== "show-all-food") return;
     showAllFood = !showAllFood;
     renderFood();
@@ -1872,6 +2036,87 @@
     });
   });
 
+  // 3. Study session timer, remembered across reloads so a session survives closing the tab.
+  function loadSession() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("studySession") || "null");
+      return saved && allSpots.some((spot) => spot.id === saved.spotId) && Number.isFinite(saved.endTime) ? saved : null;
+    } catch {
+      return null;
+    }
+  }
+  function saveSession(session) {
+    try {
+      if (session) localStorage.setItem("studySession", JSON.stringify(session));
+      else localStorage.removeItem("studySession");
+    } catch { /* storage unavailable: keep in memory */ }
+  }
+  let studySession = loadSession();
+
+  function updateSessionBanner() {
+    const banner = document.getElementById("session-banner");
+    banner.hidden = !studySession;
+    if (!studySession) return;
+    banner.style.top = `${document.querySelector("header").offsetHeight}px`;
+    const now = Date.now();
+    const spot = allSpots.find((studySpot) => studySpot.id === studySession.spotId);
+    if (now >= studySession.endTime) {
+      studySession = null;
+      saveSession(null);
+      banner.hidden = true;
+      navigator.vibrate?.(300);
+      showToast("Study session done. Take a 5-minute break.");
+      return;
+    }
+    const warning = closesBeforeSessionEnds(spot, new Date(now), studySession.endTime) ? ` · ${spot.name} closes first` : "";
+    document.getElementById("session-text").textContent = `Studying at ${spot.name} · ${formatTimer(studySession.endTime - now)} left${warning}`;
+  }
+
+  function startSession(spotId, minutes) {
+    studySession = { spotId, endTime: Date.now() + minutes * 60000 };
+    saveSession(studySession);
+    expandedSpotId = null;
+    render();
+    updateSessionBanner();
+    const spot = allSpots.find((studySpot) => studySpot.id === spotId);
+    showToast(closesBeforeSessionEnds(spot, new Date(), studySession.endTime)
+      ? `Session started. Heads up: ${spot.name} closes before it ends.`
+      : `${minutes}-minute session started at ${spot.name}.`);
+  }
+
+  document.getElementById("session-stop").addEventListener("click", () => {
+    studySession = null;
+    saveSession(null);
+    updateSessionBanner();
+    showToast("Session stopped");
+  });
+
+  // 9. Reset everything this browser has saved, with a chance to undo.
+  document.getElementById("reset-data").addEventListener("click", () => {
+    const keys = ["busynessReports", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly"];
+    let saved = {};
+    try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
+    const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
+      campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large" };
+    favoriteIds = [];
+    reportHistory = [];
+    spotNotes = {};
+    reports = {};
+    studySession = null;
+    selectedCampus = "uiuc";
+    applyDisplaySettings("system", false);
+    applyCampus();
+    updateSessionBanner();
+    showToast("Erased everything on this device.", () => {
+      try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
+      ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus } = before);
+      applyDisplaySettings(before.theme, before.large);
+      applyCampus();
+      updateSessionBanner();
+      showToast("Your data is back");
+    });
+  });
+
   // 9. Keyboard shortcuts: "/" searches, Escape closes an open spot or leaves the search box.
   document.addEventListener("keydown", (event) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName);
@@ -1911,6 +2156,12 @@
     history.replaceState(null, "", location.pathname);
     render();
     document.querySelector(`.card-tap[data-spot="${linkedSpotId}"]`)?.scrollIntoView({ block: "center" });
+  }
+  updateSessionBanner();
+  setInterval(updateSessionBanner, 1000);
+  // 2. Keep a copy of the app so it opens without a connection. Only secure pages can do this.
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register("sw.js").catch(() => { /* the app works without it, just not offline */ });
   }
   setInterval(() => {
     // Redrawing would interrupt someone typing a note, so wait for the next minute instead.
