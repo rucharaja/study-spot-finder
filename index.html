@@ -143,6 +143,8 @@
   a.walk-link { position: absolute; top: 46px; right: 2px; width: 44px; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 1px; border-radius: 10px; color: var(--accent); font-size: .7rem; font-weight: 600; text-decoration: none; }
   a.walk-link svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  /* Food rows lay their Walk button out in line, unlike the corner button on study spot cards. */
+  a.walk-link.food-walk { position: static; width: auto; min-height: 40px; padding: 0 10px; flex-direction: row; }
   a.walk-link:hover, a.food-walk:hover { color: var(--illini-orange); }
   a.walk-link:focus-visible, a.food-walk:focus-visible { outline: 2px solid var(--illini-orange); outline-offset: -2px; }
   .food-name { font-weight: 600; }
@@ -287,6 +289,38 @@
   .session-choices { display: flex; gap: 6px; }
   .session-choices button.share-spot { flex: 1 1 0; width: auto; min-width: 0; margin-top: 10px; }
   .session-banner { position: sticky; top: 76px; z-index: 5; }
+  .session-banner.checking-in { flex-wrap: wrap; }
+  .session-checkin { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+  .session-checkin[hidden] { display: none; }
+  .session-checkin button { flex: 1 1 auto; padding: 0 8px; }
+  /* The dark-mode meaning colors read well on the navy banner in either theme. */
+  .session-checkin [data-checkin-level="empty"] { border-color: #5ad08a; color: #5ad08a; }
+  .session-checkin [data-checkin-level="some"] { border-color: #e8bc55; color: #e8bc55; }
+  .session-checkin [data-checkin-level="packed"] { border-color: #ff8c7c; color: #ff8c7c; }
+  .session-checkin [data-checkin-level=""] { flex: none; border-color: transparent; text-decoration: underline; }
+  .today-notes { display: grid; gap: 8px; }
+  .today-notes[hidden] { display: none; }
+  .today-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    color: var(--muted); font-size: .85rem; }
+  .latest-line strong { color: var(--text); }
+  button.pick-spot { flex: none; width: auto; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--illini-orange);
+    background: var(--card); color: var(--accent); font-size: .85rem; }
+  .hours-notice { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 6px 10px 14px; border-radius: 12px;
+    border-left: 4px solid var(--heading); background: var(--card); box-shadow: var(--shadow); font-size: .85rem; }
+  .hours-notice span { flex: 1; }
+  button.notice-dismiss { flex: none; width: 36px; min-width: 0; min-height: 36px; padding: 0; border: 0; background: transparent;
+    color: var(--muted); font-size: 1.3rem; line-height: 1; }
+  .spot.picked { outline: 3px solid var(--illini-orange); outline-offset: 2px; }
+  .spot-distance.too-late, .too-late { color: var(--closed); font-weight: 600; white-space: normal; }
+  .hidden-tag { border-color: var(--muted); color: var(--muted); }
+  button.hidden-toggle { margin-top: 8px; color: var(--muted); }
+  button.food-favorite { position: static; width: 40px; height: 40px; min-height: 40px; }
+  .study-summary { margin: 0; font-size: .9rem; }
+  .app-qr { display: grid; justify-items: start; gap: 6px; font-size: .85rem; }
+  .app-qr[hidden] { display: none; }
+  .app-qr a { color: var(--accent); font-weight: 600; }
+  .qr-image { width: 180px; padding: 8px; border-radius: 12px; background: #ffffff; }
+  .qr-image svg { display: block; width: 100%; height: auto; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
   }
@@ -304,11 +338,22 @@
   </div>
 </header>
 <main>
+  <div class="plan-banner session-banner" id="session-banner" hidden>
+    <span id="session-text" aria-live="off"></span>
+    <button class="plan-reset" id="session-stop">Stop</button>
+    <div class="session-checkin" id="session-checkin" role="group" aria-label="How busy is it now?" hidden>
+      <button class="plan-reset" data-checkin-level="empty">Empty</button>
+      <button class="plan-reset" data-checkin-level="some">Some seats</button>
+      <button class="plan-reset" data-checkin-level="packed">Packed</button>
+      <button class="plan-reset" data-checkin-level="">Skip</button>
+    </div>
+  </div>
   <div class="campus-choices" id="campus-choices" role="group" aria-label="Campus">
     <button class="campus" data-campus="uiuc" aria-pressed="true">UIUC</button>
     <button class="campus" data-campus="uic" aria-pressed="false">UIC</button>
   </div>
   <section class="empty-now" id="empty-now" aria-live="polite" hidden></section>
+  <div class="today-notes" id="today-notes"></div>
   <div class="search">
     <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
     <input type="search" id="spot-search" placeholder="Search: law, sie, gies" aria-label="Search study spots" autocomplete="off">
@@ -360,10 +405,6 @@
     </div>
   </div>
   <p class="meter-key" id="meter-key"></p>
-  <div class="plan-banner session-banner" id="session-banner" hidden>
-    <span id="session-text" aria-live="off"></span>
-    <button class="plan-reset" id="session-stop">Stop</button>
-  </div>
   <div class="plan-banner" id="plan-banner" role="status" hidden>
     <span id="plan-banner-text"></span>
     <button class="plan-reset" id="plan-reset">Back to now</button>
@@ -383,16 +424,26 @@
     </div>
     <label class="switch-row"><input type="checkbox" id="large-text"> Larger text</label>
     <div class="setting">
-      <span class="offer-filter-label">Back up favorites, notes, and history</span>
+      <span class="offer-filter-label">Back up favorites, notes, history, and study time</span>
       <p class="map-note">Copy the code here, then paste it on your other device, or in the home screen app, and tap Restore.</p>
       <button class="offer" id="copy-backup">Copy backup code</button>
       <textarea id="backup-code" rows="3" aria-label="Backup code to restore" placeholder="Paste a backup code here"></textarea>
       <button class="offer" id="restore-backup">Restore from code</button>
     </div>
     <div class="setting">
+      <span class="offer-filter-label">Study time</span>
+      <p class="study-summary" id="study-summary"></p>
+    </div>
+    <div class="setting">
+      <span class="offer-filter-label">Share the app</span>
+      <p class="map-note">A friend can scan this with their phone camera to open the app.</p>
+      <button class="offer" id="show-qr" aria-expanded="false" aria-controls="app-qr">Show a code to scan</button>
+      <div class="app-qr" id="app-qr" role="status" hidden></div>
+    </div>
+    <div class="setting">
       <span class="offer-filter-label">Reset</span>
       <button class="offer" id="reset-data">Erase all my data on this device</button>
-      <p class="map-note">Removes favorites, notes, reports, history, and settings. You can undo right after.</p>
+      <p class="map-note">Removes favorites, hidden spots, notes, reports, history, study time, and settings. You can undo right after.</p>
     </div>
     <p class="map-note">On a keyboard: press / to search, and Esc to close an open spot.</p>
   </div>
@@ -752,6 +803,10 @@
   const BACKUP_PREFIX = "SSF1:";
   const OPEN_LATE_FILTER = "open-late";
   const NOTE_LIMIT = 500;
+  const STUDY_LOG_LIMIT = 500;
+  const REPORTED_EMPTY_FILTER = "reported-empty";
+  const EVENING_START_HOUR = 20;
+  const pickLevelWords = { empty: "Reported empty", some: "Some seats", packed: "Packed" };
   const APP_LINK = "https://rucharaja.github.io/study-spot-finder/";
   const shareLevelWords = { empty: "It's empty right now.", some: "There are some seats right now.", packed: "It's packed right now." };
   const HISTORY_LIMIT = 2000;
@@ -921,13 +976,14 @@
 
   // Favorites come out separately, open or closed, so each spot appears once.
   function spotsToShow(spots, now, reports, query, categoryId = "all", favoriteIds = [], offerIds = []) {
-    const spotOffers = offerIds.filter((offerId) => offerId !== LATE_FOOD_FILTER && offerId !== OPEN_LATE_FILTER);
+    const spotOffers = offerIds.filter((offerId) => ![LATE_FOOD_FILTER, OPEN_LATE_FILTER, REPORTED_EMPTY_FILTER].includes(offerId));
     const needsLateFood = offerIds.includes(LATE_FOOD_FILTER);
     const needsOpenLate = offerIds.includes(OPEN_LATE_FILTER);
+    const needsReportedEmpty = offerIds.includes(REPORTED_EMPTY_FILTER);
     const matching = sortBestFirst(spots, now, reports).filter((spot) =>
       matchesSearch(spot, query) && (categoryId === "all" || spot.type === categoryId) && hasAllOffers(spot, spotOffers)
       && (!needsLateFood || nearestFood(spot, foodPlaces, now, true) !== null)
-      && (!needsOpenLate || isOpenLateTonight(spot, now)));
+      && (!needsOpenLate || isOpenLateTonight(spot, now)) && (!needsReportedEmpty || isEmptyNow(spot, now, reports)));
     const isClosed = (spot) => openStatus(spot, now).isOpen === false;
     const isFavorite = (spot) => favoriteIds.includes(spot.id);
     const others = matching.filter((spot) => !isFavorite(spot));
@@ -1037,12 +1093,12 @@
     return nearest && nearest.miles <= NEARBY_FOOD_MILES ? nearest : null;
   }
 
-  // 1. The food on one campus; UIUC places don't name a campus.
+  // The food on one campus; UIUC places don't name a campus.
   function foodOnCampus(places, campus) {
     return places.filter((place) => (place.campus ?? "uiuc") === campus);
   }
 
-  // 4. Walking time at about 3 miles an hour, never less than a minute.
+  // Walking time at about 3 miles an hour, never less than a minute.
   function walkMinutes(miles) {
     return Math.max(1, Math.round(miles * WALK_MINUTES_PER_MILE));
   }
@@ -1051,20 +1107,20 @@
     return `${describeMiles(miles)} · ${walkMinutes(miles)} min walk`;
   }
 
-  // 5. True when today's hours come from a special date (a break, holiday, or finals) rather than the usual week.
+  // True when today's hours come from a special date (a break, holiday, or finals) rather than the usual week.
   function hasSpecialHours(spot, now) {
     const special = spot.specialHours?.[dateKeyFor(now)];
     if (special === undefined || special === HOURS_UNCONFIRMED) return false;
     return JSON.stringify(special) !== JSON.stringify(spot.hours?.[now.getDay()] ?? null);
   }
 
-  // 6. A food search matches part of the name or the kind of place, ignoring case and extra spaces.
+  // A food search matches part of the name or the kind of place, ignoring case and extra spaces.
   function matchesFoodSearch(place, query) {
     const cleanQuery = query.trim().toLowerCase();
     return !cleanQuery || `${place.name} ${place.kind}`.toLowerCase().includes(cleanQuery);
   }
 
-  // 7. A food place's hours for the next seven days, starting today.
+  // A food place's hours for the next seven days, starting today.
   function foodWeekHours(place, now) {
     return [0, 1, 2, 3, 4, 5, 6].map((daysAhead) => {
       const date = daysLater(now, daysAhead);
@@ -1078,7 +1134,7 @@
     });
   }
 
-  // 8. A grid of the viewer's reports for one spot: one row per weekday, one column per part of the day.
+  // A grid of the viewer's reports for one spot: one row per weekday, one column per part of the day.
   function historyGrid(spotId, history) {
     const cells = Array.from({ length: 7 }, () => DAY_PARTS.map(() => ({ empty: 0, some: 0, packed: 0 })));
     for (const entry of history.filter((item) => item.spotId === spotId)) {
@@ -1095,7 +1151,7 @@
     }));
   }
 
-  // 3. Minutes and seconds left in a study session, like "24:05".
+  // Minutes and seconds left in a study session, like "24:05".
   function formatTimer(msLeft) {
     const totalSeconds = Math.max(0, Math.ceil(msLeft / 1000));
     return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
@@ -1104,6 +1160,123 @@
   // True when a spot that's open now will be closed before the session ends.
   function closesBeforeSessionEnds(spot, now, endTime) {
     return openStatus(spot, now).isOpen === true && openStatus(spot, new Date(endTime - 60000)).isOpen === false;
+  }
+
+  // True when a spot would close before you could walk there from this far away.
+  function closesBeforeArrival(spot, now, miles) {
+    return closesBeforeSessionEnds(spot, now, now.getTime() + walkMinutes(miles) * 60000);
+  }
+
+  // Minutes until an open spot closes, checked in 15-minute steps up to a day; 0 when it isn't open.
+  function minutesUntilClose(spot, now) {
+    if (openStatus(spot, now).isOpen !== true) return 0;
+    for (let minutes = 15; minutes < 24 * 60; minutes += 15) {
+      if (openStatus(spot, new Date(now.getTime() + minutes * 60000)).isOpen === false) return minutes;
+    }
+    return 24 * 60;
+  }
+
+  // The spot to suggest when you can't decide, or null when nothing suitable is open. Only spots open for at
+  // least another hour count. Emptiest report first, then favorites, then nearest (when known), then open longest.
+  function pickSpotForMe(spots, now, reports, favoriteIds = [], here = null) {
+    const scored = spots
+      .filter((spot) => minutesUntilClose(spot, now) >= CLOSING_SOON_MINUTES)
+      .map((spot) => ({
+        spot,
+        ranks: [busynessRank[recentLevel(spot, now, reports)], favoriteIds.includes(spot.id) ? 0 : 1,
+          here ? distanceMiles(here, spot.location) : 0, -minutesUntilClose(spot, now)],
+      }));
+    if (scored.length === 0) return null;
+    scored.sort((a, b) => {
+      const difference = a.ranks.findIndex((rank, index) => rank !== b.ranks[index]);
+      return difference === -1 ? 0 : a.ranks[difference] - b.ranks[difference];
+    });
+    const { spot } = scored[0];
+    const level = recentLevel(spot, now, reports);
+    const reasons = [
+      level === "unknown" ? null : `${pickLevelWords[level]} ${describeAge(emptiestRecentReport(spot, now, reports).report.time, now.getTime())}`,
+      openStatus(spot, now).text.toLowerCase(),
+      favoriteIds.includes(spot.id) ? "one of your favorites" : null,
+      here ? describeDistance(distanceMiles(here, spot.location)) : null,
+    ].filter(Boolean);
+    return { spot, reason: reasons.join(" · ") };
+  }
+
+  // The open spot that stays open the longest from now, or null when nothing is open.
+  function openLatest(spots, now) {
+    const open = spots.filter((spot) => openStatus(spot, now).isOpen === true);
+    if (open.length === 0) return null;
+    const latest = open.reduce((best, spot) => (minutesUntilClose(spot, now) > minutesUntilClose(best, now) ? spot : best));
+    return { spot: latest, text: openStatus(latest, now).text };
+  }
+
+  // The next day this week when spots switch to special hours (a break, holiday, or finals), or null.
+  // Spots already on special hours today don't count again, so a break is announced once, before it starts.
+  function upcomingHoursChange(spots, now, days = 7) {
+    for (let daysAhead = 1; daysAhead <= days; daysAhead++) {
+      const date = daysLater(now, daysAhead);
+      const changing = spots.filter((spot) => hasSpecialHours(spot, date) && !hasSpecialHours(spot, now));
+      if (changing.length) {
+        return { dateKey: dateKeyFor(date), label: `${dayNames[date.getDay()]} ${monthNames[date.getMonth()]} ${date.getDate()}`, count: changing.length };
+      }
+    }
+    return null;
+  }
+
+  // The spots to list: hidden ones drop out unless the viewer asked to see them.
+  function withoutHidden(spots, hiddenIds, showHidden = false) {
+    return showHidden ? spots : spots.filter((spot) => !hiddenIds.includes(spot.id));
+  }
+
+  // Food places have no id, so a name and location together pick one out.
+  function foodKeyFor(place) {
+    return `${place.name}|${place.location.join(",")}`;
+  }
+
+  // Starred food first, keeping the list's order otherwise.
+  function favoriteFoodFirst(results, favoriteFoodKeys) {
+    const isFavorite = ({ place }) => favoriteFoodKeys.includes(foodKeyFor(place));
+    return [...results].sort((a, b) => isFavorite(b) - isFavorite(a));
+  }
+
+  // Only keys of food places that still exist.
+  function cleanFoodFavorites(saved, places) {
+    if (!Array.isArray(saved)) return [];
+    const keys = new Set(places.map(foodKeyFor));
+    return [...new Set(saved.filter((key) => keys.has(key)))];
+  }
+
+  // Adds finished study time to the log. Sessions under a minute aren't worth keeping.
+  function addStudyTime(log, spotId, minutes, endTime) {
+    if (!(minutes >= 1)) return log;
+    return [...log, { spotId, minutes: Math.round(minutes), endTime }].slice(-STUDY_LOG_LIMIT);
+  }
+
+  function cleanStudyLog(saved, spots) {
+    if (!Array.isArray(saved)) return [];
+    return saved.filter((entry) => entry && spots.some((spot) => spot.id === entry.spotId)
+      && Number.isFinite(entry.minutes) && entry.minutes >= 1 && Number.isFinite(entry.endTime)).slice(-STUDY_LOG_LIMIT);
+  }
+
+  function formatDuration(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    if (hours === 0) return `${rest} min`;
+    return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+  }
+
+  // A sentence about the last 7 days of study sessions.
+  function studySummary(log, spots, now) {
+    const weekAgo = now.getTime() - 7 * 24 * 60 * 60000;
+    const recent = log.filter((entry) => entry.endTime > weekAgo && entry.endTime <= now.getTime());
+    if (recent.length === 0) return "No study sessions in the last 7 days. Start one from any open spot.";
+    const minutesBySpot = {};
+    for (const entry of recent) minutesBySpot[entry.spotId] = (minutesBySpot[entry.spotId] ?? 0) + entry.minutes;
+    const total = recent.reduce((sum, entry) => sum + entry.minutes, 0);
+    const [topSpotId] = Object.entries(minutesBySpot).sort((a, b) => b[1] - a[1])[0];
+    const topSpot = spots.find((spot) => spot.id === topSpotId);
+    const sessions = `${recent.length} ${recent.length === 1 ? "session" : "sessions"}`;
+    return `Last 7 days: ${formatDuration(total)} over ${sessions}, most at ${topSpot.name}.`;
   }
 
   // The message for a location error, with what to try. Codes come from the browser's geolocation API.
@@ -1198,7 +1371,7 @@
     return spots.find((spot) => spot.id === spotId) ?? null;
   }
 
-  // 1. A spot's hours for the next seven days, starting today, including breaks and holidays.
+  // A spot's hours for the next seven days, starting today, including breaks and holidays.
   function weekHours(spot, now, startsToday = true) {
     return [0, 1, 2, 3, 4, 5, 6].map((daysAhead) => {
       const date = daysLater(now, daysAhead);
@@ -1212,7 +1385,7 @@
     });
   }
 
-  // 3. Open late means open at 11pm tonight; in the small hours, it means open now.
+  // Open late means open at 11pm tonight; in the small hours, it means open now.
   function isOpenLateTonight(spot, now) {
     const minutes = now.getHours() * 60 + now.getMinutes();
     if (minutes < EARLY_MORNING_END || minutes >= OPEN_LATE_FROM) return openStatus(spot, now).isOpen === true;
@@ -1220,12 +1393,12 @@
     return openStatus(spot, elevenTonight).isOpen === true;
   }
 
-  // 4. Spots nearest first from a location; spots without one keep their order at the end.
+  // Spots nearest first from a location; spots without one keep their order at the end.
   function sortByDistance(spots, here) {
     return [...spots].sort((a, b) => distanceMiles(here, a.location) - distanceMiles(here, b.location));
   }
 
-  // 2. Notes are short private text per spot; anything else in saved data is dropped.
+  // Notes are short private text per spot; anything else in saved data is dropped.
   function cleanNotes(saved, spots) {
     if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
     return Object.fromEntries(Object.entries(saved)
@@ -1233,7 +1406,7 @@
       .map(([spotId, note]) => [spotId, note.slice(0, NOTE_LIMIT)]));
   }
 
-  // 6. A backup code holds everything saved, so it can be pasted into another browser. It's URL-encoded JSON, which
+  // A backup code holds everything saved, so it can be pasted into another browser. It's URL-encoded JSON, which
   // keeps any character safe to copy and paste.
   function makeBackup(data) {
     return `${BACKUP_PREFIX}${encodeURIComponent(JSON.stringify({ version: 1, ...data }))}`;
@@ -1252,6 +1425,9 @@
         notes: cleanNotes(data.notes, spots),
         reports: Object.fromEntries(Object.entries(reports).filter(([, report]) =>
           report && typeof report.level === "string" && report.level in busynessLabels && Number.isFinite(report.time))),
+        hidden: cleanFavorites(data.hidden, spots),
+        foodFavorites: cleanFoodFavorites(data.foodFavorites, foodPlaces),
+        studyLog: cleanStudyLog(data.studyLog, spots),
       };
     } catch {
       return null;
@@ -1323,6 +1499,13 @@
   function saveFavorites(ids) {
     try { localStorage.setItem("favoriteSpots", JSON.stringify(ids)); } catch { /* storage unavailable: keep in memory */ }
   }
+  // Lists saved as JSON under one key, checked by clean() so damaged data can't break the page.
+  function loadList(key, clean) {
+    try { return clean(JSON.parse(localStorage.getItem(key) || "[]")); } catch { return []; }
+  }
+  function saveList(key, list) {
+    try { localStorage.setItem(key, JSON.stringify(list)); } catch { /* storage unavailable: keep in memory */ }
+  }
   // Returns whether the reports were stored, so the confirmation message can be honest.
   function saveReports(reports) {
     try {
@@ -1357,6 +1540,13 @@
   let favoriteIds = loadFavorites();
   let reportHistory = loadHistory();
   let spotNotes = loadNotes();
+  let hiddenSpotIds = loadList("hiddenSpots", (saved) => cleanFavorites(saved, allSpots));
+  let showHiddenSpots = false;
+  let foodFavoriteKeys = loadList("foodFavorites", (saved) => cleanFoodFavorites(saved, foodPlaces));
+  let studyLog = loadList("studyLog", (saved) => cleanStudyLog(saved, allSpots));
+  // The spot to ask "how busy is it now?" about, once a study session there ends.
+  let checkInSpotId = null;
+  let dismissedHoursNotice = (() => { try { return localStorage.getItem("dismissedHoursNotice"); } catch { return null; } })();
   // "best" keeps best-first order; "near" sorts by distance once the location is known.
   let sortMode = "best";
   // Closed spots sit folded under one row until someone opens it.
@@ -1379,6 +1569,59 @@
       return `<li>${spot.name}${area ? ` · ${area.name}` : ""} · reported ${describeAge(report.time)}${status.closingSoon ? ` · ${status.text.toLowerCase()}` : ""}</li>`;
     }).join("")}</ul>`;
   }
+
+  // The open spots the list would show right now with the current search and filters, favorites first.
+  function spotsMatchingNow(now) {
+    const shown = spotsToShow(withoutHidden(currentSpots(), hiddenSpotIds), now, reports, searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    return [...shown.favoriteSpots, ...shown.openSpots];
+  }
+
+  // A heads-up before special hours start, which spot stays open latest (in the evening, when it matters),
+  // and a "Pick for me" button.
+  // Hidden while planning ahead, since all three are about right now.
+  function renderTodayNotes(now) {
+    const panel = document.getElementById("today-notes");
+    panel.hidden = viewTime !== null;
+    if (viewTime !== null) return;
+    const hour = now.getHours();
+    const isEvening = hour >= EVENING_START_HOUR || hour < EARLY_MORNING_END / 60;
+    const latest = isEvening ? openLatest(withoutHidden(currentSpots(), hiddenSpotIds), now) : null;
+    const change = upcomingHoursChange(currentSpots(), now);
+    const notice = change && change.dateKey !== dismissedHoursNotice
+      ? `<p class="hours-notice"><span><strong>Heads up:</strong> ${change.count} ${change.count === 1 ? "spot switches" : "spots switch"} to special hours on ${change.label}. Tap a spot to see its week.</span>
+          <button class="notice-dismiss" data-action="dismiss-notice" data-date="${change.dateKey}" aria-label="Dismiss this notice">&times;</button></p>`
+      : "";
+    panel.innerHTML = `${notice}<div class="today-row">
+        ${latest ? `<span class="latest-line">Open latest tonight: <strong>${escapeHtml(latest.spot.name)}</strong> · ${latest.text.toLowerCase()}</span>` : ""}
+        <button class="pick-spot" data-action="pick-spot">Pick a spot for me</button>
+      </div>`;
+  }
+
+  document.getElementById("today-notes").addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    if (button.dataset.action === "dismiss-notice") {
+      dismissedHoursNotice = button.dataset.date;
+      try { localStorage.setItem("dismissedHoursNotice", dismissedHoursNotice); } catch { /* storage unavailable */ }
+      renderTodayNotes(new Date());
+      document.querySelector(".pick-spot")?.focus();
+      return;
+    }
+    const now = new Date();
+    const pick = pickSpotForMe(spotsMatchingNow(now), now, reports, favoriteIds, lastKnownLocation);
+    if (!pick) {
+      const filtered = searchText.trim() || selectedOfferIds.length || selectedCategoryId !== "all";
+      showToast(filtered ? "No matching spot is open for another hour. Try clearing the search or filters." : "No spot is open for another hour. Try the time picker in Filters to plan ahead.");
+      return;
+    }
+    expandedSpotId = null;
+    render();
+    const card = document.querySelector(`.card-tap[data-spot="${pick.spot.id}"]`)?.closest(".spot");
+    card?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    card?.classList.add("picked");
+    setTimeout(() => card?.classList.remove("picked"), 4000);
+    showToast(`Try ${pick.spot.name}: ${pick.reason}`);
+  });
 
   function renderCategoryButtons() {
     document.getElementById("category-choices").innerHTML = [{ id: "all", buttonLabel: "All" }, ...spotCategories.filter((category) => currentSpots().some((spot) => spot.type === category.id))].map((category) =>
@@ -1443,7 +1686,8 @@
     document.getElementById("offer-choices").innerHTML = Object.entries(offerLabels).map(([offerId, label]) =>
       `<button class="offer" data-offer="${offerId}" aria-pressed="${selectedOfferIds.includes(offerId)}">${label}</button>`).join("")
       + `<button class="offer" data-offer="${LATE_FOOD_FILTER}" aria-pressed="${selectedOfferIds.includes(LATE_FOOD_FILTER)}">Late food nearby</button>`
-      + `<button class="offer" data-offer="${OPEN_LATE_FILTER}" aria-pressed="${selectedOfferIds.includes(OPEN_LATE_FILTER)}">Open past 11pm</button>`;
+      + `<button class="offer" data-offer="${OPEN_LATE_FILTER}" aria-pressed="${selectedOfferIds.includes(OPEN_LATE_FILTER)}">Open past 11pm</button>`
+      + `<button class="offer" data-offer="${REPORTED_EMPTY_FILTER}" aria-pressed="${selectedOfferIds.includes(REPORTED_EMPTY_FILTER)}">Reported empty</button>`;
     const filtersToggle = document.getElementById("filters-toggle");
     filtersToggle.textContent = filtersButtonLabel(viewTime ? [...selectedOfferIds, "time"] : selectedOfferIds);
     filtersToggle.classList.toggle("active", selectedOfferIds.length > 0 || viewTime !== null);
@@ -1496,7 +1740,12 @@
 
   // The panel for a spot that can't be reported on right now: closed, or while planning ahead.
   function infoPanel(spot) {
-    return `${spotInfo(spot)}<div class="buttons"><button class="cancel" data-action="close">Close</button></div>`;
+    return `${spotInfo(spot)}<div class="buttons"><button class="cancel" data-action="close">Close</button></div>${hideButton(spot)}`;
+  }
+
+  function hideButton(spot) {
+    const isHidden = hiddenSpotIds.includes(spot.id);
+    return `<button class="clear-reports" data-spot="${spot.id}" data-action="toggle-hidden">${isHidden ? "Unhide this spot" : "Hide this spot from my list"}</button>`;
   }
 
   function reportChoices(spot) {
@@ -1516,17 +1765,20 @@
           <button class="share-spot" data-spot="${spot.id}" data-action="start-session" data-minutes="50">Study here 50 min</button>
         </div>
         <button class="share-spot" data-spot="${spot.id}" data-action="share-spot">Share this spot</button>
-        ${hasHistory ? `<button class="clear-reports" data-spot="${spot.id}" data-action="forget-history">Forget my history</button>` : ""}`;
+        ${hasHistory ? `<button class="clear-reports" data-spot="${spot.id}" data-action="forget-history">Forget my history</button>` : ""}
+        ${hideButton(spot)}`;
   }
 
   function render() {
     const now = displayTime();
     renderEmptyNow(new Date());
+    renderTodayNotes(new Date());
+    document.getElementById("study-summary").textContent = studySummary(studyLog, allSpots, new Date());
     const openCount = currentSpots().filter((spot) => openStatus(spot, now).isOpen).length;
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     const list = document.getElementById("spot-list");
     list.innerHTML = "";
-    const shown = spotsToShow(currentSpots(), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    const shown = spotsToShow(withoutHidden(currentSpots(), hiddenSpotIds, showHiddenSpots), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
     // Nearest first keeps the same groups, but orders each by distance once the location is known.
     const byDistance = (spots) => (sortMode === "near" && lastKnownLocation ? sortByDistance(spots, lastKnownLocation) : spots);
     const favoriteSpots = byDistance(shown.favoriteSpots);
@@ -1553,6 +1805,11 @@
         list.appendChild(closedList);
       }
     }
+    const hiddenHere = currentSpots().filter((spot) => hiddenSpotIds.includes(spot.id)).length;
+    if (hiddenHere) {
+      list.insertAdjacentHTML("beforeend", `<button class="closed-toggle hidden-toggle" data-action="toggle-show-hidden"
+        aria-expanded="${showHiddenSpots}">Hidden by you (${hiddenHere})</button>`);
+    }
   }
 
   // The card's line naming nearby food; closed spots skip it, since you wouldn't be heading there now.
@@ -1562,6 +1819,13 @@
     const nearby = nearestFood(spot, foodPlaces, now, lateOnly);
     if (!nearby) return "";
     return `<span class="food-line">${lateOnly ? "Late food" : "Food"}: ${escapeHtml(nearby.place.name)} · ${describeMiles(nearby.miles)}</span>`;
+  }
+
+  // Distance and walking time, with a warning when the spot would close before you got there.
+  function distanceTag(spot, now) {
+    const miles = distanceMiles(lastKnownLocation, spot.location);
+    const tooLate = closesBeforeArrival(spot, now, miles);
+    return `<span class="spot-distance${tooLate ? " too-late" : ""}">${describeDistance(miles)}${tooLate ? " · closes before you'd arrive" : ""}</span>`;
   }
 
   function spotCard(spot, now) {
@@ -1583,9 +1847,10 @@
               <span class="report">${busynessMeter(level)}<span>${report
                 ? `<span class="visually-hidden">Last report ${busynessLabels[report.level]}, </span>${describeAge(report.time, Date.now(), true)}`
                 : ""}</span></span>
-              ${sortMode === "near" && lastKnownLocation ? `<span class="spot-distance">${describeDistance(distanceMiles(lastKnownLocation, spot.location))}</span>` : ""}
+              ${sortMode === "near" && lastKnownLocation ? distanceTag(spot, now) : ""}
             </span>
             ${hasSpecialHours(spot, now) ? `<span class="special-tag">Special hours today</span>` : ""}
+            ${hiddenSpotIds.includes(spot.id) ? `<span class="special-tag hidden-tag">Hidden</span>` : ""}
             ${foodLine(spot, status, now)}
           </span>
         </span>`;
@@ -1595,7 +1860,7 @@
         ${walkLink(spot.name, spot.location)}
         <button class="favorite" data-spot="${spot.id}" data-action="toggle-favorite" aria-pressed="${isFavorite}"
           aria-label="${isFavorite ? "Remove" : "Add"} ${spot.name} ${isFavorite ? "from" : "to"} favorites">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>
+          ${STAR_ICON}
         </button>
         <button class="card-tap" data-spot="${spot.id}" data-action="open"
           aria-expanded="${spot.id === expandedSpotId}">${summary}<span class="visually-hidden">, tap to ${status.isOpen === false || viewTime ? "see hours and notes" : "report how busy it is"}</span></button>
@@ -1662,31 +1927,50 @@
       });
     } else if (button.dataset.action === "toggle-closed") {
       showClosed = !showClosed;
+    } else if (button.dataset.action === "toggle-show-hidden") {
+      showHiddenSpots = !showHiddenSpots;
+    } else if (button.dataset.action === "toggle-hidden") {
+      const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      const hiddenBefore = hiddenSpotIds;
+      hiddenSpotIds = toggleFavorite(hiddenSpotIds, spot.id);
+      saveList("hiddenSpots", hiddenSpotIds);
+      expandedSpotId = null;
+      const nowHidden = hiddenSpotIds.includes(spot.id);
+      showToast(nowHidden ? `Hid ${spot.name}. Find it under "Hidden by you" at the bottom.` : `${spot.name} is back in your list.`, () => {
+        hiddenSpotIds = hiddenBefore;
+        saveList("hiddenSpots", hiddenSpotIds);
+        render();
+        showToast(nowHidden ? `${spot.name} is back in your list.` : `Hid ${spot.name} again.`);
+      });
     } else if (button.dataset.action === "pick-area") {
       pickedAreaId = button.dataset.area || null;
     } else if (button.dataset.action === "close") {
       expandedSpotId = null;
     } else if (button.dataset.level) {
       const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
-      const area = spot.areas?.find((spotArea) => spotArea.id === pickedAreaId) ?? null;
-      const key = reportKey(spot, area);
-      const previousReport = reports[key];
-      const historyBefore = reportHistory;
-      reports[key] = { level: button.dataset.level, time: Date.now() };
-      reportHistory = addToHistory(reportHistory, spot.id, button.dataset.level, reports[key].time);
-      saveHistory(reportHistory);
-      showToast(reportConfirmation(spot, area, button.dataset.level, saveReports(reports)), () => {
-        reports = undoReport(reports, key, previousReport);
-        reportHistory = historyBefore;
-        saveHistory(reportHistory);
-        saveReports(reports);
-        render();
-        showToast("Report undone");
-      });
+      recordReport(spot, spot.areas?.find((spotArea) => spotArea.id === pickedAreaId) ?? null, button.dataset.level);
       expandedSpotId = null;
     }
     render();
   });
+
+  // Saves a report and its history entry, then confirms it with a chance to undo.
+  function recordReport(spot, area, level) {
+    const key = reportKey(spot, area);
+    const previousReport = reports[key];
+    const historyBefore = reportHistory;
+    reports[key] = { level, time: Date.now() };
+    reportHistory = addToHistory(reportHistory, spot.id, level, reports[key].time);
+    saveHistory(reportHistory);
+    showToast(reportConfirmation(spot, area, level, saveReports(reports)), () => {
+      reports = undoReport(reports, key, previousReport);
+      reportHistory = historyBefore;
+      saveHistory(reportHistory);
+      saveReports(reports);
+      render();
+      showToast("Report undone");
+    });
+  }
 
   function applyCampus() {
     for (const button of document.querySelectorAll("button.campus")) {
@@ -1735,10 +2019,12 @@
   let expandedFoodKey = null;
   const FOOD_LIST_LENGTH = 10;
 
+  const STAR_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>';
+
   function renderFood() {
     const now = displayTime();
     const campusFood = foodOnCampus(foodPlaces, selectedCampus).filter((place) => matchesFoodSearch(place, foodSearchText));
-    const results = foodToShow(campusFood, now, foodMode, lastKnownLocation);
+    const results = favoriteFoodFirst(foodToShow(campusFood, now, foodMode, lastKnownLocation), foodFavoriteKeys);
     const listed = showAllFood ? results : results.slice(0, FOOD_LIST_LENGTH);
     const foodList = document.getElementById("food-list");
     if (results.length === 0 && foodSearchText.trim()) {
@@ -1752,13 +2038,16 @@
       foodList.innerHTML = `<ul class="food-list">${listed.map(({ place, miles }) => {
         const status = foodStatus(place, now);
         const statusClass = status.isOpen === null ? "unknown" : status.closingSoon ? "closing" : status.isOpen ? "open" : "closed";
-        const foodKey = `${place.name}|${place.location.join(",")}`;
+        const foodKey = foodKeyFor(place);
+        const isFavorite = foodFavoriteKeys.includes(foodKey);
         const isExpanded = expandedFoodKey === foodKey;
         const week = isExpanded ? `<dl class="week-hours">${foodWeekHours(place, now).map(({ label, text }) => `<dt>${label}</dt><dd>${text}</dd>`).join("")}</dl>` : "";
         return `<li><button class="food-text food-tap" data-food-key="${escapeHtml(foodKey)}" aria-expanded="${isExpanded}">
             <span class="food-name">${escapeHtml(place.name)}</span>
             <span class="status ${statusClass}">${status.text}</span>
             <span class="food-details">${place.kind}${miles === null ? "" : ` · ${describeDistance(miles)}`}</span>${week}</button>
+          <button class="favorite food-favorite" data-food-favorite="${escapeHtml(foodKey)}" aria-pressed="${isFavorite}"
+            aria-label="${isFavorite ? "Remove" : "Add"} ${escapeHtml(place.name)} ${isFavorite ? "from" : "to"} favorites">${STAR_ICON}</button>
           ${walkLink(place.name, place.location, "walk-link food-walk")}</li>`;
       }).join("")}</ul>${results.length > FOOD_LIST_LENGTH
         ? `<button class="show-all-food" id="show-all-food">${showAllFood ? "Show fewer" : `Show all ${results.length}`}</button>`
@@ -1823,7 +2112,8 @@
       result.innerHTML = `<p class="location-problem">No spots are open right now.</p>`;
     } else {
       result.innerHTML = `Closest open spots:<ol>${closest.map(({ spot, miles }, index) =>
-        `<li class="${index === 0 ? "closest-first" : ""}">${spot.name} · ${describeDistance(miles)}</li>`).join("")}</ol>`;
+        `<li class="${index === 0 ? "closest-first" : ""}">${spot.name} · ${describeDistance(miles)}${closesBeforeArrival(spot, displayTime(), miles)
+          ? ` <span class="too-late">· closes before you'd arrive</span>` : ""}</li>`).join("")}</ol>`;
     }
     if (!spotMap) return;
     if (youAreHerePin) youAreHerePin.setLatLng(here);
@@ -1897,6 +2187,17 @@
   });
 
   document.getElementById("food-list").addEventListener("click", (event) => {
+    const starButton = event.target.closest("[data-food-favorite]");
+    if (starButton) {
+      const foodKey = starButton.dataset.foodFavorite;
+      foodFavoriteKeys = toggleFavorite(foodFavoriteKeys, foodKey);
+      saveList("foodFavorites", foodFavoriteKeys);
+      renderFood();
+      const name = foodKey.split("|")[0];
+      showToast(foodFavoriteKeys.includes(foodKey) ? `${name} is starred and listed first.` : `${name} is no longer starred.`);
+      document.querySelector(`[data-food-favorite="${CSS.escape(foodKey)}"]`)?.focus();
+      return;
+    }
     const foodButton = event.target.closest(".food-tap");
     if (foodButton) {
       expandedFoodKey = expandedFoodKey === foodButton.dataset.foodKey ? null : foodButton.dataset.foodKey;
@@ -1936,7 +2237,7 @@
     render();
   });
 
-  // 4. Nearest first asks for the location the first time.
+  // Nearest first asks for the location the first time.
   function setSortMode(mode) {
     sortMode = mode;
     for (const button of document.querySelectorAll("[data-sort]")) button.setAttribute("aria-pressed", String(button.dataset.sort === mode));
@@ -1959,7 +2260,7 @@
     setSortMode(button.dataset.sort);
   });
 
-  // 2. Notes save as you type, without redrawing, so the text box keeps its place.
+  // Notes save as you type, without redrawing, so the text box keeps its place.
   document.getElementById("spot-list").addEventListener("input", (event) => {
     const spotId = event.target.dataset?.noteSpot;
     if (!spotId) return;
@@ -1994,9 +2295,9 @@
     applyDisplaySettings(document.documentElement.dataset.theme ?? "system", event.target.checked);
   });
 
-  // 6. Backup and restore.
+  // Backup and restore.
   document.getElementById("copy-backup").addEventListener("click", async () => {
-    const code = makeBackup({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports });
+    const code = makeBackup({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog });
     const box = document.getElementById("backup-code");
     try {
       await navigator.clipboard.writeText(code);
@@ -2015,12 +2316,19 @@
       showToast("That isn't a backup code. Copy it again from your other device.");
       return;
     }
-    const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports };
+    const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog };
     const apply = (data) => {
       favoriteIds = data.favorites;
       reportHistory = data.history;
       spotNotes = data.notes;
       reports = data.reports;
+      hiddenSpotIds = data.hidden;
+      foodFavoriteKeys = data.foodFavorites;
+      studyLog = data.studyLog;
+      saveList("hiddenSpots", hiddenSpotIds);
+      saveList("foodFavorites", foodFavoriteKeys);
+      saveList("studyLog", studyLog);
+      renderFood();
       saveFavorites(favoriteIds);
       saveHistory(reportHistory);
       saveNotes(spotNotes);
@@ -2036,7 +2344,7 @@
     });
   });
 
-  // 3. Study session timer, remembered across reloads so a session survives closing the tab.
+  // Study session timer, remembered across reloads so a session survives closing the tab.
   function loadSession() {
     try {
       const saved = JSON.parse(localStorage.getItem("studySession") || "null");
@@ -2053,19 +2361,38 @@
   }
   let studySession = loadSession();
 
+  function logStudyTime(minutes) {
+    studyLog = addStudyTime(studyLog, studySession.spotId, minutes, Date.now());
+    saveList("studyLog", studyLog);
+    document.getElementById("study-summary").textContent = studySummary(studyLog, allSpots, new Date());
+  }
+
   function updateSessionBanner() {
     const banner = document.getElementById("session-banner");
-    banner.hidden = !studySession;
-    if (!studySession) return;
+    const checkIn = document.getElementById("session-checkin");
+    banner.hidden = !studySession && !checkInSpotId;
+    checkIn.hidden = !checkInSpotId;
+    document.getElementById("session-stop").hidden = Boolean(checkInSpotId);
+    banner.classList.toggle("checking-in", Boolean(checkInSpotId));
+    if (banner.hidden) return;
     banner.style.top = `${document.querySelector("header").offsetHeight}px`;
+    if (checkInSpotId) {
+      const spot = allSpots.find((studySpot) => studySpot.id === checkInSpotId);
+      document.getElementById("session-text").textContent = `Session done. How busy is ${spot.name} now?`;
+      return;
+    }
     const now = Date.now();
     const spot = allSpots.find((studySpot) => studySpot.id === studySession.spotId);
     if (now >= studySession.endTime) {
+      // Sessions saved before minutes were kept can't be logged, since their length is unknown.
+      if (studySession.minutes) logStudyTime(studySession.minutes);
       studySession = null;
       saveSession(null);
-      banner.hidden = true;
+      // Only ask about a spot that's still open, since a report means "right now".
+      if (openStatus(spot, new Date()).isOpen !== false) checkInSpotId = spot.id;
       navigator.vibrate?.(300);
       showToast("Study session done. Take a 5-minute break.");
+      updateSessionBanner();
       return;
     }
     const warning = closesBeforeSessionEnds(spot, new Date(now), studySession.endTime) ? ` · ${spot.name} closes first` : "";
@@ -2073,7 +2400,8 @@
   }
 
   function startSession(spotId, minutes) {
-    studySession = { spotId, endTime: Date.now() + minutes * 60000 };
+    checkInSpotId = null;
+    studySession = { spotId, minutes, endTime: Date.now() + minutes * 60000 };
     saveSession(studySession);
     expandedSpotId = null;
     render();
@@ -2085,31 +2413,91 @@
   }
 
   document.getElementById("session-stop").addEventListener("click", () => {
+    const studied = studySession.minutes ? Math.floor(studySession.minutes - (studySession.endTime - Date.now()) / 60000) : 0;
+    if (studied >= 1) logStudyTime(studied);
     studySession = null;
     saveSession(null);
     updateSessionBanner();
-    showToast("Session stopped");
+    showToast(studied >= 1 ? `Session stopped. Logged ${formatDuration(studied)} of study.` : "Session stopped");
   });
 
-  // 9. Reset everything this browser has saved, with a chance to undo.
+  document.getElementById("session-checkin").addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    const spot = allSpots.find((studySpot) => studySpot.id === checkInSpotId);
+    checkInSpotId = null;
+    updateSessionBanner();
+    if (!button.dataset.checkinLevel) return;
+    recordReport(spot, null, button.dataset.checkinLevel);
+    render();
+  });
+
+  // The QR library is loaded only when asked for, so the page stays small for everyone else.
+  const QR_SCRIPT = { src: "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js",
+    integrity: "sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" };
+  function loadQrLibrary() {
+    if (window.qrcode) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      Object.assign(script, { src: QR_SCRIPT.src, integrity: QR_SCRIPT.integrity, crossOrigin: "anonymous", referrerPolicy: "no-referrer" });
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  document.getElementById("show-qr").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    const box = document.getElementById("app-qr");
+    if (!box.hidden) {
+      box.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      button.textContent = "Show a code to scan";
+      return;
+    }
+    box.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    button.textContent = "Hide the code";
+    box.textContent = "Making the code…";
+    try {
+      await loadQrLibrary();
+      const code = window.qrcode(0, "M");
+      code.addData(APP_LINK);
+      code.make();
+      box.innerHTML = `<div class="qr-image">${code.createSvgTag({ cellSize: 5, margin: 2, scalable: true, alt: "Code that opens Study Spot Finder" })}</div>
+        <a href="${APP_LINK}" target="_blank" rel="noopener">${APP_LINK.replace("https://", "")}</a>`;
+    } catch {
+      box.innerHTML = `Couldn't make the code without internet. Share the link instead: <a href="${APP_LINK}" target="_blank" rel="noopener">${APP_LINK.replace("https://", "")}</a>`;
+    }
+  });
+
+  // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
-    const keys = ["busynessReports", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly"];
+    const keys = ["busynessReports", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
+      "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
+      hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice,
       campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large" };
     favoriteIds = [];
     reportHistory = [];
     spotNotes = {};
     reports = {};
     studySession = null;
+    checkInSpotId = null;
+    hiddenSpotIds = [];
+    foodFavoriteKeys = [];
+    studyLog = [];
+    dismissedHoursNotice = null;
     selectedCampus = "uiuc";
     applyDisplaySettings("system", false);
     applyCampus();
     updateSessionBanner();
     showToast("Erased everything on this device.", () => {
       try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
-      ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus } = before);
+      ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus,
+        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice } = before);
       applyDisplaySettings(before.theme, before.large);
       applyCampus();
       updateSessionBanner();
@@ -2117,7 +2505,7 @@
     });
   });
 
-  // 9. Keyboard shortcuts: "/" searches, Escape closes an open spot or leaves the search box.
+  // Keyboard shortcuts: "/" searches, Escape closes an open spot or leaves the search box.
   document.addEventListener("keydown", (event) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName);
     if (event.key === "/" && !typing && !event.metaKey && !event.ctrlKey) {
@@ -2144,7 +2532,7 @@
   document.getElementById("meter-key").innerHTML = meterKey();
   renderOfferButtons();
   applyDisplaySettings(document.documentElement.dataset.theme ?? "system", document.documentElement.dataset.text === "large");
-  // 5. A shared link opens on its spot, switching campus if needed.
+  // A shared link opens on its spot, switching campus if needed.
   const linkedSpot = spotFromLink(location.search, allSpots);
   if (linkedSpot) selectedCampus = linkedSpot.campus ?? "uiuc";
   const linkedSpotId = linkedSpot?.id ?? null;
@@ -2159,7 +2547,7 @@
   }
   updateSessionBanner();
   setInterval(updateSessionBanner, 1000);
-  // 2. Keep a copy of the app so it opens without a connection. Only secure pages can do this.
+  // Keep a copy of the app so it opens without a connection. Only secure pages can do this.
   if ("serviceWorker" in navigator && window.isSecureContext) {
     navigator.serviceWorker.register("sw.js").catch(() => { /* the app works without it, just not offline */ });
   }
