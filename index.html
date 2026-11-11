@@ -316,6 +316,21 @@
   button.hidden-toggle { margin-top: 8px; color: var(--muted); }
   button.food-favorite { position: static; width: 40px; height: 40px; min-height: 40px; }
   .study-summary { margin: 0; font-size: .9rem; }
+  .tips { padding: 14px 18px; border-radius: 14px; border-left: 4px solid var(--illini-orange); background: var(--card); box-shadow: var(--shadow); font-size: .875rem; }
+  .tips[hidden] { display: none; }
+  .tips h2 { margin: 0 0 6px; font-size: 1rem; color: var(--heading); }
+  .tips ul { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 4px; }
+  .tip-bars { margin-right: 6px; }
+  .filter-count { display: inline-block; min-width: 1.4em; margin-left: 4px; padding: 0 5px; border-radius: 999px;
+    background: var(--border); color: var(--text); font-size: .75rem; text-align: center; }
+  button.offer[aria-pressed="true"] .filter-count { background: #ffffff; color: var(--illini-navy); }
+  .nearby-food { margin-top: 10px; }
+  .nearby-food ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .nearby-food li { font-size: .85rem; }
+  .goal-bar { height: 10px; border-radius: 999px; background: var(--border); overflow: hidden; }
+  .goal-bar span { display: block; height: 100%; width: 0; background: var(--illini-orange); }
+  .goal-progress.reached .goal-bar span { background: var(--empty); }
+  .goal-progress[hidden] { display: none; }
   .app-qr { display: grid; justify-items: start; gap: 6px; font-size: .85rem; }
   .app-qr[hidden] { display: none; }
   .app-qr a { color: var(--accent); font-weight: 600; }
@@ -348,6 +363,16 @@
       <button class="plan-reset" data-checkin-level="">Skip</button>
     </div>
   </div>
+  <section class="tips" id="tips" aria-labelledby="tips-heading" hidden>
+    <h2 id="tips-heading">How it works</h2>
+    <ul>
+      <li><span class="tip-bars" id="tip-bars" aria-hidden="true"></span>The bars show how busy a spot is, from reports in the last hour: green is empty, yellow is some seats, red is packed.</li>
+      <li>Tap a spot to report how busy it is, see its hours, find food nearby, or start a study timer.</li>
+      <li>Can't decide? Tap <strong>Pick a spot for me</strong>.</li>
+      <li>Reports, favorites, and notes are saved only on this device.</li>
+    </ul>
+    <button class="pick-spot" id="tips-done">Got it</button>
+  </section>
   <div class="campus-choices" id="campus-choices" role="group" aria-label="Campus">
     <button class="campus" data-campus="uiuc" aria-pressed="true">UIUC</button>
     <button class="campus" data-campus="uic" aria-pressed="false">UIC</button>
@@ -400,6 +425,7 @@
       <div class="sort-choices" role="group" aria-labelledby="sort-label">
         <button class="offer" data-sort="best" aria-pressed="true">Best first</button>
         <button class="offer" data-sort="near" aria-pressed="false">Nearest first</button>
+        <button class="offer" data-sort="longest" aria-pressed="false">Open longest</button>
       </div>
       <div class="closest-result" id="sort-location-result" role="status"></div>
     </div>
@@ -424,6 +450,13 @@
     </div>
     <label class="switch-row"><input type="checkbox" id="large-text"> Larger text</label>
     <div class="setting">
+      <span class="offer-filter-label" id="maps-label">Walking directions open in</span>
+      <div class="offer-choices" role="group" aria-labelledby="maps-label">
+        <button class="offer" data-maps-choice="google">Google Maps</button>
+        <button class="offer" data-maps-choice="apple">Apple Maps</button>
+      </div>
+    </div>
+    <div class="setting">
       <span class="offer-filter-label">Back up favorites, notes, history, and study time</span>
       <p class="map-note">Copy the code here, then paste it on your other device, or in the home screen app, and tap Restore.</p>
       <button class="offer" id="copy-backup">Copy backup code</button>
@@ -433,6 +466,20 @@
     <div class="setting">
       <span class="offer-filter-label">Study time</span>
       <p class="study-summary" id="study-summary"></p>
+      <span class="offer-filter-label" id="goal-label">Weekly goal</span>
+      <div class="offer-choices" role="group" aria-labelledby="goal-label">
+        <button class="offer" data-goal="0">None</button>
+        <button class="offer" data-goal="5">5 h</button>
+        <button class="offer" data-goal="10">10 h</button>
+        <button class="offer" data-goal="15">15 h</button>
+        <button class="offer" data-goal="20">20 h</button>
+      </div>
+      <div class="goal-progress" id="goal-progress" hidden>
+        <div class="goal-bar" role="progressbar" aria-labelledby="goal-text" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+        <p class="map-note" id="goal-text"></p>
+      </div>
+      <label class="switch-row"><input type="checkbox" id="session-alerts"> Notify me when a study timer ends</label>
+      <p class="map-note" id="session-alerts-note">Works while the app is open in a tab. On iPhone, add the app to your home screen first.</p>
     </div>
     <div class="setting">
       <span class="offer-filter-label">Share the app</span>
@@ -446,6 +493,7 @@
       <p class="map-note">Removes favorites, hidden spots, notes, reports, history, study time, and settings. You can undo right after.</p>
     </div>
     <p class="map-note">On a keyboard: press / to search, and Esc to close an open spot.</p>
+    <button class="offer" id="show-tips">Show "How it works" again</button>
   </div>
 </details>
 <p class="note">Hours checked against official pages through May 2027, including breaks and finals. Dates without published hours say so. Reports are saved only in this browser.</p>
@@ -1009,14 +1057,16 @@
     return remaining;
   }
 
-  // Opens walking directions from the viewer's current location; only the destination is in the link.
-  function walkingDirectionsUrl([latitude, longitude]) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=walking`;
+  // Opens walking directions from the viewer's current location in Google or Apple Maps; only the destination is in the link.
+  function walkingDirectionsUrl([latitude, longitude], mapsApp = "google") {
+    return mapsApp === "apple"
+      ? `https://maps.apple.com/?daddr=${latitude},${longitude}&dirflg=w`
+      : `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=walking`;
   }
 
   // A link that opens directions in a new tab, labeled for screen readers with where it goes.
-  function walkLink(name, location, className = "walk-link") {
-    return `<a class="${className}" href="${walkingDirectionsUrl(location)}" target="_blank" rel="noopener"
+  function walkLink(name, location, className = "walk-link", mapsApp = "google") {
+    return `<a class="${className}" href="${walkingDirectionsUrl(location, mapsApp)}" target="_blank" rel="noopener"
       aria-label="Walking directions to ${escapeHtml(name)}">${className === "walk-link" ? WALK_ICON : ""}<span>Walk</span></a>`;
   }
 
@@ -1263,6 +1313,67 @@
     const rest = minutes % 60;
     if (hours === 0) return `${rest} min`;
     return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+  }
+
+  // Open spots that stay open longest first; closed spots keep their order at the end.
+  function sortByOpenLongest(spots, now) {
+    return [...spots].sort((a, b) => minutesUntilClose(b, now) - minutesUntilClose(a, now));
+  }
+
+  // How many spots each filter would leave, counting the filters already chosen, so a button can say so before it's tapped.
+  function filterCounts(spots, now, reports, query, categoryId, offerIds, filterIds) {
+    return Object.fromEntries(filterIds.map((filterId) => {
+      const shown = spotsToShow(spots, now, reports, query, categoryId, [], toggleOffer(offerIds.filter((id) => id !== filterId), filterId));
+      return [filterId, shown.openSpots.length + shown.closedSpots.length];
+    }));
+  }
+
+  // Open food within a 5-minute walk of a spot, nearest first. Meals only for a hall's residents don't count.
+  function foodNearSpot(spot, places, now, limit = 3) {
+    const usable = places.filter((place) => place.kind !== residentMealsKind);
+    return foodToShow(usable, now, "open", spot.location).filter(({ miles }) => miles <= NEARBY_FOOD_MILES).slice(0, limit);
+  }
+
+  // Midnight at the start of this week's Monday.
+  function startOfWeek(now) {
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    return monday;
+  }
+
+  // Study time since Monday against a weekly goal in hours; null when no goal is set.
+  function goalProgress(log, now, goalHours) {
+    if (!goalHours) return null;
+    const weekStart = startOfWeek(now).getTime();
+    const minutes = log.filter((entry) => entry.endTime >= weekStart && entry.endTime <= now.getTime())
+      .reduce((sum, entry) => sum + entry.minutes, 0);
+    const percent = Math.min(100, Math.round(minutes / (goalHours * 60) * 100));
+    const text = percent >= 100
+      ? `Goal reached: ${formatDuration(minutes)} of ${goalHours} h this week.`
+      : `${formatDuration(minutes)} of ${goalHours} h this week (${percent}%).`;
+    return { minutes, percent, text };
+  }
+
+  // The browser tab's title during a study session, so the countdown shows from other tabs.
+  function timerTitle(msLeft) {
+    return `${formatTimer(msLeft)} left · Study Spot Finder`;
+  }
+
+  // A calendar file (.ics) for studying at a spot. Times are local, the way calendar apps expect plain dates.
+  function calendarFile(spot, start, minutes, stampTime = new Date()) {
+    const pad = (number) => String(number).padStart(2, "0");
+    const local = (date) => `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+    const utc = (date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const text = (value) => value.replace(/[\;,]/g, (character) => `\\${character}`);
+    const end = new Date(start.getTime() + minutes * 60000);
+    return [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Study Spot Finder//EN", "BEGIN:VEVENT",
+      `UID:${spot.id}-${start.getTime()}@study-spot-finder`, `DTSTAMP:${utc(stampTime)}`,
+      `DTSTART:${local(start)}`, `DTEND:${local(end)}`,
+      `SUMMARY:${text(`Study at ${spot.name}`)}`, `LOCATION:${text(spot.name)}`, `GEO:${spot.location[0]};${spot.location[1]}`,
+      `DESCRIPTION:${text(`${openStatus(spot, start).text}. Hours can change, so check before you go: ${spotLink(spot)}`)}`,
+      "END:VEVENT", "END:VCALENDAR", "",
+    ].join("\r\n");
   }
 
   // A sentence about the last 7 days of study sessions.
@@ -1546,6 +1657,11 @@
   let studyLog = loadList("studyLog", (saved) => cleanStudyLog(saved, allSpots));
   // The spot to ask "how busy is it now?" about, once a study session there ends.
   let checkInSpotId = null;
+  const readSetting = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
+  const writeSetting = (key, value) => { try { localStorage.setItem(key, value); } catch { /* storage unavailable: keep in memory */ } };
+  let mapsApp = readSetting("mapsApp", "google") === "apple" ? "apple" : "google";
+  let studyGoalHours = [0, 5, 10, 15, 20].includes(Number(readSetting("studyGoal", "0"))) ? Number(readSetting("studyGoal", "0")) : 0;
+  let sessionAlerts = readSetting("sessionAlerts", "off") === "on";
   let dismissedHoursNotice = (() => { try { return localStorage.getItem("dismissedHoursNotice"); } catch { return null; } })();
   // "best" keeps best-first order; "near" sorts by distance once the location is known.
   let sortMode = "best";
@@ -1579,6 +1695,20 @@
   // A heads-up before special hours start, which spot stays open latest (in the evening, when it matters),
   // and a "Pick for me" button.
   // Hidden while planning ahead, since all three are about right now.
+  function renderStudyTime() {
+    const now = new Date();
+    document.getElementById("study-summary").textContent = studySummary(studyLog, allSpots, now);
+    for (const button of document.querySelectorAll("[data-goal]")) button.setAttribute("aria-pressed", String(Number(button.dataset.goal) === studyGoalHours));
+    const progress = goalProgress(studyLog, now, studyGoalHours);
+    const box = document.getElementById("goal-progress");
+    box.hidden = !progress;
+    if (!progress) return;
+    box.querySelector(".goal-bar").setAttribute("aria-valuenow", String(progress.percent));
+    box.querySelector(".goal-bar span").style.width = `${progress.percent}%`;
+    box.classList.toggle("reached", progress.percent >= 100);
+    document.getElementById("goal-text").textContent = progress.text;
+  }
+
   function renderTodayNotes(now) {
     const panel = document.getElementById("today-notes");
     panel.hidden = viewTime !== null;
@@ -1682,12 +1812,14 @@
     }
   }
 
+  // Each filter button says how many spots it would leave, so a filter that matches nothing is clear before tapping it.
   function renderOfferButtons() {
-    document.getElementById("offer-choices").innerHTML = Object.entries(offerLabels).map(([offerId, label]) =>
-      `<button class="offer" data-offer="${offerId}" aria-pressed="${selectedOfferIds.includes(offerId)}">${label}</button>`).join("")
-      + `<button class="offer" data-offer="${LATE_FOOD_FILTER}" aria-pressed="${selectedOfferIds.includes(LATE_FOOD_FILTER)}">Late food nearby</button>`
-      + `<button class="offer" data-offer="${OPEN_LATE_FILTER}" aria-pressed="${selectedOfferIds.includes(OPEN_LATE_FILTER)}">Open past 11pm</button>`
-      + `<button class="offer" data-offer="${REPORTED_EMPTY_FILTER}" aria-pressed="${selectedOfferIds.includes(REPORTED_EMPTY_FILTER)}">Reported empty</button>`;
+    const labels = { ...offerLabels, [LATE_FOOD_FILTER]: "Late food nearby", [OPEN_LATE_FILTER]: "Open past 11pm", [REPORTED_EMPTY_FILTER]: "Reported empty" };
+    const counts = filterCounts(withoutHidden(currentSpots(), hiddenSpotIds, showHiddenSpots), displayTime(), visibleReports(),
+      searchText, selectedCategoryId, selectedOfferIds, Object.keys(labels));
+    document.getElementById("offer-choices").innerHTML = Object.entries(labels).map(([offerId, label]) =>
+      `<button class="offer" data-offer="${offerId}" aria-pressed="${selectedOfferIds.includes(offerId)}">${label}
+        <span class="filter-count" aria-label="(${counts[offerId]} ${counts[offerId] === 1 ? "spot" : "spots"})">${counts[offerId]}</span></button>`).join("");
     const filtersToggle = document.getElementById("filters-toggle");
     filtersToggle.textContent = filtersButtonLabel(viewTime ? [...selectedOfferIds, "time"] : selectedOfferIds);
     filtersToggle.classList.toggle("active", selectedOfferIds.length > 0 || viewTime !== null);
@@ -1740,7 +1872,23 @@
 
   // The panel for a spot that can't be reported on right now: closed, or while planning ahead.
   function infoPanel(spot) {
-    return `${spotInfo(spot)}<div class="buttons"><button class="cancel" data-action="close">Close</button></div>${hideButton(spot)}`;
+    const calendar = viewTime ? `<button class="share-spot" data-spot="${spot.id}" data-action="add-calendar">Add to my calendar (${describeViewTime(viewTime)})</button>` : "";
+    return `${spotInfo(spot)}<div class="buttons"><button class="cancel" data-action="close">Close</button></div>
+      ${calendar}${mapButton(spot)}${hideButton(spot)}`;
+  }
+
+  function mapButton(spot) {
+    return `<button class="share-spot" data-spot="${spot.id}" data-action="show-on-map">Show on map</button>`;
+  }
+
+  // Up to three open places within a 5-minute walk, so a study break doesn't need the Food panel.
+  function nearbyFoodHtml(spot) {
+    const nearby = foodNearSpot(spot, foodPlaces, new Date());
+    const items = nearby.map(({ place, miles }) => `<li><span class="food-name">${escapeHtml(place.name)}</span>
+      <span class="status ${foodStatus(place, new Date()).closingSoon ? "closing" : "open"}">${foodStatus(place, new Date()).text}</span>
+      <span class="food-details">${place.kind} · ${describeDistance(miles)}</span></li>`).join("");
+    return `<div class="nearby-food"><p class="where">Food within a 5-minute walk</p>${nearby.length
+      ? `<ul>${items}</ul>` : `<p class="food-empty">Nothing open within a 5-minute walk right now. Try the Food button above.</p>`}</div>`;
   }
 
   function hideButton(spot) {
@@ -1765,6 +1913,8 @@
           <button class="share-spot" data-spot="${spot.id}" data-action="start-session" data-minutes="50">Study here 50 min</button>
         </div>
         <button class="share-spot" data-spot="${spot.id}" data-action="share-spot">Share this spot</button>
+        ${mapButton(spot)}
+        ${nearbyFoodHtml(spot)}
         ${hasHistory ? `<button class="clear-reports" data-spot="${spot.id}" data-action="forget-history">Forget my history</button>` : ""}
         ${hideButton(spot)}`;
   }
@@ -1773,14 +1923,18 @@
     const now = displayTime();
     renderEmptyNow(new Date());
     renderTodayNotes(new Date());
-    document.getElementById("study-summary").textContent = studySummary(studyLog, allSpots, new Date());
+    if (!document.getElementById("filters-panel").hidden) renderOfferButtons();
+    renderStudyTime();
     const openCount = currentSpots().filter((spot) => openStatus(spot, now).isOpen).length;
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     const list = document.getElementById("spot-list");
     list.innerHTML = "";
     const shown = spotsToShow(withoutHidden(currentSpots(), hiddenSpotIds, showHiddenSpots), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
-    // Nearest first keeps the same groups, but orders each by distance once the location is known.
-    const byDistance = (spots) => (sortMode === "near" && lastKnownLocation ? sortByDistance(spots, lastKnownLocation) : spots);
+    // Nearest first and Open longest keep the same groups, but reorder each one.
+    const byDistance = (spots) => {
+      if (sortMode === "near" && lastKnownLocation) return sortByDistance(spots, lastKnownLocation);
+      return sortMode === "longest" ? sortByOpenLongest(spots, now) : spots;
+    };
     const favoriteSpots = byDistance(shown.favoriteSpots);
     const openSpots = byDistance(shown.openSpots);
     const closedSpots = byDistance(shown.closedSpots);
@@ -1857,7 +2011,7 @@
       // Open spots are tappable to report; closed ones are not, since nobody is there to report.
       const isFavorite = favoriteIds.includes(spot.id);
       card.innerHTML = `
-        ${walkLink(spot.name, spot.location)}
+        ${walkLink(spot.name, spot.location, "walk-link", mapsApp)}
         <button class="favorite" data-spot="${spot.id}" data-action="toggle-favorite" aria-pressed="${isFavorite}"
           aria-label="${isFavorite ? "Remove" : "Add"} ${spot.name} ${isFavorite ? "from" : "to"} favorites">
           ${STAR_ICON}
@@ -1927,6 +2081,12 @@
       });
     } else if (button.dataset.action === "toggle-closed") {
       showClosed = !showClosed;
+    } else if (button.dataset.action === "show-on-map") {
+      showSpotOnMap(allSpots.find((studySpot) => studySpot.id === button.dataset.spot));
+      return;
+    } else if (button.dataset.action === "add-calendar") {
+      downloadCalendar(allSpots.find((studySpot) => studySpot.id === button.dataset.spot));
+      return;
     } else if (button.dataset.action === "toggle-show-hidden") {
       showHiddenSpots = !showHiddenSpots;
     } else if (button.dataset.action === "toggle-hidden") {
@@ -1970,6 +2130,29 @@
       render();
       showToast("Report undone");
     });
+  }
+
+  function showSpotOnMap(spot) {
+    const panel = document.getElementById("map-panel");
+    if (panel.hidden) document.getElementById("map-toggle").click();
+    if (!spotMap) {
+      showToast("The map needs an internet connection.");
+      return;
+    }
+    spotMap.setView(spot.location, 17);
+    spotPins.get(spot.id)?.openPopup();
+    panel.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+
+  // Saves a two-hour study event at the planned time as a file the phone's calendar app can open.
+  function downloadCalendar(spot) {
+    const file = new Blob([calendarFile(spot, viewTime, 120)], { type: "text/calendar" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(file);
+    link.download = `study-${spot.id}.ics`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast(`Saved a 2-hour study event at ${spot.name}. Open it to add it to your calendar.`);
   }
 
   function applyCampus() {
@@ -2048,7 +2231,7 @@
             <span class="food-details">${place.kind}${miles === null ? "" : ` · ${describeDistance(miles)}`}</span>${week}</button>
           <button class="favorite food-favorite" data-food-favorite="${escapeHtml(foodKey)}" aria-pressed="${isFavorite}"
             aria-label="${isFavorite ? "Remove" : "Add"} ${escapeHtml(place.name)} ${isFavorite ? "from" : "to"} favorites">${STAR_ICON}</button>
-          ${walkLink(place.name, place.location, "walk-link food-walk")}</li>`;
+          ${walkLink(place.name, place.location, "walk-link food-walk", mapsApp)}</li>`;
       }).join("")}</ul>${results.length > FOOD_LIST_LENGTH
         ? `<button class="show-all-food" id="show-all-food">${showAllFood ? "Show fewer" : `Show all ${results.length}`}</button>`
         : ""}`;
@@ -2057,7 +2240,7 @@
     foodPinLayer.clearLayers();
     for (const { place } of results) {
       L.marker(place.location, { title: place.name, alt: place.name, icon: L.divIcon({ className: "", html: `<span class="map-pin food"></span>`, iconSize: [12, 12], iconAnchor: [6, 6] }) })
-        .bindPopup(`<strong>${escapeHtml(place.name)}</strong><br>${place.kind}<br>${foodStatus(place, now).text}<br>${walkLink(place.name, place.location, "popup-walk")}`)
+        .bindPopup(`<strong>${escapeHtml(place.name)}</strong><br>${place.kind}<br>${foodStatus(place, now).text}<br>${walkLink(place.name, place.location, "popup-walk", mapsApp)}`)
         .addTo(foodPinLayer);
     }
   }
@@ -2080,7 +2263,7 @@
       const status = openStatus(spot, now);
       pin
         .setIcon(pinIcon(`${spot.type}${status.isOpen === false ? " is-closed" : ""}`))
-        .setPopupContent(`<strong>${spot.name}</strong><br>${status.text}<br>${walkLink(spot.name, spot.location, "popup-walk")}`);
+        .setPopupContent(`<strong>${spot.name}</strong><br>${status.text}<br>${walkLink(spot.name, spot.location, "popup-walk", mapsApp)}`);
     }
   }
 
@@ -2271,6 +2454,64 @@
   });
 
   // 7 and 8. Display settings, remembered in this browser.
+  function applyMapsChoice() {
+    for (const button of document.querySelectorAll("[data-maps-choice]")) button.setAttribute("aria-pressed", String(button.dataset.mapsChoice === mapsApp));
+  }
+
+  document.querySelector(".settings-body").addEventListener("click", (event) => {
+    const mapsButton = event.target.closest("[data-maps-choice]");
+    const goalButton = event.target.closest("[data-goal]");
+    if (mapsButton) {
+      mapsApp = mapsButton.dataset.mapsChoice;
+      writeSetting("mapsApp", mapsApp);
+      applyMapsChoice();
+      render();
+      renderFood();
+      refreshPins();
+      showToast(`Walk buttons now open ${mapsApp === "apple" ? "Apple Maps" : "Google Maps"}.`);
+    } else if (goalButton) {
+      studyGoalHours = Number(goalButton.dataset.goal);
+      writeSetting("studyGoal", String(studyGoalHours));
+      renderStudyTime();
+    }
+  });
+
+  document.getElementById("session-alerts").addEventListener("change", async (event) => {
+    const box = event.target;
+    const note = document.getElementById("session-alerts-note");
+    if (box.checked && !("Notification" in window)) {
+      box.checked = false;
+      note.textContent = "This browser can't show notifications. On iPhone, add the app to your home screen and open it from there.";
+      return;
+    }
+    if (box.checked && Notification.permission !== "granted") {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        box.checked = false;
+        note.textContent = "Notifications are blocked for this page. Allow them in your browser's site settings, then try again.";
+        return;
+      }
+    }
+    sessionAlerts = box.checked;
+    writeSetting("sessionAlerts", sessionAlerts ? "on" : "off");
+    showToast(sessionAlerts ? "You'll get a notification when a study timer ends." : "Timer notifications are off.");
+  });
+
+  function showTips(shouldShow) {
+    document.getElementById("tips").hidden = !shouldShow;
+    if (!shouldShow) writeSetting("seenTips", "yes");
+  }
+  document.getElementById("tip-bars").innerHTML = busynessMeter("empty");
+  document.getElementById("tips-done").addEventListener("click", () => {
+    showTips(false);
+    document.getElementById("campus-choices").querySelector("button")?.focus();
+  });
+  document.getElementById("show-tips").addEventListener("click", () => {
+    showTips(true);
+    document.getElementById("tips").scrollIntoView({ block: "start" });
+  });
+  showTips(readSetting("seenTips", null) !== "yes");
+
   function applyDisplaySettings(theme, largeText) {
     if (theme === "system") delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = theme;
@@ -2361,10 +2602,23 @@
   }
   let studySession = loadSession();
 
+  const APP_TITLE = document.title;
+
+  // A system notification, for when the app is in a background tab. Android only allows them through the offline helper.
+  async function notifySessionDone(spot) {
+    if (!sessionAlerts || !("Notification" in window) || Notification.permission !== "granted") return;
+    const message = { body: `Your session at ${spot.name} is done. Take a 5-minute break.`, icon: "icons/icon-192.png", tag: "study-session" };
+    try {
+      const registration = await navigator.serviceWorker?.getRegistration();
+      if (registration) await registration.showNotification("Study session done", message);
+      else new Notification("Study session done", message);
+    } catch { /* the banner and toast still show */ }
+  }
+
   function logStudyTime(minutes) {
     studyLog = addStudyTime(studyLog, studySession.spotId, minutes, Date.now());
     saveList("studyLog", studyLog);
-    document.getElementById("study-summary").textContent = studySummary(studyLog, allSpots, new Date());
+    renderStudyTime();
   }
 
   function updateSessionBanner() {
@@ -2374,6 +2628,7 @@
     checkIn.hidden = !checkInSpotId;
     document.getElementById("session-stop").hidden = Boolean(checkInSpotId);
     banner.classList.toggle("checking-in", Boolean(checkInSpotId));
+    if (!studySession) document.title = APP_TITLE;
     if (banner.hidden) return;
     banner.style.top = `${document.querySelector("header").offsetHeight}px`;
     if (checkInSpotId) {
@@ -2391,12 +2646,14 @@
       // Only ask about a spot that's still open, since a report means "right now".
       if (openStatus(spot, new Date()).isOpen !== false) checkInSpotId = spot.id;
       navigator.vibrate?.(300);
+      notifySessionDone(spot);
       showToast("Study session done. Take a 5-minute break.");
       updateSessionBanner();
       return;
     }
     const warning = closesBeforeSessionEnds(spot, new Date(now), studySession.endTime) ? ` · ${spot.name} closes first` : "";
     document.getElementById("session-text").textContent = `Studying at ${spot.name} · ${formatTimer(studySession.endTime - now)} left${warning}`;
+    document.title = timerTitle(studySession.endTime - now);
   }
 
   function startSession(spotId, minutes) {
@@ -2474,11 +2731,11 @@
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
     const keys = ["busynessReports", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
-      "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice"];
+      "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
-      hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice,
+      hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts,
       campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large" };
     favoriteIds = [];
     reportHistory = [];
@@ -2490,6 +2747,9 @@
     foodFavoriteKeys = [];
     studyLog = [];
     dismissedHoursNotice = null;
+    mapsApp = "google";
+    studyGoalHours = 0;
+    sessionAlerts = false;
     selectedCampus = "uiuc";
     applyDisplaySettings("system", false);
     applyCampus();
@@ -2497,7 +2757,7 @@
     showToast("Erased everything on this device.", () => {
       try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
       ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus,
-        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice } = before);
+        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts } = before);
       applyDisplaySettings(before.theme, before.large);
       applyCampus();
       updateSessionBanner();
@@ -2531,6 +2791,8 @@
 
   document.getElementById("meter-key").innerHTML = meterKey();
   renderOfferButtons();
+  applyMapsChoice();
+  document.getElementById("session-alerts").checked = sessionAlerts && "Notification" in window && Notification.permission === "granted";
   applyDisplaySettings(document.documentElement.dataset.theme ?? "system", document.documentElement.dataset.text === "large");
   // A shared link opens on its spot, switching campus if needed.
   const linkedSpot = spotFromLink(location.search, allSpots);
