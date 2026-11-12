@@ -294,10 +294,11 @@
   .session-checkin[hidden] { display: none; }
   .session-checkin button { flex: 1 1 auto; padding: 0 8px; }
   /* The dark-mode meaning colors read well on the navy banner in either theme. */
-  .session-checkin [data-checkin-level="empty"] { border-color: #5ad08a; color: #5ad08a; }
-  .session-checkin [data-checkin-level="some"] { border-color: #e8bc55; color: #e8bc55; }
-  .session-checkin [data-checkin-level="packed"] { border-color: #ff8c7c; color: #ff8c7c; }
-  .session-checkin [data-checkin-level=""] { flex: none; border-color: transparent; text-decoration: underline; }
+  .session-checkin [data-prompt-level="empty"] { border-color: #5ad08a; color: #5ad08a; }
+  .session-checkin [data-prompt-level="some"] { border-color: #e8bc55; color: #e8bc55; }
+  .session-checkin [data-prompt-level="packed"] { border-color: #ff8c7c; color: #ff8c7c; }
+  .session-checkin .prompt-skip { flex: none; border-color: transparent; text-decoration: underline; }
+  .session-banner.on-break { background: #1b5a3a; }
   .today-notes { display: grid; gap: 8px; }
   .today-notes[hidden] { display: none; }
   .today-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
@@ -316,6 +317,23 @@
   button.hidden-toggle { margin-top: 8px; color: var(--muted); }
   button.food-favorite { position: static; width: 40px; height: 40px; min-height: 40px; }
   .study-summary { margin: 0; font-size: .9rem; }
+  .usual-line { display: block; margin-top: 2px; font-size: .8rem; font-weight: 600; }
+  .usual-line.empty { color: var(--empty); }
+  .usual-line.some { color: var(--some); }
+  .usual-line.packed { color: var(--packed); }
+  .today-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .custom-length { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; align-items: end; margin-top: 8px; }
+  .custom-length label { grid-column: 1 / -1; color: var(--muted); font-size: .8rem; }
+  .custom-length input { min-height: 42px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 1rem; }
+  .custom-length button.share-spot { margin-top: 0; width: auto; padding: 0 18px; }
+  .custom-length .location-problem { grid-column: 1 / -1; margin: 0; color: var(--closed); font-size: .85rem; font-weight: 600; }
+  .offline-notice { position: sticky; top: 0; z-index: 6; margin: 0; padding: 8px 16px; background: #8f5e0e; color: #ffffff; font-size: .85rem; font-weight: 600; text-align: center; }
+  .offline-notice[hidden] { display: none; }
+  .map-key { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; color: var(--muted); font-size: .8rem; }
+  .map-key .map-pin { display: inline-block; margin-right: 4px; vertical-align: -3px; width: 14px; height: 14px; }
+  .map-pin.ring-empty { box-shadow: 0 0 0 3px var(--empty); }
+  .map-pin.ring-some { box-shadow: 0 0 0 3px var(--some); }
+  .map-pin.ring-packed { box-shadow: 0 0 0 3px var(--packed); }
   .tips { padding: 14px 18px; border-radius: 14px; border-left: 4px solid var(--illini-orange); background: var(--card); box-shadow: var(--shadow); font-size: .875rem; }
   .tips[hidden] { display: none; }
   .tips h2 { margin: 0 0 6px; font-size: 1rem; color: var(--heading); }
@@ -352,16 +370,12 @@
     <span class="open-count" id="open-count"></span>
   </div>
 </header>
+<p class="offline-notice" id="offline-notice" role="status" hidden>You're offline. Hours still work and reports save on this device; the map needs internet.</p>
 <main>
   <div class="plan-banner session-banner" id="session-banner" hidden>
     <span id="session-text" aria-live="off"></span>
     <button class="plan-reset" id="session-stop">Stop</button>
-    <div class="session-checkin" id="session-checkin" role="group" aria-label="How busy is it now?" hidden>
-      <button class="plan-reset" data-checkin-level="empty">Empty</button>
-      <button class="plan-reset" data-checkin-level="some">Some seats</button>
-      <button class="plan-reset" data-checkin-level="packed">Packed</button>
-      <button class="plan-reset" data-checkin-level="">Skip</button>
-    </div>
+    <div class="session-checkin" id="session-checkin" role="group" hidden></div>
   </div>
   <section class="tips" id="tips" aria-labelledby="tips-heading" hidden>
     <h2 id="tips-heading">How it works</h2>
@@ -394,6 +408,7 @@
     <button class="find-closest" id="find-closest">Find closest to me</button>
     <div class="closest-result" id="closest-result" role="status"></div>
     <div class="spot-map" id="spot-map"></div>
+    <p class="map-key" id="map-key"></p>
     <p class="map-note">Your location stays on this device and isn't saved. Distances are straight lines, not walking routes.</p>
   </div>
   <section class="food-section map-panel" id="food-panel" aria-labelledby="food-heading" hidden>
@@ -461,6 +476,7 @@
       <span class="offer-filter-label">Back up favorites, notes, history, and study time</span>
       <p class="map-note">Copy the code here, then paste it on your other device, or in the home screen app, and tap Restore.</p>
       <button class="offer" id="copy-backup">Copy backup code</button>
+      <button class="offer" id="download-reports">Download my reports (spreadsheet)</button>
       <textarea id="backup-code" rows="3" aria-label="Backup code to restore" placeholder="Paste a backup code here"></textarea>
       <button class="offer" id="restore-backup">Restore from code</button>
     </div>
@@ -479,7 +495,7 @@
         <div class="goal-bar" role="progressbar" aria-labelledby="goal-text" aria-valuemin="0" aria-valuemax="100"><span></span></div>
         <p class="map-note" id="goal-text"></p>
       </div>
-      <label class="switch-row"><input type="checkbox" id="session-alerts"> Notify me when a study timer ends</label>
+      <label class="switch-row"><input type="checkbox" id="session-alerts"> Notify me when a timer ends or a spot I asked about opens</label>
       <p class="map-note" id="session-alerts-note">Works while the app is open in a tab. On iPhone, add the app to your home screen first.</p>
     </div>
     <div class="setting">
@@ -910,6 +926,9 @@
   const STUDY_LOG_LIMIT = 500;
   const REPORTED_EMPTY_FILTER = "reported-empty";
   const EVENING_START_HOUR = 20;
+  const SESSION_MIN_MINUTES = 5;
+  const SESSION_MAX_MINUTES = 240;
+  const BREAK_MINUTES = 5;
   const pickLevelWords = { empty: "Reported empty", some: "Some seats", packed: "Packed" };
   const APP_LINK = "https://rucharaja.github.io/study-spot-finder/";
   const shareLevelWords = { empty: "It's empty right now.", some: "There are some seats right now.", packed: "It's packed right now." };
@@ -984,10 +1003,39 @@
     return { isOpen: false, text: `Closed · ${nextOpening(spot, now, minutes)}` };
   }
 
+  // True when two words differ by at most one added, dropped, or changed letter.
+  function withinOneEdit(first, second) {
+    if (Math.abs(first.length - second.length) > 1) return false;
+    let i = 0;
+    let j = 0;
+    let edits = 0;
+    while (i < first.length && j < second.length) {
+      if (first[i] === second[j]) {
+        i += 1;
+        j += 1;
+        continue;
+      }
+      edits += 1;
+      if (edits > 1) return false;
+      if (first.length > second.length) i += 1;
+      else if (second.length > first.length) j += 1;
+      else {
+        i += 1;
+        j += 1;
+      }
+    }
+    return edits + (first.length - i) + (second.length - j) <= 1;
+  }
+
   // A search matches part of a spot's name or one of its nicknames, ignoring case and extra spaces.
+  // When nothing matches exactly, each typed word of 4+ letters may be one typo off the start of a word ("grainer").
   function matchesSearch(spot, query) {
     const cleanQuery = query.trim().toLowerCase();
-    return !cleanQuery || `${spot.name} ${spot.keywords ?? ""}`.toLowerCase().includes(cleanQuery);
+    const text = `${spot.name} ${spot.keywords ?? ""}`.toLowerCase();
+    if (!cleanQuery || text.includes(cleanQuery)) return true;
+    const textWords = text.split(/[^a-z0-9]+/).filter(Boolean);
+    return cleanQuery.split(/\s+/).every((queryWord) => textWords.some((word) => word.includes(queryWord)
+      || (queryWord.length >= 4 && [word, word.slice(0, queryWord.length)].some((part) => withinOneEdit(queryWord, part)))));
   }
 
   function escapeHtml(text) {
@@ -1438,6 +1486,85 @@
     ].join("\r\n");
   }
 
+  // The level your own reports usually show at this day and time of day, once there are enough; otherwise null.
+  function usualLevelNow(spotId, history, now) {
+    const { day, part } = timeBlock(now.getTime());
+    const matching = history.filter((entry) => {
+      if (entry.spotId !== spotId) return false;
+      const block = timeBlock(entry.time);
+      return block.day === day && block.part === part;
+    });
+    if (matching.length < PATTERN_MIN_REPORTS) return null;
+    const counts = { empty: 0, some: 0, packed: 0 };
+    for (const entry of matching) if (entry.level in counts) counts[entry.level] += 1;
+    const [level, count] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return count / matching.length >= 0.5 ? level : null;
+  }
+
+  // A plain-text summary of the campus right now, for pasting into a group chat.
+  function statusSummary(spots, now, reports, campusName) {
+    const open = spots.filter((spot) => openStatus(spot, now).isOpen !== false);
+    if (open.length === 0) return `Every study spot at ${campusName} is closed right now. ${APP_LINK}`;
+    const reported = sortBestFirst(open, now, reports).filter((spot) => recentLevel(spot, now, reports) !== "unknown");
+    const lines = reported.map((spot) => {
+      const { area, report } = emptiestRecentReport(spot, now, reports);
+      return `• ${spot.name}${area ? ` (${area.name})` : ""}: ${busynessLabels[report.level].toLowerCase()}, ${describeAge(report.time, now.getTime())} · ${openStatus(spot, now).text.toLowerCase()}`;
+    });
+    const unreported = open.filter((spot) => !reported.includes(spot)).map((spot) => spot.name);
+    return [
+      `Study spots at ${campusName} right now:`,
+      ...lines,
+      unreported.length ? `${reported.length ? "Also open" : "Open"}, no recent reports: ${unreported.join(", ")}` : null,
+      `Find a spot: ${APP_LINK}`,
+    ].filter(Boolean).join("\n");
+  }
+
+  // Days in a row with a study session, counting back from today (or from yesterday, so a streak survives until tonight).
+  function studyStreak(log, now) {
+    const studiedOn = new Set(log.map((entry) => dateKeyFor(new Date(entry.endTime))));
+    let daysBack = studiedOn.has(dateKeyFor(now)) ? 0 : 1;
+    let streak = 0;
+    while (studiedOn.has(dateKeyFor(daysLater(now, -daysBack)))) {
+      streak += 1;
+      daysBack += 1;
+    }
+    return streak;
+  }
+
+  // Your report history as a spreadsheet file (CSV), oldest first, with local dates and times.
+  function reportsCsv(history, spots) {
+    const pad = (number) => String(number).padStart(2, "0");
+    const cell = (value) => (/[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
+    const rows = [...history].sort((a, b) => a.time - b.time).map((entry) => {
+      const date = new Date(entry.time);
+      const spot = spots.find((studySpot) => studySpot.id === entry.spotId);
+      return [`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`, `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+        spot?.name ?? entry.spotId, busynessLabels[entry.level] ?? entry.level].map(cell).join(",");
+    });
+    return ["Date,Time,Spot,Level", ...rows].join("\r\n") + "\r\n";
+  }
+
+  // A typed timer length in minutes, or null unless it's a whole number from 5 to 240.
+  function sessionLength(value) {
+    const minutes = Number(String(value).trim());
+    return Number.isInteger(minutes) && minutes >= SESSION_MIN_MINUTES && minutes <= SESSION_MAX_MINUTES ? minutes : null;
+  }
+
+  // When a closed spot next opens within a week, or null if that isn't known.
+  function nextOpenTime(spot, now) {
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    for (let daysAhead = 0; daysAhead <= 7; daysAhead++) {
+      const date = daysLater(now, daysAhead);
+      const hours = hoursOn(spot, date);
+      if (hours === HOURS_UNCONFIRMED) return null;
+      if (!hours || (daysAhead === 0 && minutes >= hours[0])) continue;
+      const opening = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      opening.setMinutes(hours[0]);
+      return opening;
+    }
+    return null;
+  }
+
   // A sentence about the last 7 days of study sessions.
   function studySummary(log, spots, now) {
     const weekAgo = now.getTime() - 7 * 24 * 60 * 60000;
@@ -1722,8 +1849,12 @@
   let showHiddenSpots = false;
   let foodFavoriteKeys = loadList("foodFavorites", (saved) => cleanFoodFavorites(saved, foodPlaces));
   let studyLog = loadList("studyLog", (saved) => cleanStudyLog(saved, allSpots));
-  // The spot to ask "how busy is it now?" about, once a study session there ends.
-  let checkInSpotId = null;
+  // What the session banner asks after a timer ends: "checkin" (how busy is it?), "break" (take one?), or "again"
+  // (study more?), with the spot it's about. Null while a timer runs or nothing is asked.
+  let sessionPrompt = null;
+  let customLengthSpotId = null;
+  let openReminders = loadList("openReminders", (saved) => (Array.isArray(saved)
+    ? saved.filter((reminder) => allSpots.some((spot) => spot.id === reminder?.spotId) && Number.isFinite(reminder?.time)) : []));
   const readSetting = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
   const writeSetting = (key, value) => { try { localStorage.setItem(key, value); } catch { /* storage unavailable: keep in memory */ } };
   let mapsApp = readSetting("mapsApp", "google") === "apple" ? "apple" : "google";
@@ -1764,7 +1895,8 @@
   // Hidden while planning ahead, since all three are about right now.
   function renderStudyTime() {
     const now = new Date();
-    document.getElementById("study-summary").textContent = studySummary(studyLog, allSpots, now);
+    const streak = studyStreak(studyLog, now);
+    document.getElementById("study-summary").textContent = `${studySummary(studyLog, allSpots, now)}${streak >= 2 ? ` ${streak}-day streak, keep it going!` : ""}`;
     for (const button of document.querySelectorAll("[data-goal]")) button.setAttribute("aria-pressed", String(Number(button.dataset.goal) === studyGoalHours));
     const progress = goalProgress(studyLog, now, studyGoalHours);
     const box = document.getElementById("goal-progress");
@@ -1790,7 +1922,10 @@
       : "";
     panel.innerHTML = `${notice}<div class="today-row">
         ${latest ? `<span class="latest-line">Open latest tonight: <strong>${escapeHtml(latest.spot.name)}</strong> · ${latest.text.toLowerCase()}</span>` : ""}
-        <button class="pick-spot" data-action="pick-spot">Pick a spot for me</button>
+        <span class="today-actions">
+          <button class="pick-spot" data-action="pick-spot">Pick a spot for me</button>
+          <button class="pick-spot" data-action="share-status">Share what's open</button>
+        </span>
       </div>`;
   }
 
@@ -1802,6 +1937,10 @@
       try { localStorage.setItem("dismissedHoursNotice", dismissedHoursNotice); } catch { /* storage unavailable */ }
       renderTodayNotes(new Date());
       document.querySelector(".pick-spot")?.focus();
+      return;
+    }
+    if (button.dataset.action === "share-status") {
+      shareText(statusSummary(withoutHidden(currentSpots(), hiddenSpotIds), new Date(), reports, campuses[selectedCampus]));
       return;
     }
     const now = new Date();
@@ -1861,8 +2000,12 @@
   }
 
   // Uses the phone's share sheet when there is one; otherwise copies the text to paste anywhere.
-  async function shareSpot(spot) {
-    const message = shareMessage(spot, new Date(), reports);
+  function shareSpot(spot) {
+    return shareText(shareMessage(spot, new Date(), reports));
+  }
+
+  // Opens the phone's share sheet, or copies the text where there isn't one.
+  async function shareText(message) {
     if (navigator.share) {
       try {
         await navigator.share({ text: message });
@@ -1941,7 +2084,17 @@
   function infoPanel(spot) {
     const calendar = viewTime ? `<button class="share-spot" data-spot="${spot.id}" data-action="add-calendar">Add to my calendar (${describeViewTime(viewTime)})</button>` : "";
     return `${spotInfo(spot)}<div class="buttons"><button class="cancel" data-action="close">Close</button></div>
-      ${calendar}${mapButton(spot)}${hideButton(spot)}`;
+      ${calendar}${viewTime ? "" : reminderButton(spot)}${mapButton(spot)}${hideButton(spot)}`;
+  }
+
+  // For a closed spot: a reminder when it opens, while this page stays open.
+  function reminderButton(spot) {
+    const opening = nextOpenTime(spot, new Date());
+    if (!opening) return "";
+    const isSet = openReminders.some((reminder) => reminder.spotId === spot.id);
+    const when = describeViewTime(opening);
+    return `<button class="share-spot" data-spot="${spot.id}" data-action="toggle-reminder" aria-pressed="${isSet}">
+      ${isSet ? `Reminder set for ${when} · Cancel` : `Remind me when it opens (${when})`}</button>`;
   }
 
   function mapButton(spot) {
@@ -1979,6 +2132,12 @@
           <button class="share-spot" data-spot="${spot.id}" data-action="start-session" data-minutes="25">Study here 25 min</button>
           <button class="share-spot" data-spot="${spot.id}" data-action="start-session" data-minutes="50">Study here 50 min</button>
         </div>
+        ${customLengthSpotId === spot.id ? `<div class="custom-length">
+            <label for="custom-minutes">Minutes (${SESSION_MIN_MINUTES}–${SESSION_MAX_MINUTES})</label>
+            <input type="number" id="custom-minutes" inputmode="numeric" min="${SESSION_MIN_MINUTES}" max="${SESSION_MAX_MINUTES}" step="5" value="90">
+            <button class="share-spot" data-spot="${spot.id}" data-action="start-custom">Start</button>
+            <p class="location-problem" id="custom-minutes-error" role="alert" hidden>Pick a whole number of minutes from ${SESSION_MIN_MINUTES} to ${SESSION_MAX_MINUTES}.</p>
+          </div>` : `<button class="clear-reports" data-spot="${spot.id}" data-action="custom-session">Study for a different length</button>`}
         <button class="share-spot" data-spot="${spot.id}" data-action="share-spot">Share this spot</button>
         ${mapButton(spot)}
         ${nearbyFoodHtml(spot)}
@@ -2042,6 +2201,13 @@
     return `<span class="food-line">${lateOnly ? "Late food" : "Food"}: ${escapeHtml(nearby.place.name)} · ${describeMiles(nearby.miles)}</span>`;
   }
 
+  // From your own reports: how a spot usually is at this day and time, shown only when there's no report from the last hour.
+  function usualLine(spot, now, level) {
+    if (level !== "unknown" || openStatus(spot, now).isOpen === false) return "";
+    const usual = usualLevelNow(spot.id, reportHistory, now);
+    return usual ? `<span class="usual-line ${usual}">Usually ${busynessLabels[usual].toLowerCase()} ${viewTime ? "then" : "now"} (your reports)</span>` : "";
+  }
+
   // Distance and walking time, with a warning when the spot would close before you got there.
   function distanceTag(spot, now) {
     const miles = distanceMiles(lastKnownLocation, spot.location);
@@ -2070,6 +2236,7 @@
                 : ""}</span></span>
               ${sortMode === "near" && lastKnownLocation ? distanceTag(spot, now) : ""}
             </span>
+            ${usualLine(spot, now, level)}
             ${hasSpecialHours(spot, now) ? `<span class="special-tag">Special hours today</span>` : ""}
             ${hiddenSpotIds.includes(spot.id) ? `<span class="special-tag hidden-tag">Hidden</span>` : ""}
             ${foodLine(spot, status, now)}
@@ -2113,6 +2280,7 @@
       searchBox.value = "";
       searchBox.focus();
     } else if (button.dataset.action === "open") {
+      customLengthSpotId = null;
       // Tapping the open card again folds its choices away.
       expandedSpotId = expandedSpotId === button.dataset.spot ? null : button.dataset.spot;
       pickedAreaId = null;
@@ -2131,6 +2299,23 @@
     } else if (button.dataset.action === "start-session") {
       startSession(button.dataset.spot, Number(button.dataset.minutes));
       return;
+    } else if (button.dataset.action === "custom-session") {
+      customLengthSpotId = button.dataset.spot;
+      render();
+      document.getElementById("custom-minutes")?.focus();
+      return;
+    } else if (button.dataset.action === "start-custom") {
+      const minutes = sessionLength(document.getElementById("custom-minutes").value);
+      if (minutes === null) {
+        document.getElementById("custom-minutes-error").hidden = false;
+        document.getElementById("custom-minutes").focus();
+        return;
+      }
+      customLengthSpotId = null;
+      startSession(button.dataset.spot, minutes);
+      return;
+    } else if (button.dataset.action === "toggle-reminder") {
+      toggleReminder(allSpots.find((studySpot) => studySpot.id === button.dataset.spot));
     } else if (button.dataset.action === "share-spot") {
       shareSpot(allSpots.find((studySpot) => studySpot.id === button.dataset.spot));
       return;
@@ -2331,10 +2516,15 @@
       }
       const status = openStatus(spot, now);
       pin
-        .setIcon(pinIcon(`${spot.type}${status.isOpen === false ? " is-closed" : ""}`))
+        .setIcon(pinIcon(`${spot.type}${status.isOpen === false ? " is-closed" : ` ring-${recentLevel(spot, now, visibleReports())}`}`))
         .setPopupContent(`<strong>${spot.name}</strong><br>${status.text}<br>${walkLink(spot.name, spot.location, "popup-walk", mapsApp)}`);
     }
   }
+
+  // The map's legend: pin fill is the kind of place, the ring is how busy it was reported in the last hour.
+  document.getElementById("map-key").innerHTML = ["empty", "some", "packed"].map((level) =>
+    `<span class="key-item"><span class="map-pin library ring-${level}" aria-hidden="true"></span>${busynessLabels[level]}</span>`).join("")
+    + `<span class="key-item"><span class="map-pin food" aria-hidden="true"></span>Food</span><span class="key-item">Ring = last hour's report</span>`;
 
   function buildMap() {
     if (spotMap) return;
@@ -2512,6 +2702,12 @@
     setSortMode(button.dataset.sort);
   });
 
+  document.getElementById("spot-list").addEventListener("keydown", (event) => {
+    if (event.target.id === "custom-minutes" && event.key === "Enter") {
+      event.target.closest(".spot").querySelector('[data-action="start-custom"]').click();
+    }
+  });
+
   // Notes save as you type, without redrawing, so the text box keeps its place.
   document.getElementById("spot-list").addEventListener("input", (event) => {
     const spotId = event.target.dataset?.noteSpot;
@@ -2619,6 +2815,20 @@
     }
   });
 
+  document.getElementById("download-reports").addEventListener("click", () => {
+    if (reportHistory.length === 0) {
+      showToast("No reports yet. Report how busy a spot is, and they'll show up here.");
+      return;
+    }
+    const file = new Blob([reportsCsv(reportHistory, allSpots)], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(file);
+    link.download = `study-spot-reports-${dateKeyFor(new Date())}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast(`Saved ${reportHistory.length} ${reportHistory.length === 1 ? "report" : "reports"} as a spreadsheet file.`);
+  });
+
   document.getElementById("restore-backup").addEventListener("click", () => {
     const box = document.getElementById("backup-code");
     const restored = readBackup(box.value, allSpots);
@@ -2674,13 +2884,13 @@
   const APP_TITLE = document.title;
 
   // A system notification, for when the app is in a background tab. Android only allows them through the offline helper.
-  async function notifySessionDone(spot) {
+  async function notify(title, body) {
     if (!sessionAlerts || !("Notification" in window) || Notification.permission !== "granted") return;
-    const message = { body: `Your session at ${spot.name} is done. Take a 5-minute break.`, icon: "icons/icon-192.png", tag: "study-session" };
+    const message = { body, icon: "icons/icon-192.png", tag: title };
     try {
       const registration = await navigator.serviceWorker?.getRegistration();
-      if (registration) await registration.showNotification("Study session done", message);
-      else new Notification("Study session done", message);
+      if (registration) await registration.showNotification(title, message);
+      else new Notification(title, message);
     } catch { /* the banner and toast still show */ }
   }
 
@@ -2690,34 +2900,61 @@
     renderStudyTime();
   }
 
+  // The buttons for each question the banner can ask once a timer ends.
+  function sessionPromptButtons(prompt) {
+    if (prompt.kind === "checkin") {
+      return `${Object.entries(busynessLabels).map(([level, label]) => `<button class="plan-reset" data-prompt-level="${level}">${label}</button>`).join("")}
+        <button class="plan-reset prompt-skip" data-prompt-action="skip-checkin">Skip</button>`;
+    }
+    if (prompt.kind === "break") {
+      return `<button class="plan-reset" data-prompt-action="start-break">Start ${BREAK_MINUTES}-min break</button>
+        <button class="plan-reset prompt-skip" data-prompt-action="dismiss">No thanks</button>`;
+    }
+    const spot = allSpots.find((studySpot) => studySpot.id === prompt.spotId);
+    return openStatus(spot, new Date()).isOpen === false
+      ? `<button class="plan-reset" data-prompt-action="dismiss">OK</button>`
+      : `<button class="plan-reset" data-prompt-action="study-again">Study 25 more min</button>
+        <button class="plan-reset prompt-skip" data-prompt-action="dismiss">I'm done</button>`;
+  }
+
+  function sessionPromptText(prompt) {
+    const spot = allSpots.find((studySpot) => studySpot.id === prompt.spotId);
+    if (prompt.kind === "checkin") return `Session done. How busy is ${spot.name} now?`;
+    if (prompt.kind === "break") return "Nice work. Take a break before the next one?";
+    return openStatus(spot, new Date()).isOpen === false ? `Break's over. ${spot.name} has closed for now.` : `Break's over. Back to ${spot.name}?`;
+  }
+
+  function setSessionPrompt(prompt) {
+    sessionPrompt = prompt;
+    const checkIn = document.getElementById("session-checkin");
+    checkIn.innerHTML = prompt ? sessionPromptButtons(prompt) : "";
+    checkIn.setAttribute("aria-label", prompt ? sessionPromptText(prompt) : "");
+    updateSessionBanner();
+  }
+
   function updateSessionBanner() {
     const banner = document.getElementById("session-banner");
-    const checkIn = document.getElementById("session-checkin");
-    banner.hidden = !studySession && !checkInSpotId;
-    checkIn.hidden = !checkInSpotId;
-    document.getElementById("session-stop").hidden = Boolean(checkInSpotId);
-    banner.classList.toggle("checking-in", Boolean(checkInSpotId));
+    banner.hidden = !studySession && !sessionPrompt;
+    document.getElementById("session-checkin").hidden = !sessionPrompt;
+    document.getElementById("session-stop").hidden = Boolean(sessionPrompt);
+    banner.classList.toggle("checking-in", Boolean(sessionPrompt));
+    banner.classList.toggle("on-break", Boolean(studySession?.isBreak));
     if (!studySession) document.title = APP_TITLE;
     if (banner.hidden) return;
     banner.style.top = `${document.querySelector("header").offsetHeight}px`;
-    if (checkInSpotId) {
-      const spot = allSpots.find((studySpot) => studySpot.id === checkInSpotId);
-      document.getElementById("session-text").textContent = `Session done. How busy is ${spot.name} now?`;
+    if (sessionPrompt) {
+      document.getElementById("session-text").textContent = sessionPromptText(sessionPrompt);
       return;
     }
     const now = Date.now();
     const spot = allSpots.find((studySpot) => studySpot.id === studySession.spotId);
     if (now >= studySession.endTime) {
-      // Sessions saved before minutes were kept can't be logged, since their length is unknown.
-      if (studySession.minutes) logStudyTime(studySession.minutes);
-      studySession = null;
-      saveSession(null);
-      // Only ask about a spot that's still open, since a report means "right now".
-      if (openStatus(spot, new Date()).isOpen !== false) checkInSpotId = spot.id;
-      navigator.vibrate?.(300);
-      notifySessionDone(spot);
-      showToast("Study session done. Take a 5-minute break.");
-      updateSessionBanner();
+      finishTimer(spot);
+      return;
+    }
+    if (studySession.isBreak) {
+      document.getElementById("session-text").textContent = `Break · ${formatTimer(studySession.endTime - now)} left`;
+      document.title = timerTitle(studySession.endTime - now).replace("left", "left on break");
       return;
     }
     const warning = closesBeforeSessionEnds(spot, new Date(now), studySession.endTime) ? ` · ${spot.name} closes first` : "";
@@ -2725,13 +2962,37 @@
     document.title = timerTitle(studySession.endTime - now);
   }
 
-  function startSession(spotId, minutes) {
-    checkInSpotId = null;
-    studySession = { spotId, minutes, endTime: Date.now() + minutes * 60000 };
+  // A study timer ends with a check-in (if the spot is still open) and then a break offer; a break ends with "study more?".
+  function finishTimer(spot) {
+    const wasBreak = studySession.isBreak;
+    // Sessions saved before minutes were kept can't be logged, since their length is unknown.
+    if (!wasBreak && studySession.minutes) logStudyTime(studySession.minutes);
+    studySession = null;
+    saveSession(null);
+    navigator.vibrate?.(300);
+    if (wasBreak) {
+      notify("Break's over", `Ready for another session at ${spot.name}?`);
+      showToast("Break's over.");
+      setSessionPrompt({ kind: "again", spotId: spot.id });
+      return;
+    }
+    notify("Study session done", `Your session at ${spot.name} is done. Take a ${BREAK_MINUTES}-minute break.`);
+    showToast(`Study session done. Take a ${BREAK_MINUTES}-minute break.`);
+    // Only ask about a spot that's still open, since a report means "right now".
+    setSessionPrompt({ kind: openStatus(spot, new Date()).isOpen !== false ? "checkin" : "break", spotId: spot.id });
+  }
+
+  function startSession(spotId, minutes, isBreak = false) {
+    sessionPrompt = null;
+    studySession = { spotId, minutes, endTime: Date.now() + minutes * 60000, ...(isBreak ? { isBreak: true } : {}) };
     saveSession(studySession);
     expandedSpotId = null;
     render();
-    updateSessionBanner();
+    setSessionPrompt(null);
+    if (isBreak) {
+      showToast(`${minutes}-minute break started. Stretch, get water, look away from the screen.`);
+      return;
+    }
     const spot = allSpots.find((studySpot) => studySpot.id === spotId);
     showToast(closesBeforeSessionEnds(spot, new Date(), studySession.endTime)
       ? `Session started. Heads up: ${spot.name} closes before it ends.`
@@ -2739,24 +3000,60 @@
   }
 
   document.getElementById("session-stop").addEventListener("click", () => {
-    const studied = studySession.minutes ? Math.floor(studySession.minutes - (studySession.endTime - Date.now()) / 60000) : 0;
+    const wasBreak = studySession.isBreak;
+    const studied = !wasBreak && studySession.minutes ? Math.floor(studySession.minutes - (studySession.endTime - Date.now()) / 60000) : 0;
     if (studied >= 1) logStudyTime(studied);
     studySession = null;
     saveSession(null);
     updateSessionBanner();
-    showToast(studied >= 1 ? `Session stopped. Logged ${formatDuration(studied)} of study.` : "Session stopped");
+    if (wasBreak) showToast("Break ended");
+    else showToast(studied >= 1 ? `Session stopped. Logged ${formatDuration(studied)} of study.` : "Session stopped");
   });
 
   document.getElementById("session-checkin").addEventListener("click", (event) => {
     const button = event.target.closest("button");
-    if (!button) return;
-    const spot = allSpots.find((studySpot) => studySpot.id === checkInSpotId);
-    checkInSpotId = null;
-    updateSessionBanner();
-    if (!button.dataset.checkinLevel) return;
-    recordReport(spot, null, button.dataset.checkinLevel);
-    render();
+    if (!button || !sessionPrompt) return;
+    const spot = allSpots.find((studySpot) => studySpot.id === sessionPrompt.spotId);
+    const action = button.dataset.promptAction;
+    if (button.dataset.promptLevel) {
+      recordReport(spot, null, button.dataset.promptLevel);
+      render();
+      setSessionPrompt({ kind: "break", spotId: spot.id });
+    } else if (action === "skip-checkin") {
+      setSessionPrompt({ kind: "break", spotId: spot.id });
+    } else if (action === "start-break") {
+      startSession(spot.id, BREAK_MINUTES, true);
+    } else if (action === "study-again") {
+      startSession(spot.id, 25);
+    } else {
+      setSessionPrompt(null);
+    }
+    document.querySelector("#session-checkin button, #session-stop:not([hidden])")?.focus();
   });
+
+  // Reminders fire while the page is open: checked every minute, and right away when the page comes back into view.
+  function toggleReminder(spot) {
+    const isSet = openReminders.some((reminder) => reminder.spotId === spot.id);
+    const opening = nextOpenTime(spot, new Date());
+    openReminders = isSet ? openReminders.filter((reminder) => reminder.spotId !== spot.id)
+      : [...openReminders, { spotId: spot.id, time: opening.getTime() }];
+    saveList("openReminders", openReminders);
+    showToast(isSet ? `Reminder for ${spot.name} canceled.`
+      : `We'll remind you when ${spot.name} opens (${describeViewTime(opening)}) if this page is open${sessionAlerts ? "" : ". Turn on notifications in Settings to get it in another tab"}.`);
+  }
+
+  function checkReminders() {
+    const due = openReminders.filter((reminder) => reminder.time <= Date.now());
+    if (due.length === 0) return;
+    openReminders = openReminders.filter((reminder) => reminder.time > Date.now());
+    saveList("openReminders", openReminders);
+    for (const { spotId } of due) {
+      const spot = allSpots.find((studySpot) => studySpot.id === spotId);
+      notify(`${spot.name} is open`, `${spot.name} just opened. ${openStatus(spot, new Date()).text}.`);
+      showToast(`${spot.name} is open now.`);
+    }
+    render();
+  }
 
   // The QR library is loaded only when asked for, so the page stays small for everyone else.
   const QR_SCRIPT = { src: "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js",
@@ -2800,18 +3097,19 @@
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
     const keys = ["busynessReports", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
-      "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips"];
+      "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
-      hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts,
+      hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders,
       campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large" };
     favoriteIds = [];
     reportHistory = [];
     spotNotes = {};
     reports = {};
     studySession = null;
-    checkInSpotId = null;
+    sessionPrompt = null;
+    openReminders = [];
     hiddenSpotIds = [];
     foodFavoriteKeys = [];
     studyLog = [];
@@ -2826,7 +3124,7 @@
     showToast("Erased everything on this device.", () => {
       try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
       ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus,
-        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts } = before);
+        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders } = before);
       applyDisplaySettings(before.theme, before.large);
       applyCampus();
       updateSessionBanner();
@@ -2878,13 +3176,24 @@
   }
   updateSessionBanner();
   setInterval(updateSessionBanner, 1000);
+  checkReminders();
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkReminders();
+  });
+  function updateOfflineNotice() {
+    document.getElementById("offline-notice").hidden = navigator.onLine;
+  }
+  window.addEventListener("online", updateOfflineNotice);
+  window.addEventListener("offline", updateOfflineNotice);
+  updateOfflineNotice();
   // Keep a copy of the app so it opens without a connection. Only secure pages can do this.
   if ("serviceWorker" in navigator && window.isSecureContext) {
     navigator.serviceWorker.register("sw.js").catch(() => { /* the app works without it, just not offline */ });
   }
   setInterval(() => {
     // Redrawing would interrupt someone typing a note, so wait for the next minute instead.
-    if (document.activeElement?.dataset?.noteSpot) return;
+    checkReminders();
+    if (document.activeElement?.dataset?.noteSpot || document.activeElement?.id === "custom-minutes") return;
     render();
     refreshPins();
     if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
