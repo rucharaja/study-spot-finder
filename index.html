@@ -733,7 +733,36 @@
     {"name": "Xi'an Cuisine", "kind": "Restaurant", "location": [41.87783, -87.6467], "hours": [[[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]], [[660, 1290]]], "checked": "2026-06", "campus": "uic"},
     {"name": "Zeus Restaurant", "kind": "Restaurant", "location": [41.87807, -87.64757], "hours": [[[720, 1140]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[660, 1320]], [[720, 1320]]], "checked": "2026-03", "campus": "uic"},
   ];
+  // UIS dining, all in the Student Union, from uis.edu/dining (checked 2026-11-11). Its Fall & Spring hours carry no year;
+  // Thanksgiving and winter break hours are posted. The Food Studio follows the Union's closure from Dec 24 to Jan 3.
+  // World Flavors and Chef's Table don't post winter break hours, and nothing is posted for summer 2027.
+  const uisUnion = [39.72729, -89.61733];
+  const uisWeekdays = (periods, weekendPeriods) => [weekendPeriods, periods, periods, periods, periods, periods, weekendPeriods];
+  const closedOn = (start, end) => during(start, end, []);
+  const uisSummer = ["2027-05-16", "2027-08-22"];
+  const uisFoodPlaces = [
+    { name: "Union Food Studio", kind: "UIS dining · Griddle, Express, and drinks · open to the public", location: uisUnion, isHall: true,
+      hours: uisWeekdays([[450, 1200]], [[630, 1200]]), checked: "2026-11", campus: "uis",
+      specialHours: { ...during("2026-11-25", "2026-11-25", [[450, 1080]]), ...closedOn("2026-11-26", "2026-11-28"),
+        ...during("2026-12-11", "2026-12-11", [[450, 1080]]), ...during("2026-12-14", "2026-12-23", [[480, 900]]),
+        ...closedOn("2026-12-12", "2026-12-13"), ...closedOn("2026-12-19", "2026-12-20"), ...closedOn("2026-12-24", "2027-01-03"),
+        ...during("2027-01-04", "2027-01-08", [[480, 900]]), ...closedOn("2027-01-09", "2027-01-09") },
+      unknownDates: [uisSummer] },
+    { name: "Chef's Table (Union Food Studio)", kind: "UIS dining · open to the public", location: uisUnion,
+      hours: uisWeekdays([[660, 840], [990, 1140]], [[690, 1140]]), checked: "2026-11", campus: "uis",
+      specialHours: { ...during("2026-11-25", "2026-11-25", [[660, 840], [990, 1080]]), ...closedOn("2026-11-26", "2026-11-28"),
+        ...during("2026-12-11", "2026-12-11", [[660, 840], [990, 1080]]) },
+      unknownDates: [["2026-12-12", "2027-01-09"], uisSummer] },
+    { name: "World Flavors (Union Food Studio)", kind: "UIS dining · open to the public", location: uisUnion,
+      hours: uisWeekdays([[660, 840], [990, 1110]], []), checked: "2026-11", campus: "uis",
+      specialHours: { ...during("2026-11-25", "2026-11-25", [[660, 840], [990, 1080]]), ...closedOn("2026-11-26", "2026-11-28") },
+      unknownDates: [["2026-12-12", "2027-01-09"], uisSummer] },
+    { name: "Starbucks (Student Union)", kind: "Cafe", location: [39.72735, -89.61725],
+      hours: uisWeekdays([[480, 1020]], []), checked: "2026-11", campus: "uis",
+      specialHours: closedOn("2026-12-12", "2027-01-10"), unknownDates: [uisSummer] },
+  ];
   const foodPlaces = [
+    ...uisFoodPlaces,
     ...uicFoodPlaces,
     ...diningHalls,
     ...privateHallDining,
@@ -1117,25 +1146,31 @@
       .sort((a, b) => a.miles - b.miles);
   }
 
-  // A food place's status now, in the same wording as study spots. Hours don't include holidays.
+  // A food place's periods on a date: its special hours for that date if it has them (only UIS dining posts
+  // holiday hours), otherwise its usual hours for that weekday.
+  function foodHoursOn(place, date) {
+    return place.specialHours?.[dateKeyFor(date)] ?? place.hours[date.getDay()];
+  }
+
+  // A food place's status now, in the same wording as study spots.
   function foodStatus(place, now) {
     const today = dateKeyFor(now);
     if (place.unknownDates?.some(([start, end]) => today >= start && today <= end)) {
       return { isOpen: null, text: "Hours not confirmed" };
     }
     const minutes = now.getHours() * 60 + now.getMinutes();
-    const lastNight = place.hours[(now.getDay() + 6) % 7].find(([, close]) => close > 1440 && minutes < close - 1440);
+    const lastNight = foodHoursOn(place, daysLater(now, -1)).find(([, close]) => close > 1440 && minutes < close - 1440);
     if (lastNight) return openUntil(lastNight[1] - 1440, lastNight[1], minutes);
-    const current = place.hours[now.getDay()].find(([open, close]) => minutes >= open && minutes < close);
+    const current = foodHoursOn(place, now).find(([open, close]) => minutes >= open && minutes < close);
     if (current) {
-      const isAlwaysOpen = current[0] === 0 && current[1] === 1440 && place.hours[(now.getDay() + 1) % 7][0]?.[0] === 0;
+      const isAlwaysOpen = current[0] === 0 && current[1] === 1440 && foodHoursOn(place, daysLater(now, 1))[0]?.[0] === 0;
       return isAlwaysOpen ? { isOpen: true, text: "Open 24 hours" } : openUntil(current[1], current[1], minutes);
     }
-    const laterToday = place.hours[now.getDay()].find(([open]) => minutes < open);
+    const laterToday = foodHoursOn(place, now).find(([open]) => minutes < open);
     if (laterToday) return { isOpen: false, text: `Closed · opens ${shortWait(laterToday[0] - minutes) ?? formatTime(laterToday[0])}` };
     for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
       const day = (now.getDay() + daysAhead) % 7;
-      const [nextPeriod] = place.hours[day];
+      const [nextPeriod] = foodHoursOn(place, daysLater(now, daysAhead));
       if (!nextPeriod) continue;
       const soon = daysAhead === 1 ? shortWait(24 * 60 - minutes + nextPeriod[0]) : null;
       return { isOpen: false, text: `Closed · opens ${soon ?? `${daysAhead === 1 ? "" : `${dayNames[day]} `}${formatTime(nextPeriod[0])}`}` };
@@ -1147,7 +1182,7 @@
   function isLateNight(place, now) {
     const minutes = now.getHours() * 60 + now.getMinutes();
     if (minutes < EARLY_MORNING_END) return foodStatus(place, now).isOpen;
-    return place.hours[now.getDay()].some(([, close]) => close >= LATE_NIGHT_START && close > minutes);
+    return foodHoursOn(place, now).some(([, close]) => close >= LATE_NIGHT_START && close > minutes);
   }
 
   // Places to list for a mode, nearest first when the location is known, otherwise by name.
@@ -1204,7 +1239,7 @@
       const label = daysAhead === 0 ? "Today" : `${dayNames[date.getDay()]} ${monthNames[date.getMonth()]} ${date.getDate()}`;
       const key = dateKeyFor(date);
       if (place.unknownDates?.some(([start, end]) => key >= start && key <= end)) return { label, text: "Hours not confirmed" };
-      const periods = place.hours[date.getDay()];
+      const periods = foodHoursOn(place, date);
       if (periods.length === 0) return { label, text: "Closed" };
       if (periods.length === 1 && periods[0][0] === 0 && periods[0][1] === 1440) return { label, text: "Open 24 hours" };
       return { label, text: periods.map(([open, close]) => `${formatTime(open)} – ${formatTime(close)}`).join(", ") };
