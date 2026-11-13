@@ -317,6 +317,13 @@
   button.hidden-toggle { margin-top: 8px; color: var(--muted); }
   button.food-favorite { position: static; width: 40px; height: 40px; min-height: 40px; }
   .study-summary { margin: 0; font-size: .9rem; }
+  .volume-row { display: grid; gap: 4px; color: var(--muted); font-size: .85rem; font-weight: 600; }
+  .volume-row input { width: 100%; min-height: 32px; accent-color: var(--illini-orange); }
+  button.find-closest.is-playing { background: var(--card); color: var(--accent); }
+  @media (max-width: 400px) {
+    .hint-row { gap: 6px; }
+    .hint-row button.filters-toggle { padding: 0 6px; font-size: .8rem; }
+  }
   .usual-line { display: block; margin-top: 2px; font-size: .8rem; font-weight: 600; }
   .usual-line.empty { color: var(--empty); }
   .usual-line.some { color: var(--some); }
@@ -403,7 +410,22 @@
     <button class="filters-toggle" id="map-toggle" aria-expanded="false" aria-controls="map-panel">Map</button>
     <button class="filters-toggle" id="food-toggle" aria-expanded="false" aria-controls="food-panel">Food</button>
     <button class="filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="filters-panel">Filters</button>
+    <button class="filters-toggle" id="sounds-toggle" aria-expanded="false" aria-controls="sounds-panel">Sounds</button>
   </div>
+  <section class="map-panel sounds-panel" id="sounds-panel" aria-labelledby="sounds-heading" hidden>
+    <h2 class="category-heading" id="sounds-heading">Focus sounds</h2>
+    <div class="offer-choices" id="sound-choices" role="group" aria-label="Pick a sound">
+      <button class="offer" data-sound="rain" aria-pressed="false">Rain</button>
+      <button class="offer" data-sound="brown" aria-pressed="false">Brown noise</button>
+      <button class="offer" data-sound="cafe" aria-pressed="false">Café</button>
+    </div>
+    <button class="find-closest" id="sound-play">Play</button>
+    <label class="volume-row" for="sound-volume">Volume
+      <input type="range" id="sound-volume" min="0" max="100" step="5" value="50">
+    </label>
+    <label class="switch-row"><input type="checkbox" id="sound-with-timer"> Play during study timers</label>
+    <p class="map-note" id="sound-note">Made right in the app, so it works offline. On iPhone, turn off silent mode if you hear nothing.</p>
+  </section>
   <div class="map-panel" id="map-panel" hidden>
     <button class="find-closest" id="find-closest">Find closest to me</button>
     <div class="closest-result" id="closest-result" role="status"></div>
@@ -1563,6 +1585,40 @@
       return opening;
     }
     return null;
+  }
+
+  // Brown noise: a soft rumble, made by letting random steps drift and slowly pulling them back toward zero.
+  function makeBrownNoise(length, random = Math.random) {
+    const samples = new Float32Array(length);
+    let level = 0;
+    for (let index = 0; index < length; index++) {
+      level = (level + 0.02 * (random() * 2 - 1)) / 1.02;
+      samples[index] = level * 3.5;
+    }
+    return samples;
+  }
+
+  // Pink noise: softer than white noise, like steady rain. Paul Kellet's economy filter on random values.
+  function makePinkNoise(length, random = Math.random) {
+    const samples = new Float32Array(length);
+    let b0 = 0;
+    let b1 = 0;
+    let b2 = 0;
+    for (let index = 0; index < length; index++) {
+      const white = random() * 2 - 1;
+      b0 = 0.99765 * b0 + white * 0.099046;
+      b1 = 0.96300 * b1 + white * 0.2965164;
+      b2 = 0.57000 * b2 + white * 1.0526913;
+      samples[index] = (b0 + b1 + b2 + white * 0.1848) * 0.11;
+    }
+    return samples;
+  }
+
+  // What a study timer event does to the sound, when "Play during study timers" is on: study starts it,
+  // breaks and the end of a session stop it. Null means leave the sound alone.
+  function timerSoundAction(playsWithTimer, timerEvent) {
+    if (!playsWithTimer) return null;
+    return { "study-start": "play", "break-start": "stop", "timer-end": "stop", "timer-stop": "stop" }[timerEvent] ?? null;
   }
 
   // A sentence about the last 7 days of study sessions.
@@ -2883,6 +2939,186 @@
 
   const APP_TITLE = document.title;
 
+  // Focus sounds, built from looping noise with the browser's audio engine. Nothing is downloaded.
+  const SOUND_LABELS = { rain: "Rain", brown: "Brown noise", cafe: "Café" };
+  let soundChoice = SOUND_LABELS[readSetting("soundChoice", "rain")] ? readSetting("soundChoice", "rain") : "rain";
+  let soundVolume = Math.min(100, Math.max(0, Number(readSetting("soundVolume", "50")) || 0));
+  let soundWithTimer = readSetting("soundWithTimer", "off") === "on";
+  let audioContext = null;
+  let masterGain = null;
+  let playingSound = null;
+  let stopCurrentSound = null;
+  const noiseBuffers = {};
+
+  function noiseBuffer(kind) {
+    if (!noiseBuffers[kind]) {
+      const length = audioContext.sampleRate * 6;
+      const samples = kind === "brown" ? makeBrownNoise(length) : makePinkNoise(length);
+      noiseBuffers[kind] = audioContext.createBuffer(1, length, audioContext.sampleRate);
+      noiseBuffers[kind].copyToChannel(samples, 0);
+    }
+    return noiseBuffers[kind];
+  }
+
+  function loopingNoise(kind, destination) {
+    const source = audioContext.createBufferSource();
+    source.buffer = noiseBuffer(kind);
+    source.loop = true;
+    source.connect(destination);
+    // Starting each loop at a random point keeps two layers of the same noise from playing in step.
+    source.start(0, Math.random() * source.buffer.duration);
+    return source;
+  }
+
+  function filter(type, frequency, q = 0.7) {
+    return new BiquadFilterNode(audioContext, { type, frequency, Q: q });
+  }
+
+  // A slow wobble on a gain, so a sound breathes instead of sitting perfectly still.
+  function wobble(gain, depth, speed) {
+    const lfo = new OscillatorNode(audioContext, { frequency: speed });
+    const amount = new GainNode(audioContext, { gain: depth });
+    lfo.connect(amount).connect(gain.gain);
+    lfo.start();
+    return lfo;
+  }
+
+  // Each recipe connects its sound to the output and returns everything that must be stopped later.
+  const soundRecipes = {
+    brown(output) {
+      const tone = filter("lowpass", 900);
+      tone.connect(output);
+      return [loopingNoise("brown", tone)];
+    },
+    // Steady rainfall with a brighter patter on top that comes and goes.
+    rain(output) {
+      const body = filter("highpass", 300);
+      body.connect(filter("lowpass", 5000)).connect(new GainNode(audioContext, { gain: 0.9 })).connect(output);
+      const patter = new GainNode(audioContext, { gain: 0.25 });
+      patter.connect(filter("highpass", 4000)).connect(output);
+      return [loopingNoise("pink", body), loopingNoise("pink", patter), wobble(patter, 0.08, 0.13)];
+    },
+    cafe(output) {
+      const room = new GainNode(audioContext, { gain: 0.8 });
+      const murmur = new GainNode(audioContext, { gain: 0.35 });
+      room.connect(filter("lowpass", 350)).connect(output);
+      murmur.connect(filter("bandpass", 550, 1.2)).connect(output);
+      const parts = [loopingNoise("brown", room), loopingNoise("pink", murmur), wobble(murmur, 0.15, 0.21), wobble(murmur, 0.1, 0.07)];
+      // Now and then a cup or spoon clinks: a short, quiet bell tone at a random pitch.
+      let clinkTimer = null;
+      const clink = () => {
+        const bell = new OscillatorNode(audioContext, { type: "sine", frequency: 2200 + Math.random() * 1800 });
+        const fade = new GainNode(audioContext, { gain: 0 });
+        const start = audioContext.currentTime;
+        fade.gain.setValueAtTime(0.05, start);
+        fade.gain.exponentialRampToValueAtTime(0.0001, start + 0.4);
+        bell.connect(fade).connect(output);
+        bell.start(start);
+        bell.stop(start + 0.45);
+        clinkTimer = setTimeout(clink, 3000 + Math.random() * 7000);
+      };
+      clinkTimer = setTimeout(clink, 2000);
+      return [...parts, { stop: () => clearTimeout(clinkTimer) }];
+    },
+  };
+
+  // Volume feels even across the slider when the gain follows its square. Each sound gets a trim so all three
+  // play about equally loud; full volume still peaks below the point where the sound would distort.
+  const SOUND_TRIM = { rain: 1.6, brown: 1, cafe: 1.4 };
+  function outputLevel(name) {
+    return (soundVolume / 100) ** 2 * 0.9 * SOUND_TRIM[name];
+  }
+
+  function playSound(name) {
+    const AudioEngine = window.AudioContext || window.webkitAudioContext;
+    if (!AudioEngine) {
+      showToast("This browser can't play sounds.");
+      return;
+    }
+    stopSound(false);
+    audioContext ??= new AudioEngine();
+    audioContext.resume();
+    masterGain = new GainNode(audioContext, { gain: 0 });
+    masterGain.connect(audioContext.destination);
+    const parts = soundRecipes[name](masterGain);
+    const fadingGain = masterGain;
+    // Fade in and out over a moment, so the sound never starts or stops with a click.
+    fadingGain.gain.setTargetAtTime(outputLevel(name), audioContext.currentTime, 0.3);
+    stopCurrentSound = () => {
+      fadingGain.gain.setTargetAtTime(0, audioContext.currentTime, 0.15);
+      setTimeout(() => {
+        for (const part of parts) part.stop?.();
+        fadingGain.disconnect();
+      }, 800);
+    };
+    playingSound = name;
+    soundChoice = name;
+    writeSetting("soundChoice", name);
+    renderSounds();
+  }
+
+  function stopSound(shouldRender = true) {
+    stopCurrentSound?.();
+    stopCurrentSound = null;
+    playingSound = null;
+    if (shouldRender) renderSounds();
+  }
+
+  function renderSounds() {
+    for (const button of document.querySelectorAll("[data-sound]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.sound === soundChoice));
+    }
+    const playButton = document.getElementById("sound-play");
+    playButton.textContent = playingSound ? `Pause ${SOUND_LABELS[playingSound]}` : `Play ${SOUND_LABELS[soundChoice]}`;
+    playButton.classList.toggle("is-playing", Boolean(playingSound));
+    const toggle = document.getElementById("sounds-toggle");
+    // The button turns navy while a sound plays; screen readers hear it in the label.
+    toggle.setAttribute("aria-label", playingSound ? `Sounds, ${SOUND_LABELS[playingSound]} playing` : "Sounds");
+    toggle.classList.toggle("active", Boolean(playingSound));
+    document.getElementById("sound-volume").value = String(soundVolume);
+    document.getElementById("sound-with-timer").checked = soundWithTimer;
+  }
+
+  // Study timers start and stop the sound when the switch is on.
+  function soundForTimer(timerEvent) {
+    const action = timerSoundAction(soundWithTimer, timerEvent);
+    if (action === "play") playSound(soundChoice);
+    if (action === "stop" && playingSound) stopSound();
+  }
+
+  document.getElementById("sounds-toggle").addEventListener("click", (event) => {
+    const panel = document.getElementById("sounds-panel");
+    panel.hidden = !panel.hidden;
+    event.currentTarget.setAttribute("aria-expanded", String(!panel.hidden));
+  });
+
+  // Picking a sound plays it; picking the one already playing pauses it.
+  document.getElementById("sound-choices").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-sound]");
+    if (!button) return;
+    if (playingSound === button.dataset.sound) stopSound();
+    else playSound(button.dataset.sound);
+  });
+
+  document.getElementById("sound-play").addEventListener("click", () => {
+    if (playingSound) stopSound();
+    else playSound(soundChoice);
+  });
+
+  document.getElementById("sound-volume").addEventListener("input", (event) => {
+    soundVolume = Number(event.target.value);
+    writeSetting("soundVolume", String(soundVolume));
+    if (masterGain && playingSound) masterGain.gain.setTargetAtTime(outputLevel(playingSound), audioContext.currentTime, 0.05);
+  });
+
+  document.getElementById("sound-with-timer").addEventListener("change", (event) => {
+    soundWithTimer = event.target.checked;
+    writeSetting("soundWithTimer", soundWithTimer ? "on" : "off");
+    showToast(soundWithTimer ? `${SOUND_LABELS[soundChoice]} will play during study timers and stop for breaks.` : "Sounds won't follow the timer.");
+  });
+
+  renderSounds();
+
   // A system notification, for when the app is in a background tab. Android only allows them through the offline helper.
   async function notify(title, body) {
     if (!sessionAlerts || !("Notification" in window) || Notification.permission !== "granted") return;
@@ -2970,6 +3206,7 @@
     studySession = null;
     saveSession(null);
     navigator.vibrate?.(300);
+    soundForTimer("timer-end");
     if (wasBreak) {
       notify("Break's over", `Ready for another session at ${spot.name}?`);
       showToast("Break's over.");
@@ -2989,6 +3226,7 @@
     expandedSpotId = null;
     render();
     setSessionPrompt(null);
+    soundForTimer(isBreak ? "break-start" : "study-start");
     if (isBreak) {
       showToast(`${minutes}-minute break started. Stretch, get water, look away from the screen.`);
       return;
@@ -3006,6 +3244,7 @@
     studySession = null;
     saveSession(null);
     updateSessionBanner();
+    soundForTimer("timer-stop");
     if (wasBreak) showToast("Break ended");
     else showToast(studied >= 1 ? `Session stopped. Logged ${formatDuration(studied)} of study.` : "Session stopped");
   });
@@ -3097,7 +3336,7 @@
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
     const keys = ["busynessReports", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
-      "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders"];
+      "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders", "soundChoice", "soundVolume", "soundWithTimer"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
