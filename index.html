@@ -165,9 +165,9 @@
   .offer-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
   .offer-tag { padding: 1px 7px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--muted);
     font-size: .72rem; font-weight: 500; line-height: 1.5; }
-  .campus-choices { display: flex; gap: 6px; }
-  button.campus { flex: 1; min-height: 36px; border-radius: 999px; border-width: 1px; font-size: .85rem; background: var(--card); color: var(--text); }
-  button.campus[aria-pressed="true"] { background: var(--illini-navy); border-color: var(--illini-orange); color: #ffffff; }
+  .campus-choice { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: .9rem; font-weight: 600; color: var(--text); }
+  .campus-choice select { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 999px; font: inherit; font-weight: 600;
+    background: var(--illini-navy); color: #ffffff; border: 2px solid var(--illini-orange); }
   .category-choices { display: flex; gap: 6px; flex-wrap: wrap; }
   button.category { flex: 1 1 auto; min-height: 40px; padding: 0 8px; border-radius: 999px; border-width: 1px; font-size: .85rem;
     background: var(--card); color: var(--text); }
@@ -394,11 +394,18 @@
     </ul>
     <button class="pick-spot" id="tips-done">Got it</button>
   </section>
-  <div class="campus-choices" id="campus-choices" role="group" aria-label="Campus">
-    <button class="campus" data-campus="uiuc" aria-pressed="true">UIUC</button>
-    <button class="campus" data-campus="uic" aria-pressed="false">UIC</button>
-    <button class="campus" data-campus="uis" aria-pressed="false">UIS</button>
-  </div>
+  <label class="campus-choice" for="campus-select">School
+    <select id="campus-select">
+      <optgroup label="University of Illinois">
+        <option value="uiuc">UIUC (Urbana-Champaign)</option>
+        <option value="uic">UIC (Chicago)</option>
+        <option value="uis">UIS (Springfield)</option>
+      </optgroup>
+      <optgroup label="Big Ten">
+        <option value="purdue">Purdue (West Lafayette)</option>
+      </optgroup>
+    </select>
+  </label>
   <section class="empty-now" id="empty-now" aria-live="polite" hidden></section>
   <div class="today-notes" id="today-notes"></div>
   <div class="search">
@@ -692,9 +699,38 @@
         ...during("2027-01-04", "2027-01-08", [h(8), h(17)]), ...during("2027-01-09", "2027-01-09", HOURS_UNCONFIRMED),
         ...during("2027-05-16", "2027-08-22", HOURS_UNCONFIRMED) } },
   ];
-  const allSpots = [...studySpots, ...uicSpots, ...uisSpots];
-  const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS" };
-  const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union" };
+  // Purdue spots. Library hours come from Purdue Libraries' calendar (calendar.lib.purdue.edu/hours), checked 2026-11-15
+  // and posted through April 3, 2027. WALC's doors open 7am to midnight to everyone; students with a Purdue ID can swipe in
+  // all night, which the app can't check, so it shows the public hours. The Union posts only two weeks at a time
+  // (purdue.edu/operations/pmu/visit/hours, checked 2026-11-15), so its break dates say "Hours not confirmed".
+  const purdueSpots = [
+    { id: "walc", campus: "purdue", type: "library", name: "Wilmeth Active Learning Center (WALC)", offers: [], location: [40.42738, -86.91323],
+      keywords: "walc wilmeth library purdue",
+      hours: sameEveryDay(7, 24),
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(7), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-11-28", "2026-11-28", [h(11), h(24)]), ...during("2026-12-23", "2026-12-23", [h(7), h(17)]),
+        ...during("2026-12-24", "2027-01-03", null), ...during("2027-04-04", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "hicks", campus: "purdue", type: "library", name: "Hicks Undergraduate Library", offers: [], location: [40.42454, -86.91266],
+      keywords: "hiks hicks undergrad library purdue",
+      hours: [[h(13), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(18)], [h(13), h(17)]],
+      specialHours: { ...during("2026-11-24", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-28", null),
+        ...during("2026-12-07", "2026-12-07", [h(8), h(24)]), ...during("2026-12-08", "2026-12-18", [h(0), h(24)]),
+        ...during("2026-12-19", "2026-12-19", [h(0), h(17)]), ...during("2026-12-20", "2026-12-20", null),
+        ...during("2026-12-21", "2026-12-23", [h(8), h(17)]), ...during("2026-12-24", "2027-01-03", null),
+        ...during("2027-01-04", "2027-01-08", [h(8), h(17)], null), ...during("2027-01-09", "2027-01-10", null),
+        ...during("2027-01-18", "2027-01-18", null), ...during("2027-03-13", "2027-03-14", null),
+        ...during("2027-03-15", "2027-03-19", [h(8), h(17)]), ...during("2027-03-20", "2027-03-20", null),
+        ...during("2027-04-04", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "pmu", campus: "purdue", type: "union", name: "Purdue Memorial Union", offers: [], location: [40.42466, -86.91094],
+      keywords: "pmu union purdue",
+      hours: sameEveryDay(6, 24),
+      specialHours: { ...during("2026-11-22", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-10", HOURS_UNCONFIRMED),
+        ...during("2027-03-13", "2027-03-21", HOURS_UNCONFIRMED), ...during("2027-05-08", "2027-08-22", HOURS_UNCONFIRMED) } },
+  ];
+  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots];
+  const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue" };
+  const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
+    purdue: "Search: walc, hicks, pmu" };
 
   // The spots on one campus; UIUC spots don't name a campus.
   function spotsOnCampus(spots, campus) {
@@ -921,6 +957,9 @@
   spotIcons.scw = spotIcons.union;
   spotIcons.brookens = spotIcons.main;
   spotIcons["uis-union"] = spotIcons.union;
+  spotIcons.walc = spotIcons.idea;
+  spotIcons.hicks = spotIcons.main;
+  spotIcons.pmu = spotIcons.union;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
@@ -2464,9 +2503,7 @@
   }
 
   function applyCampus() {
-    for (const button of document.querySelectorAll("button.campus")) {
-      button.setAttribute("aria-pressed", String(button.dataset.campus === selectedCampus));
-    }
+    document.getElementById("campus-select").value = selectedCampus;
     document.getElementById("tagline").textContent = `Find empty study spots at ${campuses[selectedCampus]}`;
     document.getElementById("spot-search").placeholder = searchHints[selectedCampus];
     // A kind of place this campus doesn't have would show an empty list.
@@ -2482,10 +2519,9 @@
     if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
   }
 
-  document.getElementById("campus-choices").addEventListener("click", (event) => {
-    const button = event.target.closest("button.campus");
-    if (!button || button.dataset.campus === selectedCampus) return;
-    selectedCampus = button.dataset.campus;
+  document.getElementById("campus-select").addEventListener("change", (event) => {
+    if (!(event.target.value in campuses)) return;
+    selectedCampus = event.target.value;
     saveCampus(selectedCampus);
     applyCampus();
   });
@@ -2825,7 +2861,7 @@
   document.getElementById("tip-bars").innerHTML = busynessMeter("empty");
   document.getElementById("tips-done").addEventListener("click", () => {
     showTips(false);
-    document.getElementById("campus-choices").querySelector("button")?.focus();
+    document.getElementById("campus-select").focus();
   });
   document.getElementById("show-tips").addEventListener("click", () => {
     showTips(true);
