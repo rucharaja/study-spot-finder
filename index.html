@@ -402,6 +402,7 @@
         <option value="uis">UIS (Springfield)</option>
       </optgroup>
       <optgroup label="Big Ten">
+        <option value="iu">IU (Bloomington)</option>
         <option value="purdue">Purdue (West Lafayette)</option>
       </optgroup>
     </select>
@@ -727,16 +728,61 @@
       specialHours: { ...during("2026-11-22", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-10", HOURS_UNCONFIRMED),
         ...during("2027-03-13", "2027-03-21", HOURS_UNCONFIRMED), ...during("2027-05-08", "2027-08-22", HOURS_UNCONFIRMED) } },
   ];
-  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots];
-  const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue" };
+  // IU Bloomington spots. Library hours come from IU Libraries' own data (libraries.indiana.edu/hours), checked 2026-11-15
+  // and posted through May 7, 2027, including Thanksgiving, finals, winter break, and spring break. The IMU says only that it
+  // is open 6am to midnight and that break hours vary (imu.indiana.edu/about), so its break dates say "Hours not confirmed".
+  const iuSpots = [
+    { id: "wells", campus: "iu", type: "library", name: "Herman B Wells Library", offers: [], location: [39.17105, -86.51685],
+      keywords: "wells main library iu",
+      hours: [[h(11), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(22)], [h(8), h(20)], [h(10), h(20)]],
+      specialHours: { ...during("2026-11-21", "2026-11-22", [h(13), h(17)]), ...during("2026-11-23", "2026-11-25", [h(9), h(17)]),
+        ...during("2026-11-26", "2026-11-27", null), ...during("2026-11-28", "2026-11-28", [h(13), h(17)]),
+        ...during("2026-12-19", "2026-12-20", [h(13), h(17)]), ...during("2026-12-21", "2026-12-23", [h(9), h(17)]),
+        ...during("2026-12-24", "2027-01-01", null), ...during("2027-01-02", "2027-01-03", [h(13), h(17)]),
+        ...during("2027-01-04", "2027-01-08", [h(9), h(17)]), ...during("2027-01-09", "2027-01-09", [h(13), h(17)]),
+        ...during("2027-03-13", "2027-03-14", [h(13), h(17)]), ...during("2027-03-15", "2027-03-19", [h(8), h(17)]),
+        ...during("2027-03-20", "2027-03-20", [h(13), h(17)]), ...during("2027-05-08", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "iu-commons", campus: "iu", type: "library", name: "Learning Commons (Wells Library)", offers: [], location: [39.17095, -86.51675],
+      keywords: "learning commons wells iu",
+      hours: [[h(11), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(20)], [h(10), h(20)]],
+      specialHours: { ...during("2026-11-21", "2026-11-22", [h(13), h(17)]), ...during("2026-11-23", "2026-11-25", [h(9), h(17)]),
+        ...during("2026-11-26", "2026-11-27", null), ...during("2026-11-28", "2026-11-28", [h(13), h(17)]),
+        ...during("2026-12-06", "2026-12-06", [h(11), h(25)]), ...during("2026-12-07", "2026-12-10", [h(8), h(25)]),
+        ...during("2026-12-13", "2026-12-13", [h(11), h(25)]), ...during("2026-12-14", "2026-12-17", [h(8), h(25)]),
+        ...during("2026-12-18", "2026-12-18", [h(9), h(17)]), ...during("2026-12-19", "2026-12-20", [h(13), h(17)]),
+        ...during("2026-12-21", "2026-12-24", [h(9), h(17)]), ...during("2026-12-25", "2027-01-01", null),
+        ...during("2027-01-02", "2027-01-03", [h(13), h(17)]), ...during("2027-01-04", "2027-01-08", [h(9), h(17)]),
+        ...during("2027-01-09", "2027-01-09", [h(13), h(17)]), ...during("2027-03-13", "2027-03-14", [h(13), h(17)]),
+        ...during("2027-03-15", "2027-03-19", [h(8), h(17)]), ...during("2027-03-20", "2027-03-20", [h(13), h(17)]),
+        ...during("2027-04-25", "2027-04-25", [h(11), h(25)]), ...during("2027-04-26", "2027-04-29", [h(8), h(25)]),
+        ...during("2027-05-02", "2027-05-02", [h(11), h(25)]), ...during("2027-05-03", "2027-05-06", [h(8), h(25)]),
+        ...during("2027-05-08", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "iu-business", campus: "iu", type: "library", name: "Business/SPEA Library", offers: [], location: [39.17239, -86.51758],
+      keywords: "kelley business spea oneill library iu",
+      hours: [[h(12), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(22)], [h(8), h(17)], [h(12), h(17)]],
+      specialHours: { ...during("2026-11-21", "2026-11-29", null), ...during("2026-12-11", "2026-12-11", [h(8), h(21)]),
+        ...during("2026-12-12", "2026-12-12", [h(12), h(21)]), ...during("2026-12-19", "2027-01-03", null),
+        ...during("2027-01-04", "2027-01-08", [h(9), h(16)]), ...during("2027-01-09", "2027-01-10", null),
+        ...during("2027-01-18", "2027-01-18", null), ...during("2027-03-13", "2027-03-21", null),
+        ...during("2027-04-30", "2027-04-30", [h(8), h(21)]), ...during("2027-05-01", "2027-05-01", [h(12), h(21)]),
+        ...during("2027-05-08", "2027-05-09", null), ...during("2027-05-10", "2027-08-22", HOURS_UNCONFIRMED) } },
+    { id: "imu", campus: "iu", type: "union", name: "Indiana Memorial Union", offers: [], location: [39.16746, -86.52294],
+      keywords: "imu union iu",
+      hours: sameEveryDay(6, 24),
+      specialHours: { ...during("2026-11-25", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-10", HOURS_UNCONFIRMED),
+        ...during("2027-03-13", "2027-03-21", HOURS_UNCONFIRMED), ...during("2027-05-08", "2027-08-22", HOURS_UNCONFIRMED) } },
+  ];
+  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots];
+  const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
-    purdue: "Search: walc, hicks, pmu" };
+    purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
     uiuc: `${osmFoodNote} Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.`,
     uic: osmFoodNote,
     uis: "Hours are from UIS Dining (uis.edu/dining), including Thanksgiving and winter break. Summer hours aren't posted yet.",
+    iu: "Food near IU isn't in the app yet. Study spot hours are from IU Libraries.",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
   };
 
@@ -1024,6 +1070,10 @@
   spotIcons.walc = spotIcons.idea;
   spotIcons.hicks = spotIcons.main;
   spotIcons.pmu = spotIcons.union;
+  spotIcons.wells = spotIcons.main;
+  spotIcons["iu-commons"] = spotIcons.idea;
+  spotIcons["iu-business"] = spotIcons.bif;
+  spotIcons.imu = spotIcons.union;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
