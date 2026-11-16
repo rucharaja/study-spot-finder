@@ -919,7 +919,7 @@
     uis: "Hours are from UIS Dining (uis.edu/dining), including Thanksgiving and winter break. Summer hours aren't posted yet.",
     iu: "Hours are from IU Dining, including Thanksgiving and winter break. Spring break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
     umich: "Hours are from MDining and University Unions. Only South Quad posts Thanksgiving hours, and break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
-    osu: "Food near Ohio State isn't in the app yet. Study spot hours are from OSU Libraries and the Ohio Union.",
+    osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
     wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
@@ -1342,7 +1342,56 @@
     { name: "Thomas Sweet (Livingston Student Center)", kind: "Ice cream", location: livingstonCenter,
       hours: byWeekday([], [[720, 1320]], [[720, 1320]], [[720, 1320]]), unknownDates: rutgersCenterUnposted },
   ].map((place) => ({ ...place, unknownDates: [...(place.unknownDates ?? []), ...rutgersBreaks], campus: "rutgers", checked: "2026-11" }));
+  // Ohio State food near Thompson, 18th Avenue, and the Ohio Union, from Ohio State Dining's Autumn 2026 hours
+  // (dining.osu.edu/hours, through Dec 17) and its Thanksgiving week page, checked 2026-11-16. Winter break and spring
+  // semester hours aren't posted yet, so from Dec 18 on everything says "Hours not confirmed".
+  const ohioUnion = [39.99766, -83.00855];
+  const kennedyCommons = [39.99652, -83.01396];
+  const scottHouse = [40.0045, -83.01328];
+  const osuHallKind = "Ohio State dining hall · all you care to eat · meal plan or pay at the door";
+  const thanksgivingWeek = (entries) => Object.fromEntries(Object.entries(entries).map(([day, periods]) => [`2026-11-${day}`, periods]));
+  const osuFoodPlaces = [
+    { name: "Traditions at Scott", kind: osuHallKind, isHall: true, location: scottHouse,
+      hours: byWeekday([[540, 900], [960, 1260]], [[420, 900], [960, 1260]], [[420, 900], [960, 1200]], [[540, 900], [960, 1200]]),
+      specialHours: thanksgivingWeek({ 24: [[420, 900], [960, 1200]], 25: [[420, 840]], 26: [], 27: [] }) },
+    { name: "Traditions at Kennedy", kind: osuHallKind, isHall: true, location: kennedyCommons,
+      hours: byWeekday([[540, 1260]], [[420, 1260]], [[420, 1200]], [[540, 1200]]),
+      specialHours: thanksgivingWeek({ 24: [[420, 1200]], 25: [[420, 1020]], 26: [], 27: [] }) },
+    { name: "Traditions at Morrill To Go", kind: osuHallKind, isHall: true, location: [40.00007, -83.02188],
+      hours: byWeekday([[660, 1200]], [[420, 1200]], [[420, 1200]], [[660, 1200]]),
+      specialHours: thanksgivingWeek({ 25: [[420, 840]], 26: [], 27: [], 29: [[540, 1200]] }) },
+    { name: "Berry Café (Thompson Library)", kind: "Cafe", location: [39.99926, -83.0149],
+      hours: byWeekday([[660, 1200]], [[450, 1200]], [[450, 1200]], [[540, 1080]]), specialHours: closedOn("2026-11-25", "2026-11-29") },
+    { name: "Terra Byte Café (18th Avenue Library)", kind: "Cafe", location: [40.0016, -83.01333],
+      hours: byWeekday([[540, 1200]], [[450, 1200]], [[450, 1200]], [[600, 1020]]), specialHours: closedOn("2026-11-25", "2026-11-29") },
+    { name: "Mirror Lake Eatery (Pomerene Hall)", kind: "Fast food", location: [39.99736, -83.01447],
+      hours: byWeekday([[960, 1260]], [[660, 1260]], [[660, 1260]], []), specialHours: closedOn("2026-11-25", "2026-11-28") },
+    { name: "Crane Café (Hagerty Hall)", kind: "Cafe", location: [39.99867, -83.01054],
+      hours: byWeekday([], [[480, 1020]], [[480, 960]], []), specialHours: closedOn("2026-11-25", "2026-11-29") },
+    { name: "Union Market (Ohio Union)", kind: "Fast food · market", location: ohioUnion,
+      hours: byWeekday([[630, 1260]], [[630, 1260]], [[630, 1260]], [[630, 1140]]),
+      specialHours: thanksgivingWeek({ 24: [[630, 1140]], 25: [], 26: [], 27: [], 28: [[570, 1080]] }) },
+    { name: "Woody's Tavern (Ohio Union)", kind: "Restaurant · pub food", location: ohioUnion, hours: Array(7).fill([[660, 1320]]),
+      specialHours: thanksgivingWeek({ 24: [[660, 1140]], 25: [], 26: [], 27: [], 28: [[540, 1020]] }) },
+    { name: "Sloopy's Diner (Ohio Union)", kind: "Restaurant · diner", location: ohioUnion, hours: Array(7).fill([[600, 1320]]),
+      specialHours: thanksgivingWeek({ 24: [[600, 1140]], 25: [], 26: [], 27: [], 28: [[480, 1140]] }) },
+    { name: "Espress-OH (Ohio Union)", kind: "Cafe", location: ohioUnion,
+      hours: byWeekday([[600, 1140]], [[480, 1200]], [[480, 1200]], [[600, 1140]]),
+      specialHours: thanksgivingWeek({ 24: [[480, 900]], 25: [[480, 900]], 26: [], 27: [], 28: [[480, 720]] }) },
+    { name: "12th Avenue Bread Company (Kennedy Commons)", kind: "Bakery · sandwiches", location: kennedyCommons,
+      hours: byWeekday([[480, 840]], [[480, 1140]], [[480, 1140]], [[480, 840]]),
+      specialHours: { "2026-11-24": [[480, 1020]], ...closedOn("2026-11-25", "2026-11-29") } },
+    { name: "Curl Market (Curl Hall)", kind: "Fast food · market", location: [40.00428, -83.01096],
+      hours: byWeekday([[720, 1200]], [[630, 1320]], [[630, 1320]], []),
+      specialHours: { "2026-11-24": [[630, 1200]], ...closedOn("2026-11-25", "2026-11-28"), "2026-11-29": [[960, 1200]] } },
+    { name: "Marketplace on Neil", kind: "Fast food · market", location: [39.99381, -83.01398], hours: Array(7).fill([[660, 1260]]),
+      specialHours: closedOn("2026-11-25", "2026-11-28") },
+    { name: "Juice North (Scott House)", kind: "Cafe · smoothies", location: scottHouse,
+      hours: byWeekday([[540, 1020]], [[420, 1140]], [[420, 1140]], [[540, 1020]]),
+      specialHours: { "2026-11-24": [[420, 1020]], ...closedOn("2026-11-25", "2026-11-28") } },
+  ].map((place) => ({ ...place, unknownDates: [["2026-12-18", "2027-08-31"]], campus: "osu", checked: "2026-11" }));
   const foodPlaces = [
+    ...osuFoodPlaces,
     ...wiscFoodPlaces,
     ...rutgersFoodPlaces,
     ...umichFoodPlaces,
