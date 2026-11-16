@@ -817,7 +817,7 @@
     uic: osmFoodNote,
     uis: "Hours are from UIS Dining (uis.edu/dining), including Thanksgiving and winter break. Summer hours aren't posted yet.",
     iu: "Hours are from IU Dining, including Thanksgiving and winter break. Spring break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
-    umich: "Food near Michigan isn't in the app yet. Study spot hours are from U-M Library and the Michigan Union.",
+    umich: "Hours are from MDining and University Unions. Only South Quad posts Thanksgiving hours, and break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
   };
 
@@ -1074,7 +1074,58 @@
   ].map((place) => ({ ...place, location: wellsBookmarket }));
   const iuFoodPlaces = [...iuHalls, ...iuImu, ...iuBookmarket]
     .map((place) => ({ unknownDates: iuBreaks, ...place, campus: "iu", checked: "2026-11" }));
+  // Michigan food near Shapiro, the Union, and the Duderstadt Center, checked 2026-11-16. MDining places come from its
+  // "Fall 2026 - Winter 2027" regular hours (dining.umich.edu/menus-locations/regularhours), with meals joined where one
+  // runs into the next; Union and Pierpont restaurants come from uunions.umich.edu/eat. Only South Quad posts Thanksgiving
+  // hours, and nobody posts winter break, spring break (Mar 6-14), or summer yet, so those days say "Hours not confirmed".
+  const umichBreaks = [["2026-12-18", "2027-01-12"], ["2027-03-06", "2027-03-14"], ["2027-05-07", "2027-08-29"]];
+  const umichThanksgiving = ["2026-11-25", "2026-11-29"];
+  const umichHallKind = "Michigan dining hall · all you care to eat · meal plan or pay at the door";
+  const longDayHall = byWeekday([[540, 840], [990, 1260]], [[420, 1260]], [[420, 1200]], [[540, 840], [990, 1200]]);
+  const brunchWeekendHall = byWeekday([[630, 840]], [[420, 840], [990, 1200]], [[420, 840], [990, 1200]], [[630, 840]]);
+  const umichHalls = [
+    { name: "South Quad Dining Hall", location: [42.27371, -83.74215], hours: longDayHall,
+      specialHours: { "2026-11-26": [[690, 840]], "2026-11-27": [[630, 810], [1020, 1110]] },
+      unknownDates: [["2026-11-25", "2026-11-25"], ["2026-11-28", "2026-11-29"], ...umichBreaks] },
+    { name: "East Quad Dining Hall", location: [42.27293, -83.73516],
+      hours: byWeekday([[540, 840], [990, 1200]], [[420, 900], [990, 1200]], [[420, 900], [990, 1200]], [[540, 840], [990, 1200]]) },
+    { name: "North Quad Dining Hall", location: [42.28087, -83.73961], hours: brunchWeekendHall },
+    { name: "Mosher-Jordan Dining Hall", location: [42.28015, -83.7317], hours: longDayHall },
+    { name: "Markley Dining Hall", location: [42.28088, -83.72888], hours: brunchWeekendHall },
+    { name: "Bursley Dining Hall", location: [42.29381, -83.722], hours: longDayHall },
+  ].map((hall) => ({ kind: umichHallKind, isHall: true, ...hall }));
+  const michiganUnion = [42.27517, -83.74151];
+  const pierpontCommons = [42.29112, -83.7176];
+  const umichCafes = [
+    { name: "Bert's Café (Shapiro Library)", kind: "Cafe", location: [42.27563, -83.73719],
+      hours: byWeekday([[720, 1200]], [[480, 1320]], [[480, 1020]], []) },
+    { name: "Mujo Café (Duderstadt Center)", kind: "Cafe", location: [42.29118, -83.71577],
+      hours: byWeekday([[660, 1080]], [[480, 1170]], [[480, 960]], []) },
+    { name: "UMMA Café (Museum of Art)", kind: "Cafe", location: [42.27559, -83.73984],
+      hours: byWeekday([[660, 1020]], [[480, 1020]], [[480, 1020]], [[660, 1020]]) },
+    { name: "Blue Café (East Quad)", kind: "Cafe", location: [42.27293, -83.73516],
+      hours: byWeekday([[720, 1320]], [[600, 1320]], [[600, 1320]], [[720, 1320]]) },
+    { name: "Blue Café and Market (Mosher-Jordan)", kind: "Convenience store", location: [42.28015, -83.7317],
+      hours: byWeekday([[600, 1440]], [[480, 1440]], [[480, 1440]], [[600, 1440]]) },
+    { name: "Blue Market (Michigan Union)", kind: "Convenience store", location: michiganUnion,
+      hours: byWeekday([[660, 1140]], [[480, 1380]], [[480, 1380]], [[600, 1260]]) },
+    { name: "Blue Market (Pierpont Commons)", kind: "Convenience store", location: pierpontCommons,
+      hours: byWeekday([[720, 1200]], [[480, 1080]], [[480, 1020]], []) },
+    { name: "Panda Express (Michigan Union)", kind: "Fast food", location: michiganUnion,
+      hours: byWeekday([[660, 1080]], [[600, 1200]], [[600, 1200]], [[660, 1080]]) },
+    { name: "Panda Express (Pierpont Commons)", kind: "Fast food", location: pierpontCommons,
+      hours: byWeekday([[720, 1020]], [[600, 1260]], [[600, 1260]], [[720, 1020]]) },
+    { name: "Panera Bread (Michigan Union)", kind: "Restaurant", location: michiganUnion, hours: Array(7).fill([[540, 1200]]) },
+    { name: "Qdoba (Michigan Union)", kind: "Fast food", location: michiganUnion, hours: Array(7).fill([[660, 1320]]) },
+    { name: "Sweetwaters Coffee & Tea (Michigan Union)", kind: "Cafe", location: michiganUnion,
+      hours: [[[540, 1440]], [[570, 1440]], [[450, 1440]], [[450, 1440]], [[450, 1440]], [[450, 1440]], [[450, 1440]]] },
+    { name: "Wing Snob (Michigan Union)", kind: "Fast food", location: michiganUnion,
+      hours: byWeekday([[660, 1260]], [[600, 1320]], [[600, 1320]], [[660, 1320]]) },
+  ];
+  const umichFoodPlaces = [...umichHalls, ...umichCafes]
+    .map((place) => ({ unknownDates: [umichThanksgiving, ...umichBreaks], ...place, campus: "umich", checked: "2026-11" }));
   const foodPlaces = [
+    ...umichFoodPlaces,
     ...iuFoodPlaces,
     ...purdueFoodPlaces,
     ...uisFoodPlaces,
@@ -1504,7 +1555,7 @@
       .sort((a, b) => a.miles - b.miles);
   }
 
-  // A food place's periods on a date: its special hours for that date if it has them (UIS, Purdue, and IU food post
+  // A food place's periods on a date: its special hours for that date if it has them (UIS, Purdue, IU, and Michigan food post
   // holiday hours), otherwise its usual hours for that weekday.
   function foodHoursOn(place, date) {
     return place.specialHours?.[dateKeyFor(date)] ?? place.hours[date.getDay()];
