@@ -406,6 +406,8 @@
         <option value="umich">Michigan (Ann Arbor)</option>
         <option value="osu">Ohio State (Columbus)</option>
         <option value="purdue">Purdue (West Lafayette)</option>
+        <option value="rutgers">Rutgers (New Brunswick)</option>
+        <option value="wisc">Wisconsin (Madison)</option>
       </optgroup>
     </select>
   </label>
@@ -841,11 +843,74 @@
         ...during("2027-05-04", "2027-08-20", [h(8), h(20)], [h(10), h(20)]), ...during("2027-05-31", "2027-05-31", null),
         ...during("2027-06-18", "2027-06-19", null), ...during("2027-07-04", "2027-07-05", null) } },
   ];
-  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots];
-  const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State" };
+  // Wisconsin (Madison), from UW-Madison Libraries' fall semester pages and the Wisconsin Union's building hours
+  // (union.wisc.edu/visit/hours), checked 2026-11-16. Neither has posted winter break or spring hours yet.
+  // College Library needs a UW ID from midnight to 7am, and Memorial Library needs one to enter at all.
+  const wiscLater = (start) => during(start, "2027-08-31", HOURS_UNCONFIRMED);
+  const wiscSpots = [
+    { id: "uw-college", campus: "wisc", type: "library", name: "College Library (Helen C. White Hall)", offers: [], location: [43.07665, -89.401],
+      keywords: "college library helen c white uw wisconsin",
+      hours: [[h(11), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(21)], [h(11), h(21)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(0), h(18)]), ...during("2026-11-26", "2026-11-26", null),
+        ...during("2026-11-27", "2026-11-28", [h(11), h(18)]), ...during("2026-12-11", "2026-12-13", [h(0), h(24)]),
+        ...during("2026-12-17", "2026-12-17", [h(0), h(22)]), ...during("2026-12-18", "2026-12-18", [h(8), h(18)]),
+        ...wiscLater("2026-12-19") } },
+    { id: "uw-memorial", campus: "wisc", type: "library", name: "Memorial Library", offers: [], location: [43.07535, -89.39798],
+      keywords: "memorial library uw wisconsin",
+      hours: [[h(12), h(23)], [h(8.5), h(23)], [h(8.5), h(23)], [h(8.5), h(23)], [h(8.5), h(23)], [h(8.5), h(21)], [h(12), h(21)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(8.5), h(18)]), ...during("2026-11-26", "2026-11-28", null),
+        ...during("2026-12-07", "2026-12-10", [h(8.5), h(24)]), ...during("2026-12-11", "2026-12-11", [h(8.5), h(22)]),
+        ...during("2026-12-12", "2026-12-12", [h(10), h(22)]), ...during("2026-12-13", "2026-12-13", [h(10), h(24)]),
+        ...during("2026-12-17", "2026-12-17", [h(8.5), h(21)]), ...during("2026-12-18", "2026-12-18", [h(9), h(18)]),
+        ...wiscLater("2026-12-19") } },
+    { id: "uw-memorial-union", campus: "wisc", type: "union", name: "Memorial Union", offers: [], location: [43.07652, -89.4003],
+      keywords: "memorial union terrace uw wisconsin",
+      hours: [[h(8), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(24)], [h(8), h(24)]],
+      specialHours: { ...during("2026-11-26", "2026-11-29", HOURS_UNCONFIRMED), ...wiscLater("2026-12-02") } },
+    { id: "union-south", campus: "wisc", type: "union", name: "Union South", offers: [], location: [43.07183, -89.40811],
+      keywords: "union south uw wisconsin",
+      hours: [[h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(24)], [h(7), h(24)]],
+      specialHours: { ...during("2026-11-26", "2026-11-29", HOURS_UNCONFIRMED), ...wiscLater("2026-12-18") } },
+  ];
+  // Rutgers (New Brunswick), one library on each main campus, from Rutgers University Libraries' weekly hours
+  // (libraries.rutgers.edu/visit-study/library-hours, posted through Dec 22) and Student Centers' building hours
+  // (sca.rutgers.edu/student-centers/hours-and-directions), checked 2026-11-16. Spring recess is Mar 13-21, 2027.
+  const rutgersLater = during("2026-12-23", "2027-08-31", HOURS_UNCONFIRMED);
+  const rutgersBranchWeek = [[h(14.5), h(22)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(19)], [h(13), h(18)]];
+  const rutgersBranchSpecial = { ...during("2026-11-25", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-29", null),
+    ...during("2026-12-11", "2026-12-11", [h(8), h(24)]), ...during("2026-12-12", "2026-12-12", [h(13), h(20)]),
+    ...during("2026-12-13", "2026-12-13", [h(14.5), h(24)]), ...during("2026-12-14", "2026-12-17", [h(8), h(26)]),
+    ...during("2026-12-18", "2026-12-18", [h(8), h(24)]), ...during("2026-12-21", "2026-12-21", [h(8), h(21)]),
+    ...during("2026-12-22", "2026-12-22", [h(8), h(17)]), ...rutgersLater };
+  const rutgersSpots = [
+    { id: "ru-alexander", campus: "rutgers", type: "library", name: "Alexander Library (College Ave)", offers: [], location: [40.50495, -74.45228],
+      keywords: "alexander alex library college avenue rutgers",
+      hours: [[h(11), h(26)], [h(8), h(26)], [h(8), h(26)], [h(8), h(26)], [h(8), h(26)], [h(8), h(21)], [h(13), h(18)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-28", null),
+        ...during("2026-11-29", "2026-11-29", [h(18.5), h(24)]), ...during("2026-12-11", "2026-12-11", [h(8), h(26)]),
+        ...during("2026-12-12", "2026-12-12", [h(12), h(22)]), ...during("2026-12-13", "2026-12-13", [h(11), h(24)]),
+        ...during("2026-12-14", "2026-12-16", [h(0), h(24)]), ...during("2026-12-17", "2026-12-17", [h(0), h(26)]),
+        ...during("2026-12-18", "2026-12-18", null), ...during("2026-12-19", "2026-12-19", [h(12), h(20)]),
+        ...during("2026-12-22", "2026-12-22", [h(8), h(17)]), ...rutgersLater } },
+    { id: "ru-lsm", campus: "rutgers", type: "library", name: "Library of Science and Medicine (Busch)", offers: [], location: [40.52481, -74.46719],
+      keywords: "lsm library of science and medicine busch rutgers",
+      hours: rutgersBranchWeek, specialHours: rutgersBranchSpecial },
+    { id: "ru-carr", campus: "rutgers", type: "library", name: "Carr Library (Livingston)", offers: [], location: [40.52249, -74.4374],
+      keywords: "carr kilmer library livingston rutgers",
+      hours: rutgersBranchWeek, specialHours: rutgersBranchSpecial },
+    { id: "ru-casc", campus: "rutgers", type: "union", name: "College Avenue Student Center", offers: [], location: [40.50263, -74.4525],
+      keywords: "college avenue student center casc rutgers",
+      hours: [[h(9), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(24)], [h(9), h(24)]],
+      specialHours: { ...during("2026-11-25", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-18", HOURS_UNCONFIRMED),
+        ...during("2027-03-13", "2027-03-21", HOURS_UNCONFIRMED), ...during("2027-05-13", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
+  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots];
+  const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
+    wisc: "Wisconsin", rutgers: "Rutgers" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
-    osu: "Search: thompson, 18th, union" };
+    osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
+    rutgers: "Search: alex, lsm, carr" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
@@ -855,6 +920,8 @@
     iu: "Hours are from IU Dining, including Thanksgiving and winter break. Spring break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
     umich: "Hours are from MDining and University Unions. Only South Quad posts Thanksgiving hours, and break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
     osu: "Food near Ohio State isn't in the app yet. Study spot hours are from OSU Libraries and the Ohio Union.",
+    wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
+    rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
   };
 
@@ -1161,7 +1228,123 @@
   ];
   const umichFoodPlaces = [...umichHalls, ...umichCafes]
     .map((place) => ({ unknownDates: [umichThanksgiving, ...umichBreaks], ...place, campus: "umich", checked: "2026-11" }));
+  // Wisconsin food near College Library, Memorial Library, and the two unions, checked 2026-11-16. Union places come
+  // from union.wisc.edu/dine (fall hours ending Dec 11-18, Thanksgiving only partly posted); University Housing markets
+  // come from housing.wisc.edu/dining/locations (the whole year, with Thanksgiving and winter break). Spring recess is
+  // Mar 20-28 and finals end May 7, 2027.
+  const wiscUnionThanksgiving = ["2026-11-26", "2026-11-29"];
+  const memorialUnion = [43.07652, -89.4003];
+  const unionSouth = [43.07183, -89.40811];
+  const afterDay = (date) => dateKeyFor(new Date(new Date(`${date}T12:00`).getTime() + 86400000));
+  const wiscUnionPlace = (place, lastDay, thanksgivingPosted = false) => ({
+    ...place, unknownDates: [...(place.unknownDates ?? []), ...(thanksgivingPosted ? [] : [wiscUnionThanksgiving]), [afterDay(lastDay), "2027-08-31"]] });
+  const wiscUnionFood = [
+    wiscUnionPlace({ name: "Der Rathskeller (Memorial Union)", kind: "Restaurant · pub food", location: memorialUnion,
+      hours: Array(7).fill([[660, 1320]]), specialHours: { "2026-11-25": [[660, 1020]] } }, "2026-12-18"),
+    wiscUnionPlace({ name: "Strada (Memorial Union)", kind: "Restaurant · pizza and pasta", location: memorialUnion,
+      hours: Array(7).fill([[660, 1260]]), specialHours: closedOn("2026-11-26", "2026-11-28") }, "2026-12-18", true),
+    wiscUnionPlace({ name: "Carte (Memorial Union)", kind: "Restaurant · sandwiches and salads", location: memorialUnion,
+      hours: byWeekday([], [[660, 1140]], [[660, 1140]], []), specialHours: closedOn("2026-11-26", "2026-11-26") }, "2026-12-17", true),
+    wiscUnionPlace({ name: "Peet's Coffee (Memorial Union)", kind: "Cafe", location: memorialUnion,
+      hours: byWeekday([[480, 1080]], [[420, 1080]], [[420, 1080]], [[480, 1080]]), specialHours: { "2026-11-25": [[660, 1020]] } }, "2026-12-18"),
+    wiscUnionPlace({ name: "Badger Market (Memorial Union)", kind: "Convenience store", location: memorialUnion,
+      hours: Array(7).fill([[480, 1320]]), specialHours: { "2026-11-25": [[480, 1080]] } }, "2026-12-18"),
+    wiscUnionPlace({ name: "Daily Scoop (Memorial Union)", kind: "Ice cream", location: memorialUnion,
+      hours: Array(7).fill([[660, 1260]]),
+      specialHours: { "2026-11-25": [[660, 1020]], ...during("2026-12-14", "2026-12-16", [[660, 1320]]) },
+      // Its fall hours end Dec 11, but it posts extra hours for Dec 14-16.
+      unknownDates: [["2026-12-12", "2026-12-13"]] }, "2026-12-16"),
+    wiscUnionPlace({ name: "Lakeview Lounge (Memorial Union)", kind: "Restaurant · pizza and pub food", location: memorialUnion,
+      hours: byWeekday([[720, 1200]], [[900, 1200]], [[900, 1200]], [[720, 1200]]) }, "2026-12-17"),
+    wiscUnionPlace({ name: "Sett Pub (Union South)", kind: "Restaurant · pub food", location: unionSouth,
+      hours: Array(7).fill([[660, 1320]]), specialHours: { "2026-11-25": [[660, 1020]] } }, "2026-12-17"),
+    wiscUnionPlace({ name: "Badger Market (Union South)", kind: "Convenience store", location: unionSouth,
+      hours: [[[480, 1320]], [[480, 1200]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]]],
+      specialHours: { "2026-11-25": [[480, 1080]] } }, "2026-12-17"),
+    wiscUnionPlace({ name: "Prairie Fire (Union South)", kind: "Cafe", location: unionSouth,
+      hours: byWeekday([[480, 1080]], [[420, 1080]], [[420, 1080]], [[480, 1080]]), specialHours: { "2026-11-25": [[420, 1020]] } }, "2026-12-17"),
+    wiscUnionPlace({ name: "Naan Stop South (Union South)", kind: "Restaurant · Indian", location: unionSouth,
+      hours: byWeekday([], [[660, 960]], [[660, 900]], []) }, "2026-12-17"),
+    wiscUnionPlace({ name: "Daily Scoop (Union South)", kind: "Ice cream", location: unionSouth,
+      hours: byWeekday([], [[660, 1140]], [[660, 1020]], []), specialHours: { "2026-11-25": [[660, 900]] } }, "2026-12-17"),
+    wiscUnionPlace({ name: "South Cantina (Union South)", kind: "Fast food · Mexican", location: unionSouth,
+      hours: byWeekday([], [[660, 840]], [[660, 840]], []) }, "2026-12-17"),
+    wiscUnionPlace({ name: "Ginger Root (Union South)", kind: "Restaurant · pan-Asian", location: unionSouth,
+      hours: byWeekday([], [[660, 1140]], [[660, 1140]], []), specialHours: { "2026-11-25": [[660, 900]] } }, "2026-12-17"),
+    // Its page lists Saturday as "12:00 am-8:00 pm", read as noon since College Library opens at 11am.
+    wiscUnionPlace({ name: "Open Book Café (College Library)", kind: "Cafe", location: [43.07665, -89.401],
+      hours: byWeekday([[720, 1380]], [[540, 1380]], [[540, 1200]], [[720, 1200]]), specialHours: { "2026-11-25": [[540, 900]] } }, "2026-12-17"),
+  ];
+  const wiscHousingBreaks = [["2027-03-20", "2027-03-28"], ["2027-05-08", "2027-08-31"]];
+  const wiscHallKind = "Wisconsin dining market · all you care to eat · meal plan or pay at the door";
+  const wiscHousingFood = [
+    { name: "Rheta's Market (Chadbourne)", kind: wiscHallKind, isHall: true, location: [43.07382, -89.4013],
+      hours: byWeekday([[660, 840], [960, 1200]], [[420, 1200]], [[420, 1200]], []),
+      specialHours: { ...closedOn("2026-11-26", "2026-11-26"), ...during("2026-11-27", "2026-11-28", [[660, 1080]]),
+        ...closedOn("2026-12-18", "2027-01-15") } },
+    { name: "Gordon Avenue Market", kind: wiscHallKind, isHall: true, location: [43.07115, -89.39838],
+      hours: byWeekday([[540, 840], [960, 1230]], [[420, 600], [660, 1230]], [[420, 600], [660, 1230]], [[540, 840], [960, 1230]]),
+      specialHours: { ...closedOn("2026-11-26", "2026-11-28"), "2026-12-09": [[420, 600], [660, 1020], [1140, 1350]],
+        "2026-12-18": [[420, 720]], ...closedOn("2026-12-19", "2027-01-08"), ...during("2027-01-09", "2027-01-15", [[540, 840], [960, 1230]]) } },
+    { name: "Liz's Market (Waters Hall)", kind: wiscHallKind, isHall: true, location: [43.07696, -89.40647],
+      hours: byWeekday([], [[420, 600], [660, 840], [960, 1200]], [[420, 600], [660, 840], [960, 1200]], [[540, 840], [960, 1140]]),
+      specialHours: { ...closedOn("2026-11-26", "2026-11-28"), ...closedOn("2026-12-18", "2027-01-15") } },
+    { name: "Flamingo Run (Rheta's Market)", kind: "Convenience store", location: [43.07382, -89.4013],
+      hours: Array(7).fill([[600, 1380]]),
+      specialHours: { "2026-11-25": [[600, 1320]], ...closedOn("2026-11-26", "2026-11-26"), ...during("2026-11-27", "2026-11-28", [[600, 1140]]),
+        ...closedOn("2026-12-18", "2027-01-15") } },
+    { name: "Flamingo Run (Gordon Avenue)", kind: "Convenience store", location: [43.07115, -89.39838],
+      hours: byWeekday([[600, 1380]], [[420, 1380]], [[420, 1380]], [[600, 1380]]),
+      specialHours: { ...closedOn("2026-11-25", "2026-11-28"), "2026-12-18": [[600, 780]], ...closedOn("2026-12-19", "2027-01-03"),
+        ...during("2027-01-04", "2027-01-08", [[600, 1020]]), ...during("2027-01-09", "2027-01-15", [[540, 1230]])} },
+    { name: "Starbucks (Smith Hall)", kind: "Cafe", location: [43.06901, -89.40039], hours: Array(7).fill([[420, 1020]]),
+      specialHours: { ...closedOn("2026-11-26", "2026-11-28"), "2026-12-18": [[420, 840]], ...closedOn("2026-12-19", "2027-01-10"),
+        ...during("2027-01-11", "2027-01-15", [[420, 840]]) } },
+  ].map((place) => ({ ...place, unknownDates: wiscHousingBreaks }));
+  const wiscFoodPlaces = [...wiscHousingFood, ...wiscUnionFood].map((place) => ({ ...place, campus: "wisc", checked: "2026-11" }));
+  // Rutgers food on College Ave, Busch, and Livingston, checked 2026-11-16. Rutgers Dining (food.rutgers.edu) posts
+  // regular, Thanksgiving, and winter break hours; Student Centers restaurants (sca.rutgers.edu/student-centers/places-eat)
+  // post a regular week only. Spring recess (Mar 13-21) and summer (after May 12, 2027) aren't posted anywhere.
+  const rutgersBreaks = [["2027-03-13", "2027-03-21"], ["2027-05-13", "2027-08-31"]];
+  const collegeAveCenter = [40.50263, -74.4525];
+  const buschCenter = [40.52333, -74.45886];
+  const livingstonCenter = [40.52358, -74.43722];
+  // Dining halls and The Atrium share one Thanksgiving and winter schedule; Rutgers Dining's other places close for both.
+  const rutgersHallBreaks = { "2026-11-25": [[420, 960]], ...closedOn("2026-11-26", "2026-11-28"), "2026-11-29": [[960, 1200]],
+    "2026-12-22": [[420, 1200]], ...closedOn("2026-12-23", "2027-01-16"), ...during("2027-01-17", "2027-01-18", [[570, 1200]]) };
+  const rutgersRetailBreaks = { ...closedOn("2026-11-25", "2026-11-29"), ...closedOn("2026-12-19", "2027-01-18") };
+  const rutgersHallWeek = byWeekday([[570, 1200]], [[420, 1260]], [[420, 1260]], [[570, 1200]]);
+  const rutgersHallKind = "Rutgers dining hall · meal swipe or pay at the door · takeout until midnight Mon-Thu";
+  const rutgersCenterUnposted = [["2026-11-25", "2026-11-29"], ["2026-12-19", "2027-01-18"]];
+  const rutgersFoodPlaces = [
+    { name: "Busch Dining Hall", kind: rutgersHallKind, isHall: true, location: [40.52267, -74.4578],
+      hours: rutgersHallWeek, specialHours: rutgersHallBreaks },
+    { name: "Livingston Dining Commons", kind: rutgersHallKind, isHall: true, location: [40.52291, -74.43806],
+      hours: rutgersHallWeek, specialHours: rutgersHallBreaks },
+    { name: "The Atrium (College Ave Student Center)", kind: "Rutgers dining · food court · meal swipes", location: collegeAveCenter,
+      hours: byWeekday([[570, 1200]], [[420, 1440]], [[420, 1260]], [[570, 1200]]), specialHours: rutgersHallBreaks },
+    { name: "Kilmer's Market (Livingston)", kind: "Rutgers dining · grab-and-go · meal swipes", location: [40.52582, -74.43872],
+      hours: byWeekday([], [[660, 1380]], [[660, 1260]], []), specialHours: rutgersRetailBreaks },
+    { name: "Henry's Diner (Livingston)", kind: "Rutgers dining · diner · meal swipes", location: [40.52513, -74.43946],
+      hours: byWeekday([], [[660, 1080]], [[660, 1080]], []), specialHours: rutgersRetailBreaks },
+    { name: "Woody's Cafe (Busch)", kind: "Rutgers dining · cafe · meal swipes", location: [40.5245, -74.46835],
+      hours: byWeekday([], [[450, 1080]], [[450, 1080]], []), specialHours: rutgersRetailBreaks },
+    { name: "Panera Bread (College Ave Student Center)", kind: "Restaurant", location: collegeAveCenter,
+      hours: byWeekday([[540, 1080]], [[480, 1260]], [[480, 1080]], [[540, 1080]]), unknownDates: rutgersCenterUnposted },
+    { name: "Gerlanda's Pizza (Busch Student Center)", kind: "Fast food · pizza", location: buschCenter,
+      hours: byWeekday([], [[480, 1320]], [[480, 1200]], []), unknownDates: rutgersCenterUnposted },
+    { name: "Qdoba (Busch Student Center)", kind: "Fast food · Mexican", location: buschCenter,
+      hours: byWeekday([], [[600, 1320]], [[600, 1320]], []), unknownDates: rutgersCenterUnposted },
+    { name: "Szechwan Ichiban (Busch Student Center)", kind: "Restaurant · Asian", location: buschCenter,
+      hours: byWeekday([], [[600, 1200]], [[600, 1200]], []), unknownDates: rutgersCenterUnposted },
+    { name: "Akihi Bubble Tea (Livingston Student Center)", kind: "Cafe · bubble tea", location: livingstonCenter,
+      hours: Array(7).fill([[660, 1440]]), unknownDates: rutgersCenterUnposted },
+    { name: "Thomas Sweet (Livingston Student Center)", kind: "Ice cream", location: livingstonCenter,
+      hours: byWeekday([], [[720, 1320]], [[720, 1320]], [[720, 1320]]), unknownDates: rutgersCenterUnposted },
+  ].map((place) => ({ ...place, unknownDates: [...(place.unknownDates ?? []), ...rutgersBreaks], campus: "rutgers", checked: "2026-11" }));
   const foodPlaces = [
+    ...wiscFoodPlaces,
+    ...rutgersFoodPlaces,
     ...umichFoodPlaces,
     ...iuFoodPlaces,
     ...purdueFoodPlaces,
@@ -1300,6 +1483,14 @@
   spotIcons.thompson = spotIcons.main;
   spotIcons["osu-18th"] = spotIcons.idea;
   spotIcons["ohio-union"] = spotIcons.union;
+  spotIcons["uw-college"] = spotIcons.idea;
+  spotIcons["uw-memorial"] = spotIcons.main;
+  spotIcons["uw-memorial-union"] = spotIcons.union;
+  spotIcons["union-south"] = spotIcons.union;
+  spotIcons["ru-alexander"] = spotIcons.main;
+  spotIcons["ru-lsm"] = spotIcons.lhs;
+  spotIcons["ru-carr"] = spotIcons.main;
+  spotIcons["ru-casc"] = spotIcons.union;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
@@ -1595,7 +1786,7 @@
       .sort((a, b) => a.miles - b.miles);
   }
 
-  // A food place's periods on a date: its special hours for that date if it has them (UIS, Purdue, IU, and Michigan food post
+  // A food place's periods on a date: its special hours for that date if it has them (UIS and Big Ten food post
   // holiday hours), otherwise its usual hours for that weekday.
   function foodHoursOn(place, date) {
     return place.specialHours?.[dateKeyFor(date)] ?? place.hours[date.getDay()];
