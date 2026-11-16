@@ -403,6 +403,7 @@
       </optgroup>
       <optgroup label="Big Ten">
         <option value="iu">IU (Bloomington)</option>
+        <option value="umich">Michigan (Ann Arbor)</option>
         <option value="purdue">Purdue (West Lafayette)</option>
       </optgroup>
     </select>
@@ -772,10 +773,43 @@
       specialHours: { ...during("2026-11-25", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-10", HOURS_UNCONFIRMED),
         ...during("2027-03-13", "2027-03-21", HOURS_UNCONFIRMED), ...during("2027-05-08", "2027-08-22", HOURS_UNCONFIRMED) } },
   ];
-  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots];
-  const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU" };
+  // University of Michigan (Ann Arbor), from U-M Library's published hours (lib.umich.edu/locations-and-hours,
+  // through May 8, 2027) and the Michigan Union's posted week (uunions.umich.edu/union), checked 2026-11-16.
+  // Overnight, Shapiro and the Duderstadt Center need an MCard to get in. The Union hasn't posted 2026-27 break hours,
+  // so Thanksgiving, winter break, spring break (Mar 6-14, from the Regents' calendar), and summer say "Hours not confirmed".
+  const umichSummer = during("2027-05-09", "2027-08-29", HOURS_UNCONFIRMED);
+  const umichSpots = [
+    { id: "shapiro", campus: "umich", type: "library", name: "Shapiro Undergraduate Library", offers: [], location: [42.27563, -83.73719],
+      keywords: "shapiro ugli undergraduate library umich",
+      hours: [[h(10), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(18)], [h(10), h(18)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(0), h(18)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-11", "2026-12-11", [h(0), h(24)]), ...during("2026-12-12", "2026-12-12", [h(10), h(24)]),
+        ...during("2026-12-18", "2026-12-18", [h(0), h(24)]), ...during("2026-12-19", "2026-12-19", [h(10), h(24)]),
+        ...during("2026-12-24", "2026-12-24", [h(0), h(16)]), ...during("2026-12-25", "2027-01-01", null),
+        ...during("2027-04-23", "2027-04-23", [h(0), h(24)]), ...during("2027-04-24", "2027-04-24", [h(10), h(24)]),
+        ...during("2027-04-30", "2027-04-30", [h(0), h(24)]), ...during("2027-05-01", "2027-05-01", [h(10), h(24)]),
+        ...umichSummer } },
+    { id: "hatcher", campus: "umich", type: "library", name: "Hatcher Graduate Library", offers: [], location: [42.27622, -83.73818],
+      keywords: "hatcher grad graduate library umich",
+      hours: [[h(13), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(17)], [h(10), h(17)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-24", "2027-01-01", null), ...umichSummer } },
+    { id: "duderstadt", campus: "umich", type: "library", name: "Duderstadt Center (North Campus)", offers: [], location: [42.29118, -83.71577],
+      keywords: "duderstadt dude art architecture engineering library aael north campus umich",
+      hours: sameEveryDay(0, 24),
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(0), h(17)]), ...during("2026-11-26", "2026-11-29", null),
+        ...during("2026-11-30", "2026-11-30", [h(8), h(24)]), ...during("2026-12-24", "2026-12-24", [h(0), h(17)]),
+        ...during("2026-12-25", "2027-01-03", null), ...during("2027-01-04", "2027-01-04", [h(8), h(24)]), ...umichSummer } },
+    { id: "michigan-union", campus: "umich", type: "union", name: "Michigan Union", offers: [], location: [42.27517, -83.74151],
+      keywords: "michigan union umich",
+      hours: [[h(9), h(26)], [h(7), h(26)], [h(7), h(26)], [h(7), h(26)], [h(7), h(26)], [h(7), h(26)], [h(7), h(26)]],
+      specialHours: { ...during("2026-11-25", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-12", HOURS_UNCONFIRMED),
+        ...during("2027-03-06", "2027-03-14", HOURS_UNCONFIRMED), ...during("2027-05-07", "2027-08-29", HOURS_UNCONFIRMED) } },
+  ];
+  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots];
+  const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
-    purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley" };
+    purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
@@ -783,6 +817,7 @@
     uic: osmFoodNote,
     uis: "Hours are from UIS Dining (uis.edu/dining), including Thanksgiving and winter break. Summer hours aren't posted yet.",
     iu: "Hours are from IU Dining, including Thanksgiving and winter break. Spring break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
+    umich: "Food near Michigan isn't in the app yet. Study spot hours are from U-M Library and the Michigan Union.",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
   };
 
@@ -1170,6 +1205,10 @@
   spotIcons["iu-commons"] = spotIcons.idea;
   spotIcons["iu-business"] = spotIcons.bif;
   spotIcons.imu = spotIcons.union;
+  spotIcons.shapiro = spotIcons.idea;
+  spotIcons.hatcher = spotIcons.main;
+  spotIcons.duderstadt = spotIcons.grainger;
+  spotIcons["michigan-union"] = spotIcons.union;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
