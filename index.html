@@ -782,7 +782,7 @@
     uiuc: `${osmFoodNote} Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.`,
     uic: osmFoodNote,
     uis: "Hours are from UIS Dining (uis.edu/dining), including Thanksgiving and winter break. Summer hours aren't posted yet.",
-    iu: "Food near IU isn't in the app yet. Study spot hours are from IU Libraries.",
+    iu: "Hours are from IU Dining, including Thanksgiving and winter break. Spring break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
   };
 
@@ -894,16 +894,16 @@
   // it only lists about a week ahead, so breaks say "Hours not confirmed". Union and MSEE places come from Purdue Food Co.
   // (purdue.mydininghub.com), which posts Thanksgiving hours but not winter or spring break yet.
   const purdueUnion = [40.42466, -86.91094];
-  const purdueWeek = (sunday, monToThu, friday, saturday) => [sunday, monToThu, monToThu, monToThu, monToThu, friday, saturday];
+  const byWeekday = (sunday, monToThu, friday, saturday) => [sunday, monToThu, monToThu, monToThu, monToThu, friday, saturday];
   const purdueBreaks = [["2026-12-19", "2027-01-10"], ["2027-03-13", "2027-03-21"], ["2027-05-08", "2027-08-22"]];
   const purdueHallKind = "Purdue dining court · meal plan or guest payment";
   const purdueHalls = [
     { name: "Wiley Dining Court", location: [40.42871, -86.92087],
-      hours: purdueWeek([[1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[660, 840], [1020, 1260]]) },
+      hours: byWeekday([[1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[660, 840], [1020, 1260]]) },
     { name: "Windsor Dining Court", location: [40.4271, -86.92074],
-      hours: purdueWeek([[660, 840], [1020, 1260]], [[600, 1260]], [[600, 960]], [[840, 1260]]) },
+      hours: byWeekday([[660, 840], [1020, 1260]], [[600, 1260]], [[600, 960]], [[840, 1260]]) },
     { name: "Ford Dining Court", location: [40.43208, -86.91964],
-      hours: purdueWeek([[480, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[480, 600], [660, 840]]) },
+      hours: byWeekday([[480, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[480, 600], [660, 840]]) },
   ].map((hall) => ({ ...hall, kind: purdueHallKind, isHall: true, campus: "purdue", checked: "2026-11",
     unknownDates: [["2026-11-21", "2026-11-29"], ...purdueBreaks] }));
   // Thanksgiving: the last day before a place closes, then closed through Sunday the 29th.
@@ -911,12 +911,12 @@
   const unionShort = [[660, 1140]];
   const purdueRetail = [
     { name: "Lawson On-the-GO!", kind: "Purdue dining grab-and-go · meal swipes or Dining Dollars", location: [40.42743, -86.91699],
-      hours: purdueWeek([], [[450, 1020]], [[450, 1020]], []), unknownDates: [["2026-11-21", "2026-11-29"]] },
+      hours: byWeekday([], [[450, 1020]], [[450, 1020]], []), unknownDates: [["2026-11-21", "2026-11-29"]] },
     { name: "Starbucks (Purdue Memorial Union)", kind: "Cafe", location: purdueUnion,
-      hours: purdueWeek([[540, 1140]], [[420, 1200]], [[420, 1140]], [[540, 1140]]),
+      hours: byWeekday([[540, 1140]], [[420, 1200]], [[420, 1140]], [[540, 1140]]),
       specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[420, 1020]] }) },
     { name: "Boilermaker Market (Union)", kind: "Convenience store", location: purdueUnion,
-      hours: purdueWeek([[660, 1320]], [[420, 1320]], [[420, 1320]], [[660, 1320]]),
+      hours: byWeekday([[660, 1320]], [[420, 1320]], [[420, 1320]], [[660, 1320]]),
       specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[480, 960]] }) },
     { name: "DSJ Asian Grill (Union)", kind: "Restaurant", location: purdueUnion,
       hours: Array(7).fill([[660, 1200]]), specialHours: closedOn("2026-11-25", "2026-11-28") },
@@ -925,26 +925,122 @@
     { name: "Zen (Union)", kind: "Restaurant", location: purdueUnion,
       hours: Array(7).fill([[660, 1200]]), specialHours: closedOn("2026-11-25", "2026-11-29") },
     { name: "Choolaah Indian BBQ (Union)", kind: "Restaurant", location: purdueUnion,
-      hours: purdueWeek([], unionShort, unionShort, [[660, 900]]),
+      hours: byWeekday([], unionShort, unionShort, [[660, 900]]),
       specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[660, 900]] }) },
     { name: "Burgers + Fries (Union)", kind: "Fast food", location: purdueUnion,
-      hours: purdueWeek([], unionShort, [[660, 900]], []),
+      hours: byWeekday([], unionShort, [[660, 900]], []),
       specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[660, 900]] }) },
     { name: "Tenders, Love & Chicken (Union)", kind: "Fast food", location: purdueUnion,
-      hours: purdueWeek([], unionShort, [[660, 900]], []),
+      hours: byWeekday([], unionShort, [[660, 900]], []),
       specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[660, 900]] }) },
     { name: "Any Way You Slice It (Union)", kind: "Fast food", location: purdueUnion,
-      hours: purdueWeek([], [[660, 1020]], [[660, 900]], []), specialHours: thanksgiving("2026-11-21") },
+      hours: byWeekday([], [[660, 1020]], [[660, 900]], []), specialHours: thanksgiving("2026-11-21") },
     { name: "Foodlab Greens to Go (Union)", kind: "Restaurant", location: purdueUnion,
-      hours: purdueWeek([], [[660, 1020]], [[660, 900]], []), specialHours: thanksgiving("2026-11-21") },
+      hours: byWeekday([], [[660, 1020]], [[660, 900]], []), specialHours: thanksgiving("2026-11-21") },
     { name: "KNOW Eatery (Union)", kind: "Restaurant", location: purdueUnion,
-      hours: purdueWeek([], [[660, 1020]], [[660, 1020]], []), specialHours: thanksgiving("2026-11-21") },
+      hours: byWeekday([], [[660, 1020]], [[660, 1020]], []), specialHours: thanksgiving("2026-11-21") },
     { name: "Starbucks (MSEE)", kind: "Cafe", location: [40.42932, -86.91265],
-      hours: purdueWeek([], [[420, 1140]], [[420, 1080]], []),
+      hours: byWeekday([], [[420, 1140]], [[420, 1080]], []),
       specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[420, 900]] }) },
   ].map((place) => ({ unknownDates: purdueBreaks, ...place, campus: "purdue", checked: "2026-11" }));
   const purdueFoodPlaces = [...purdueHalls, ...purdueRetail];
+  // IU food near Wells Library and the IMU, from IU Dining (dining.indiana.edu/dining-hours, checked 2026-11-16):
+  // fall 2026 hours, Thanksgiving (Nov 20-29), and winter break (through Jan 10, though the IMU list stops at Jan 8).
+  // Spring hours aren't posted, so the fall week is used; spring break and summer say "Hours not confirmed".
+  const iuBreaks = [["2027-03-13", "2027-03-21"], ["2027-05-08", "2027-08-22"]];
+  // Special hours from [start, end, periods] date ranges.
+  const datedHours = (...ranges) => Object.assign({}, ...ranges.map(([start, end, periods]) => during(start, end, periods)));
+  const iuHallKind = "IU dining hall · all you care to eat · meal plan or pay at the door";
+  const quadHours = { hours: byWeekday([[540, 840], [960, 1200]], [[420, 1260]], [[420, 1260]], [[540, 840], [960, 1200]]),
+    specialHours: datedHours(["2026-11-20", "2026-11-20", [[420, 1140]]], ["2026-11-21", "2026-11-28", []],
+      ["2026-12-18", "2026-12-18", [[420, 1140]]], ["2026-12-19", "2027-01-09", []]) };
+  const iuHalls = [
+    { name: "Wright Dining Hall", location: [39.17041, -86.51429], ...quadHours },
+    { name: "McNutt Dining Hall", location: [39.17646, -86.51993], ...quadHours },
+    { name: "Forest Dining Hall", location: [39.16492, -86.51245], ...quadHours },
+    { name: "Collins Eatery", location: [39.1712, -86.52437], hours: byWeekday([], [[420, 1200]], [[420, 1200]], []),
+      specialHours: datedHours(["2026-11-20", "2026-11-20", []], ["2026-11-21", "2026-11-25", [[660, 1080]]],
+        ["2026-11-26", "2026-11-26", []], ["2026-11-27", "2026-11-28", [[660, 1080]]], ["2026-11-29", "2026-11-29", []],
+        ["2026-12-18", "2026-12-18", []], ["2026-12-19", "2026-12-23", [[660, 1080]]], ["2026-12-24", "2027-01-01", []],
+        ["2027-01-02", "2027-01-09", [[660, 1080]]], ["2027-01-10", "2027-01-10", []]) },
+    { name: "Goodbody Hall Eatery", location: [39.16513, -86.52041], hours: byWeekday([], [[420, 1080]], [[420, 1080]], []),
+      specialHours: { ...closedOn("2026-11-20", "2026-11-29"), ...closedOn("2026-12-18", "2027-01-10") } },
+  ].map((hall) => ({ ...hall, kind: iuHallKind, isHall: true }));
+  // The IMU's winter list ends Jan 8, so Jan 9-10 are unconfirmed there unless a place posts them.
+  const imu = [39.16746, -86.52294];
+  const imuUnposted = [["2027-01-09", "2027-01-10"], ...iuBreaks];
+  const iuImu = [
+    { name: "The Globe (IMU)", kind: "Restaurant · rotating local restaurants",
+      hours: byWeekday([[1050, 1230]], [[660, 840], [1050, 1230]], [[660, 840], [1050, 1230]], [[1050, 1230]]),
+      specialHours: datedHours(["2026-11-21", "2026-11-28", []], ["2026-11-29", "2026-11-29", [[1020, 1260]]], ["2026-12-19", "2027-01-08", []]) },
+    { name: "Lantern (IMU)", kind: "Restaurant · Pan-Asian", hours: byWeekday([[660, 1200]], [[660, 1200]], [[660, 1200]], []),
+      specialHours: datedHours(["2026-11-21", "2026-11-28", []], ["2026-11-29", "2026-11-29", [[1020, 1200]]],
+        ["2026-12-19", "2027-01-05", []], ["2027-01-06", "2027-01-08", [[660, 900]]]) },
+    { name: "The Mix (IMU)", kind: "Buffet · breakfast, salad bar, and hot bar",
+      hours: byWeekday([[420, 600]], [[420, 600], [660, 1080]], [[420, 600], [660, 1080]], [[420, 600]]),
+      specialHours: datedHours(["2026-11-21", "2026-11-22", [[420, 600]]], ["2026-11-23", "2026-11-27", [[420, 600], [660, 960]]],
+        ["2026-11-28", "2026-11-29", [[420, 600]]], ["2026-12-19", "2026-12-20", [[420, 600]]],
+        ["2026-12-21", "2026-12-22", [[420, 600], [660, 960]]], ["2026-12-23", "2027-01-01", []],
+        ["2027-01-02", "2027-01-08", [[420, 600], [660, 960]]]) },
+    { name: "Quarry Pie Co. (IMU)", kind: "Fast food · pizza",
+      hours: [[[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1260]], [[660, 1320]], [[660, 1320]], [[660, 1320]]],
+      specialHours: datedHours(["2026-11-21", "2026-11-25", [[660, 1260]]], ["2026-11-26", "2026-11-27", []],
+        ["2026-11-28", "2026-11-29", [[660, 1260]]], ["2026-12-19", "2026-12-20", [[660, 1260]]], ["2026-12-21", "2027-01-03", []],
+        ["2027-01-04", "2027-01-05", [[660, 1200]]], ["2027-01-06", "2027-01-08", [[660, 1260]]]) },
+    { name: "Sugar & Spice Bakery (IMU)", kind: "Bakery · espresso bar",
+      hours: byWeekday([[600, 1080]], [[480, 1200]], [[480, 1200]], [[600, 1080]]),
+      specialHours: datedHours(["2026-11-21", "2026-11-25", [[480, 960]]], ["2026-11-26", "2026-11-26", []],
+        ["2026-11-27", "2026-11-29", [[480, 960]]], ["2026-12-19", "2026-12-19", [[480, 960]]], ["2026-12-20", "2027-01-05", []],
+        ["2027-01-06", "2027-01-08", [[480, 960]]]) },
+    { name: "Tudor Room (IMU)", kind: "Restaurant · lunch buffet and Sunday brunch",
+      hours: byWeekday([[600, 840]], [[660, 840]], [[660, 840]], []),
+      specialHours: datedHours(["2026-11-21", "2026-11-25", []], ["2026-11-26", "2026-11-26", [[660, 1020]]],
+        ["2026-11-27", "2026-11-28", []], ["2026-12-19", "2027-01-08", []]) },
+    { name: "Union Market (IMU)", kind: "Convenience store", hours: Array(7).fill([[600, 1260]]),
+      specialHours: datedHours(["2026-11-23", "2026-11-26", [[600, 1200]]], ["2026-12-21", "2026-12-22", [[480, 1200]]],
+        ["2026-12-23", "2026-12-24", [[480, 720]]], ["2026-12-25", "2026-12-30", []], ["2026-12-31", "2026-12-31", [[480, 1200]]],
+        ["2027-01-01", "2027-01-05", [[600, 1200]]]) },
+    { name: "Whitfield Grill (IMU)", kind: "Fast food · burgers and chicken", hours: byWeekday([], [[660, 1080]], [[660, 1080]], []),
+      specialHours: { ...closedOn("2026-11-21", "2026-11-29"), ...closedOn("2026-12-19", "2027-01-08") } },
+    { name: "The Vault Pub (IMU)", kind: "Restaurant · pub",
+      hours: byWeekday([], [[660, 1320]], [[660, 1380]], [[660, 1380]]),
+      specialHours: datedHours(["2026-11-22", "2026-11-26", []], ["2026-11-27", "2026-11-27", [[960, 1380]]],
+        ["2026-11-29", "2026-11-29", [[660, 1380]]], ["2026-11-30", "2026-11-30", []], ["2026-12-19", "2026-12-19", [[660, 1260]]],
+        ["2026-12-20", "2027-01-05", []], ["2027-01-06", "2027-01-07", [[660, 1320]]], ["2027-01-08", "2027-01-08", [[660, 1380]]]),
+      // Its Thanksgiving list skips Saturday, Nov 28.
+      unknownDates: [["2026-11-28", "2026-11-28"], ...imuUnposted] },
+    { name: "Starbucks (IMU)", kind: "Cafe", hours: byWeekday([[480, 1080]], [[450, 1260]], [[450, 1260]], [[480, 1080]]),
+      specialHours: datedHours(["2026-11-23", "2026-11-26", []], ["2026-11-27", "2026-11-27", [[480, 1080]]], ["2026-12-20", "2027-01-08", []]),
+      unknownDates: iuBreaks },
+  ].map((place) => ({ unknownDates: imuUnposted, ...place, location: imu }));
+  // Bookmarket, the food court in Wells Library.
+  const wellsBookmarket = [39.17105, -86.51685];
+  const bookmarketWeek = (monToThu, friday, sunday = []) => byWeekday(sunday, monToThu, friday, []);
+  const bookmarketBreaks = (lastDay, winter) => datedHours(["2026-11-20", "2026-11-20", lastDay], ["2026-11-21", "2026-11-29", []],
+    ["2026-12-18", "2026-12-18", lastDay], ["2026-12-19", "2027-01-05", []], ...winter);
+  const iuBookmarket = [
+    { name: "Blenz Bowls (Wells Bookmarket)", kind: "Cafe · smoothie bowls", hours: bookmarketWeek([[480, 1020]], [[480, 960]]),
+      specialHours: bookmarketBreaks([[480, 900]], [["2027-01-06", "2027-01-10", []]]) },
+    { name: "The Globe (Wells Bookmarket)", kind: "Restaurant · rotating local restaurants",
+      hours: bookmarketWeek([[660, 840], [1050, 1230]], [[660, 840]]),
+      specialHours: bookmarketBreaks([], [["2027-01-06", "2027-01-10", []]]) },
+    { name: "The Greenhouse (Wells Bookmarket)", kind: "Restaurant · salads and bowls",
+      hours: bookmarketWeek([[660, 1260]], [[660, 960]], [[960, 1260]]),
+      specialHours: bookmarketBreaks([[660, 900]], [["2027-01-06", "2027-01-08", [[660, 1170]]], ["2027-01-09", "2027-01-10", []]]) },
+    { name: "Hubbard & Cravens (Wells Bookmarket)", kind: "Cafe · coffee",
+      hours: bookmarketWeek([[480, 1260]], [[480, 960]], [[960, 1260]]),
+      specialHours: bookmarketBreaks([[480, 900]], [["2027-01-06", "2027-01-09", [[480, 1170]]], ["2027-01-10", "2027-01-10", []]]) },
+    { name: "King's Hawaiian (Wells Bookmarket)", kind: "Fast food · sandwiches",
+      hours: bookmarketWeek([[660, 1260]], [[660, 960]], [[960, 1260]]),
+      specialHours: bookmarketBreaks([[480, 900]], [["2027-01-06", "2027-01-10", [[480, 1170]]]]) },
+    { name: "The Meltdown (Wells Bookmarket)", kind: "Fast food · grilled cheese",
+      hours: bookmarketWeek([[660, 1260]], [[660, 960]], [[960, 1260]]),
+      specialHours: bookmarketBreaks([[660, 900]], [["2027-01-06", "2027-01-10", [[660, 1170]]]]) },
+  ].map((place) => ({ ...place, location: wellsBookmarket }));
+  const iuFoodPlaces = [...iuHalls, ...iuImu, ...iuBookmarket]
+    .map((place) => ({ unknownDates: iuBreaks, ...place, campus: "iu", checked: "2026-11" }));
   const foodPlaces = [
+    ...iuFoodPlaces,
     ...purdueFoodPlaces,
     ...uisFoodPlaces,
     ...uicFoodPlaces,
@@ -1369,7 +1465,7 @@
       .sort((a, b) => a.miles - b.miles);
   }
 
-  // A food place's periods on a date: its special hours for that date if it has them (UIS and Purdue food post
+  // A food place's periods on a date: its special hours for that date if it has them (UIS, Purdue, and IU food post
   // holiday hours), otherwise its usual hours for that weekday.
   function foodHoursOn(place, date) {
     return place.specialHours?.[dateKeyFor(date)] ?? place.hours[date.getDay()];
