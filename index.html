@@ -451,7 +451,7 @@
     <div class="closest-result" id="food-location-result" role="status"></div>
     <input type="search" id="food-search" class="food-search" placeholder="Search food: pizza, coffee" aria-label="Search food">
     <div id="food-list" role="status"></div>
-    <p class="map-note">Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters. Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.</p>
+    <p class="map-note" id="food-source"></p>
     <p class="map-note">Your location stays on this device and isn't saved. Distances are straight lines, not walking routes.</p>
   </section>
   <div class="filters-panel" id="filters-panel" hidden>
@@ -731,6 +731,14 @@
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu" };
+  // Where each campus's food hours come from, shown under the food list.
+  const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
+  const foodSourceNotes = {
+    uiuc: `${osmFoodNote} Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.`,
+    uic: osmFoodNote,
+    uis: "Hours are from UIS Dining (uis.edu/dining), including Thanksgiving and winter break. Summer hours aren't posted yet.",
+    purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
+  };
 
   // The spots on one campus; UIUC spots don't name a campus.
   function spotsOnCampus(spots, campus) {
@@ -835,7 +843,63 @@
       hours: uisWeekdays([[480, 1020]], []), checked: "2026-11", campus: "uis",
       specialHours: closedOn("2026-12-12", "2027-01-10"), unknownDates: [uisSummer] },
   ];
+  // Purdue food near WALC, Hicks, and the Union, checked 2026-11-15. Dining courts and Lawson On-the-GO! come from
+  // Purdue Dining's own data (api.hfs.purdue.edu, "Fall 2026" hours), with meals joined where one runs into the next;
+  // it only lists about a week ahead, so breaks say "Hours not confirmed". Union and MSEE places come from Purdue Food Co.
+  // (purdue.mydininghub.com), which posts Thanksgiving hours but not winter or spring break yet.
+  const purdueUnion = [40.42466, -86.91094];
+  const purdueWeek = (sunday, monToThu, friday, saturday) => [sunday, monToThu, monToThu, monToThu, monToThu, friday, saturday];
+  const purdueBreaks = [["2026-12-19", "2027-01-10"], ["2027-03-13", "2027-03-21"], ["2027-05-08", "2027-08-22"]];
+  const purdueHallKind = "Purdue dining court · meal plan or guest payment";
+  const purdueHalls = [
+    { name: "Wiley Dining Court", location: [40.42871, -86.92087],
+      hours: purdueWeek([[1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[660, 840], [1020, 1260]]) },
+    { name: "Windsor Dining Court", location: [40.4271, -86.92074],
+      hours: purdueWeek([[660, 840], [1020, 1260]], [[600, 1260]], [[600, 960]], [[840, 1260]]) },
+    { name: "Ford Dining Court", location: [40.43208, -86.91964],
+      hours: purdueWeek([[480, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[420, 600], [660, 840], [1020, 1260]], [[480, 600], [660, 840]]) },
+  ].map((hall) => ({ ...hall, kind: purdueHallKind, isHall: true, campus: "purdue", checked: "2026-11",
+    unknownDates: [["2026-11-21", "2026-11-29"], ...purdueBreaks] }));
+  // Thanksgiving: the last day before a place closes, then closed through Sunday the 29th.
+  const thanksgiving = (start, lastDays = {}) => ({ ...closedOn(start, "2026-11-29"), ...lastDays });
+  const unionShort = [[660, 1140]];
+  const purdueRetail = [
+    { name: "Lawson On-the-GO!", kind: "Purdue dining grab-and-go · meal swipes or Dining Dollars", location: [40.42743, -86.91699],
+      hours: purdueWeek([], [[450, 1020]], [[450, 1020]], []), unknownDates: [["2026-11-21", "2026-11-29"]] },
+    { name: "Starbucks (Purdue Memorial Union)", kind: "Cafe", location: purdueUnion,
+      hours: purdueWeek([[540, 1140]], [[420, 1200]], [[420, 1140]], [[540, 1140]]),
+      specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[420, 1020]] }) },
+    { name: "Boilermaker Market (Union)", kind: "Convenience store", location: purdueUnion,
+      hours: purdueWeek([[660, 1320]], [[420, 1320]], [[420, 1320]], [[660, 1320]]),
+      specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[480, 960]] }) },
+    { name: "DSJ Asian Grill (Union)", kind: "Restaurant", location: purdueUnion,
+      hours: Array(7).fill([[660, 1200]]), specialHours: closedOn("2026-11-25", "2026-11-28") },
+    { name: "Sushi Boss (Union)", kind: "Restaurant", location: purdueUnion,
+      hours: Array(7).fill([[660, 1200]]), specialHours: closedOn("2026-11-25", "2026-11-28") },
+    { name: "Zen (Union)", kind: "Restaurant", location: purdueUnion,
+      hours: Array(7).fill([[660, 1200]]), specialHours: closedOn("2026-11-25", "2026-11-29") },
+    { name: "Choolaah Indian BBQ (Union)", kind: "Restaurant", location: purdueUnion,
+      hours: purdueWeek([], unionShort, unionShort, [[660, 900]]),
+      specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[660, 900]] }) },
+    { name: "Burgers + Fries (Union)", kind: "Fast food", location: purdueUnion,
+      hours: purdueWeek([], unionShort, [[660, 900]], []),
+      specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[660, 900]] }) },
+    { name: "Tenders, Love & Chicken (Union)", kind: "Fast food", location: purdueUnion,
+      hours: purdueWeek([], unionShort, [[660, 900]], []),
+      specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[660, 900]] }) },
+    { name: "Any Way You Slice It (Union)", kind: "Fast food", location: purdueUnion,
+      hours: purdueWeek([], [[660, 1020]], [[660, 900]], []), specialHours: thanksgiving("2026-11-21") },
+    { name: "Foodlab Greens to Go (Union)", kind: "Restaurant", location: purdueUnion,
+      hours: purdueWeek([], [[660, 1020]], [[660, 900]], []), specialHours: thanksgiving("2026-11-21") },
+    { name: "KNOW Eatery (Union)", kind: "Restaurant", location: purdueUnion,
+      hours: purdueWeek([], [[660, 1020]], [[660, 1020]], []), specialHours: thanksgiving("2026-11-21") },
+    { name: "Starbucks (MSEE)", kind: "Cafe", location: [40.42932, -86.91265],
+      hours: purdueWeek([], [[420, 1140]], [[420, 1080]], []),
+      specialHours: thanksgiving("2026-11-25", { "2026-11-24": [[420, 900]] }) },
+  ].map((place) => ({ unknownDates: purdueBreaks, ...place, campus: "purdue", checked: "2026-11" }));
+  const purdueFoodPlaces = [...purdueHalls, ...purdueRetail];
   const foodPlaces = [
+    ...purdueFoodPlaces,
     ...uisFoodPlaces,
     ...uicFoodPlaces,
     ...diningHalls,
@@ -1255,7 +1319,7 @@
       .sort((a, b) => a.miles - b.miles);
   }
 
-  // A food place's periods on a date: its special hours for that date if it has them (only UIS dining posts
+  // A food place's periods on a date: its special hours for that date if it has them (UIS and Purdue food post
   // holiday hours), otherwise its usual hours for that weekday.
   function foodHoursOn(place, date) {
     return place.specialHours?.[dateKeyFor(date)] ?? place.hours[date.getDay()];
@@ -2506,6 +2570,7 @@
     document.getElementById("campus-select").value = selectedCampus;
     document.getElementById("tagline").textContent = `Find empty study spots at ${campuses[selectedCampus]}`;
     document.getElementById("spot-search").placeholder = searchHints[selectedCampus];
+    document.getElementById("food-source").textContent = foodSourceNotes[selectedCampus];
     // A kind of place this campus doesn't have would show an empty list.
     if (!currentSpots().some((spot) => spot.type === selectedCategoryId)) selectedCategoryId = "all";
     expandedSpotId = null;
