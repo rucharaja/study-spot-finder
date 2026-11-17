@@ -406,6 +406,7 @@
         <option value="iowa">Iowa (Iowa City)</option>
         <option value="umich">Michigan (Ann Arbor)</option>
         <option value="umn">Minnesota (Twin Cities)</option>
+        <option value="unl">Nebraska (Lincoln)</option>
         <option value="osu">Ohio State (Columbus)</option>
         <option value="psu">Penn State (University Park)</option>
         <option value="purdue">Purdue (West Lafayette)</option>
@@ -1036,15 +1037,44 @@
         ...during("2026-12-19", "2027-01-18", HOURS_UNCONFIRMED), ...during("2027-03-13", "2027-03-21", HOURS_UNCONFIRMED),
         ...during("2027-05-15", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // Nebraska (Lincoln), City Campus, from UNL Libraries' LibCal hours (libraries.unl.edu/hours, posted through May 9, 2027)
+  // and Nebraska Unions' building hours (unions.unl.edu/todays-schedule), checked 2026-11-17. After 10pm the libraries
+  // need an NCard (entry to Love is through Adele then). The Union posts only its academic-year week, so breaks are
+  // unconfirmed. East Campus is about 2 miles away, so its library and union are left out.
+  const unlLibraryWeek = [[h(7.5), h(24)], [h(7.5), h(24)], [h(7.5), h(24)], [h(7.5), h(24)], [h(7.5), h(24)], [h(7.5), h(20)], [h(7.5), h(20)]];
+  // Thanksgiving, winter break, the week before spring classes, MLK Day, spring break, and after spring finals.
+  const unlLibraryBreaks = {
+    ...during("2026-11-25", "2026-11-25", [h(7.5), h(17)]), ...during("2026-11-26", "2026-11-28", null),
+    ...during("2026-12-19", "2026-12-20", null), ...during("2026-12-21", "2026-12-23", [h(7.5), h(17)]),
+    ...during("2026-12-24", "2027-01-03", null), ...during("2027-01-04", "2027-01-10", [h(7.5), h(20)]),
+    ...during("2027-01-17", "2027-01-17", [h(7.5), h(17)]), ...during("2027-01-18", "2027-01-18", null),
+    ...during("2027-03-14", "2027-03-20", [h(7.5), h(20)]), ...during("2027-05-07", "2027-05-07", [h(7.5), h(17)]),
+    ...during("2027-05-08", "2027-05-09", null), ...during("2027-05-10", "2027-08-31", HOURS_UNCONFIRMED) };
+  const unlSpots = [
+    { id: "unl-love", campus: "unl", type: "library", name: "Love Library", offers: [], location: [40.81823, -96.70259],
+      keywords: "love library don love memorial city campus unl nebraska huskers",
+      hours: unlLibraryWeek, specialHours: unlLibraryBreaks },
+    { id: "unl-adele", campus: "unl", type: "library", name: "Adele Hall Learning Commons", offers: [], location: [40.81857, -96.70259],
+      keywords: "adele hall learning commons love north dunkin city campus unl nebraska huskers",
+      hours: unlLibraryWeek,
+      specialHours: { ...unlLibraryBreaks, ...during("2026-12-13", "2026-12-17", [h(7.5), h(26)]),
+        ...during("2026-12-18", "2026-12-18", [h(7.5), h(17)]), ...during("2027-05-02", "2027-05-06", [h(7.5), h(26)]) } },
+    { id: "unl-union", campus: "unl", type: "union", name: "Nebraska Union", offers: [], location: [40.81764, -96.70043],
+      keywords: "nebraska union city union husker gaming center unl nebraska huskers",
+      hours: [[h(9), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(24)], [h(9), h(24)]],
+      specialHours: { ...during("2026-11-25", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-10", HOURS_UNCONFIRMED),
+        ...during("2027-03-14", "2027-03-21", HOURS_UNCONFIRMED), ...during("2027-05-08", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
   const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
-    ...psuSpots, ...umnSpots, ...iowaSpots];
+    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
-    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa" };
+    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
     rutgers: "Search: alex, lsm, carr", psu: "Search: pattee, hub, engineering",
-    umn: "Search: walter, wilson, coffman", iowa: "Search: main, engineering, imu" };
+    umn: "Search: walter, wilson, coffman", iowa: "Search: main, engineering, imu",
+    unl: "Search: love, adele, union" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
@@ -1056,6 +1086,7 @@
     osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
     wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
+    unl: "Nebraska food places haven't been added yet, so this list is empty for now.",
     iowa: "Hours are from University Housing and Dining and the IMU, including Thanksgiving week. Most places haven't posted winter break or spring yet, so those days say \"Hours not confirmed\".",
     umn: "Hours are from M Food Co. (University of Minnesota Dining), including Thanksgiving week. Nothing is posted after Dec 16 yet, so from Dec 17 on those days say \"Hours not confirmed\".",
     psu: "Hours are from Penn State Dining, including this week and Thanksgiving week for the commons. HUB Dining, Starbucks, and Panera don't post break hours, and nothing is posted after Dec 18, so those days say \"Hours not confirmed\".",
@@ -1914,6 +1945,9 @@
   spotIcons["iowa-engineering"] = spotIcons.grainger;
   spotIcons["iowa-hardin"] = spotIcons.lhs;
   spotIcons["iowa-imu"] = spotIcons.union;
+  spotIcons["unl-love"] = spotIcons.main;
+  spotIcons["unl-adele"] = spotIcons.idea;
+  spotIcons["unl-union"] = spotIcons.union;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
