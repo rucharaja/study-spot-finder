@@ -403,6 +403,7 @@
       </optgroup>
       <optgroup label="Big Ten">
         <option value="iu">IU (Bloomington)</option>
+        <option value="iowa">Iowa (Iowa City)</option>
         <option value="umich">Michigan (Ann Arbor)</option>
         <option value="umn">Minnesota (Twin Cities)</option>
         <option value="osu">Ohio State (Columbus)</option>
@@ -939,12 +940,13 @@
       specialHours: { ...during("2026-11-21", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-10", HOURS_UNCONFIRMED),
         ...during("2027-03-06", "2027-03-14", HOURS_UNCONFIRMED), ...during("2027-05-09", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // Gives each date from start to end the hours for its weekday in week (Sunday first).
+  const weeklyDuring = (start, end, week) =>
+    Object.fromEntries(Object.keys(during(start, end, null)).map((key) => [key, week[new Date(`${key}T12:00`).getDay()]]));
   // Minnesota (Twin Cities), from UMN Libraries' hours search (lib.umn.edu/spaces/<library>/hours, posted through
   // Jul 14, 2027) and Student Unions and Activities' building hours (sua.umn.edu/building-hours, posted through Jan 18),
   // checked 2026-11-16. These are the U Card hours; the public can't get into the libraries at all. Walter is open
   // 24 hours for U Card holders during finals.
-  const umnWeeks = (start, end, week) =>
-    Object.fromEntries(Object.keys(during(start, end, null)).map((key) => [key, week[new Date(`${key}T12:00`).getDay()]]));
   const umnSummerWeek = [[h(12), h(18)], [h(8), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(18)], [h(12), h(18)]];
   const umnSpots = [
     { id: "umn-walter", campus: "umn", type: "library", name: "Walter Library (East Bank)", offers: [], location: [44.97536, -93.2363],
@@ -955,22 +957,22 @@
         ...during("2026-12-11", "2026-12-22", [h(0), h(24)]), ...during("2026-12-23", "2026-12-23", [h(0), h(20)]),
         ...during("2026-12-24", "2026-12-24", [h(8), h(16)]), ...during("2026-12-25", "2026-12-28", null),
         ...during("2026-12-29", "2026-12-30", [h(8), h(20)]), ...during("2026-12-31", "2026-12-31", [h(8), h(16)]),
-        ...during("2027-01-01", "2027-01-03", null), ...umnWeeks("2027-01-04", "2027-01-17", umnSummerWeek),
+        ...during("2027-01-01", "2027-01-03", null), ...weeklyDuring("2027-01-04", "2027-01-17", umnSummerWeek),
         ...during("2027-01-18", "2027-01-18", null), ...during("2027-03-06", "2027-03-07", [h(12), h(18)]),
         ...during("2027-03-08", "2027-03-11", [h(8), h(20)]), ...during("2027-03-12", "2027-03-12", null),
         ...during("2027-03-13", "2027-03-13", [h(12), h(18)]), ...during("2027-04-30", "2027-04-30", [h(8), h(24)]),
         ...during("2027-05-01", "2027-05-11", [h(0), h(24)]), ...during("2027-05-12", "2027-05-12", [h(0), h(20)]),
-        ...umnWeeks("2027-05-13", "2027-07-14", umnSummerWeek), ...during("2027-06-18", "2027-06-19", null),
+        ...weeklyDuring("2027-05-13", "2027-07-14", umnSummerWeek), ...during("2027-06-18", "2027-06-19", null),
         ...during("2027-07-04", "2027-07-05", null), ...during("2027-07-15", "2027-08-31", HOURS_UNCONFIRMED) } },
     { id: "umn-wilson", campus: "umn", type: "library", name: "Wilson Library (West Bank)", offers: [], location: [44.97082, -93.24359],
       keywords: "wilson library west bank umn minnesota gophers",
       hours: [[h(12), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(18)], [h(12), h(18)]],
       specialHours: { ...during("2026-11-25", "2026-11-25", [h(8), h(18)]), ...during("2026-11-26", "2026-11-27", null),
         ...during("2026-12-23", "2026-12-23", [h(8), h(20)]), ...during("2026-12-24", "2027-01-03", null),
-        ...umnWeeks("2027-01-04", "2027-01-17", umnSummerWeek), ...during("2027-01-18", "2027-01-18", null),
+        ...weeklyDuring("2027-01-04", "2027-01-17", umnSummerWeek), ...during("2027-01-18", "2027-01-18", null),
         ...during("2027-03-07", "2027-03-07", [h(12), h(18)]), ...during("2027-03-08", "2027-03-11", [h(8), h(20)]),
         ...during("2027-03-12", "2027-03-12", null), ...during("2027-05-12", "2027-05-13", [h(8), h(20)]),
-        ...during("2027-05-16", "2027-05-16", [h(12), h(18)]), ...umnWeeks("2027-05-17", "2027-07-14", umnSummerWeek),
+        ...during("2027-05-16", "2027-05-16", [h(12), h(18)]), ...weeklyDuring("2027-05-17", "2027-07-14", umnSummerWeek),
         ...during("2027-05-31", "2027-05-31", null), ...during("2027-06-18", "2027-06-19", null),
         ...during("2027-07-04", "2027-07-05", null), ...during("2027-07-15", "2027-08-31", HOURS_UNCONFIRMED) } },
     { id: "umn-coffman", campus: "umn", type: "union", name: "Coffman Memorial Union", offers: [], location: [44.97282, -93.23535],
@@ -987,15 +989,62 @@
         ...during("2027-01-11", "2027-01-15", [h(7), h(18)]), ...during("2027-01-16", "2027-01-17", [h(9), h(17)]),
         ...during("2027-01-18", "2027-01-18", [h(7), h(18)]), ...during("2027-01-19", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // Iowa, from UI Libraries' LibCal hours (lib.uiowa.edu/hours) and the IMU's building hours (imu.uiowa.edu/directory),
+  // checked 2026-11-17. The Main Library posts hours only through Jan 18. Engineering's summer looks like a copy of its
+  // semester week, unlike Hardin's posted intersession hours, so Engineering is unconfirmed after spring finals. The IMU
+  // posts "open daily 7am to midnight" plus fall break, so winter break, spring break, and summer are unconfirmed.
+  const iowaMainBreakWeek = [[h(13), h(17)], [h(7.5), h(18)], [h(7.5), h(18)], [h(7.5), h(18)], [h(7.5), h(18)], [h(7.5), h(18)], [h(13), h(17)]];
+  const hardinBreakWeek = [[h(12), h(16)], [h(7.5), h(17)], [h(7.5), h(17)], [h(7.5), h(17)], [h(7.5), h(17)], [h(7.5), h(17)], [h(10), h(14)]];
+  const engineeringBreakWeek = [null, [h(8.5), h(17)], [h(8.5), h(17)], [h(8.5), h(17)], [h(8.5), h(17)], [h(8.5), h(17)], null];
+  const iowaSpots = [
+    { id: "iowa-main", campus: "iowa", type: "library", name: "Main Library", offers: [], location: [41.65982, -91.53848],
+      keywords: "main library learning commons uiowa iowa hawkeyes",
+      hours: [[h(11), h(25)], [h(7.5), h(25)], [h(7.5), h(25)], [h(7.5), h(25)], [h(7.5), h(25)], [h(7.5), h(22)], [h(10), h(22)]],
+      specialHours: { ...during("2026-11-21", "2026-11-22", [h(13), h(17)]), ...during("2026-11-23", "2026-11-25", [h(7.5), h(18)]),
+        ...during("2026-11-26", "2026-11-27", null), ...during("2026-11-28", "2026-11-28", [h(13), h(17)]),
+        ...during("2026-12-11", "2026-12-12", [h(7.5), h(23)], [h(10), h(23)]),
+        ...during("2026-12-13", "2026-12-13", [h(11), h(26)]), ...during("2026-12-14", "2026-12-17", [h(7.5), h(26)]),
+        ...weeklyDuring("2026-12-19", "2027-01-17", iowaMainBreakWeek), ...during("2026-12-24", "2026-12-25", null),
+        ...during("2027-01-01", "2027-01-01", null), ...during("2027-01-18", "2027-01-18", null),
+        ...during("2027-01-19", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "iowa-engineering", campus: "iowa", type: "library", name: "Lichtenberger Engineering Library", offers: [], location: [41.65989, -91.53679],
+      keywords: "lichtenberger engineering library seamans center uiowa iowa hawkeyes",
+      hours: [null, [h(8.5), h(22)], [h(8.5), h(22)], [h(8.5), h(22)], [h(8.5), h(22)], [h(8.5), h(18)], null],
+      specialHours: { ...during("2026-11-23", "2026-11-24", [h(8.5), h(17)]), ...during("2026-11-25", "2026-11-28", null),
+        ...during("2026-12-06", "2026-12-06", [h(14), h(22)]), ...during("2026-12-13", "2026-12-13", [h(14), h(24)]),
+        ...during("2026-12-14", "2026-12-17", [h(8.5), h(24)]), ...weeklyDuring("2026-12-19", "2027-01-17", engineeringBreakWeek),
+        ...during("2026-12-24", "2027-01-03", null), ...during("2027-01-18", "2027-01-18", null),
+        ...weeklyDuring("2027-03-14", "2027-03-20", engineeringBreakWeek), ...during("2027-05-02", "2027-05-02", [h(14), h(22)]),
+        ...during("2027-05-09", "2027-05-09", [h(14), h(24)]), ...during("2027-05-10", "2027-05-13", [h(8.5), h(24)]),
+        ...during("2027-05-15", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "iowa-hardin", campus: "iowa", type: "library", name: "Hardin Library for the Health Sciences", offers: [], location: [41.66278, -91.54768],
+      keywords: "hardin library health sciences medicine nursing west campus uiowa iowa hawkeyes",
+      hours: [[h(12), h(21)], [h(7.5), h(21)], [h(7.5), h(21)], [h(7.5), h(21)], [h(7.5), h(21)], [h(7.5), h(18)], [h(10), h(18)]],
+      specialHours: { ...weeklyDuring("2026-11-21", "2026-11-28", hardinBreakWeek), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-11-28", "2026-11-28", [h(10), h(14)]), ...during("2026-12-11", "2026-12-12", [h(7.5), h(21)], [h(10), h(21)]),
+        ...weeklyDuring("2026-12-19", "2027-01-10", hardinBreakWeek), ...during("2026-12-19", "2026-12-20", null),
+        ...during("2026-12-24", "2026-12-27", null), ...during("2027-01-01", "2027-01-01", null),
+        ...during("2027-01-18", "2027-01-18", null), ...weeklyDuring("2027-03-13", "2027-03-20", hardinBreakWeek),
+        ...during("2027-05-07", "2027-05-08", [h(7.5), h(21)], [h(10), h(21)]), ...weeklyDuring("2027-05-15", "2027-05-22", hardinBreakWeek),
+        ...during("2027-05-31", "2027-05-31", null), ...during("2027-07-01", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "iowa-imu", campus: "iowa", type: "union", name: "Iowa Memorial Union (IMU)", offers: [], location: [41.66311, -91.53837],
+      keywords: "iowa memorial union imu uiowa iowa hawkeyes",
+      hours: sameEveryDay(7, 24),
+      specialHours: { ...during("2026-11-20", "2026-11-21", [h(7), h(21)]), ...during("2026-11-22", "2026-11-22", null),
+        ...during("2026-11-23", "2026-11-25", [h(7), h(17)]), ...during("2026-11-26", "2026-11-26", null),
+        ...during("2026-11-27", "2026-11-27", [h(7), h(17)]), ...during("2026-11-28", "2026-11-29", null),
+        ...during("2026-12-19", "2027-01-18", HOURS_UNCONFIRMED), ...during("2027-03-13", "2027-03-21", HOURS_UNCONFIRMED),
+        ...during("2027-05-15", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
   const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
-    ...psuSpots, ...umnSpots];
+    ...psuSpots, ...umnSpots, ...iowaSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
-    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota" };
+    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
     rutgers: "Search: alex, lsm, carr", psu: "Search: pattee, hub, engineering",
-    umn: "Search: walter, wilson, coffman" };
+    umn: "Search: walter, wilson, coffman", iowa: "Search: main, engineering, imu" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
@@ -1007,6 +1056,7 @@
     osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
     wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
+    iowa: "Iowa food places haven't been added yet, so this list is empty for now.",
     umn: "Hours are from M Food Co. (University of Minnesota Dining), including Thanksgiving week. Nothing is posted after Dec 16 yet, so from Dec 17 on those days say \"Hours not confirmed\".",
     psu: "Hours are from Penn State Dining, including this week and Thanksgiving week for the commons. HUB Dining, Starbucks, and Panera don't post break hours, and nothing is posted after Dec 18, so those days say \"Hours not confirmed\".",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
@@ -1781,6 +1831,10 @@
   spotIcons["umn-walter"] = spotIcons.grainger;
   spotIcons["umn-wilson"] = spotIcons.main;
   spotIcons["umn-coffman"] = spotIcons.union;
+  spotIcons["iowa-main"] = spotIcons.main;
+  spotIcons["iowa-engineering"] = spotIcons.grainger;
+  spotIcons["iowa-hardin"] = spotIcons.lhs;
+  spotIcons["iowa-imu"] = spotIcons.union;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
