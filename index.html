@@ -1086,7 +1086,7 @@
     osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
     wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
-    unl: "Nebraska food places haven't been added yet, so this list is empty for now.",
+    unl: "Hours are from UNL Dining and Nebraska Unions, including Thanksgiving break. Winter break, spring break, and summer hours aren't posted yet, so those days say \"Hours not confirmed\". The Union food court is closed for renovation.",
     iowa: "Hours are from University Housing and Dining and the IMU, including Thanksgiving week. Most places haven't posted winter break or spring yet, so those days say \"Hours not confirmed\".",
     umn: "Hours are from M Food Co. (University of Minnesota Dining), including Thanksgiving week. Nothing is posted after Dec 16 yet, so from Dec 17 on those days say \"Hours not confirmed\".",
     psu: "Hours are from Penn State Dining, including this week and Thanksgiving week for the commons. HUB Dining, Starbucks, and Panera don't post break hours, and nothing is posted after Dec 18, so those days say \"Hours not confirmed\".",
@@ -1781,7 +1781,71 @@
       hours: byWeekday([], [[660, 840]], [[660, 840]], []),
       unknownDates: [iowaThanksgiving, ["2026-12-19", "2027-08-31"]] },
   ].map((place) => ({ ...place, campus: "iowa", checked: "2026-11" }));
+  // Nebraska food on City Campus, from UNL Dining's dining center, Herbie's Market, and Tazza pages and its break-hours
+  // page (dining.unl.edu, checked 2026-11-17), the Nebraska Union's services page, and Dunkin' @ Adele's LibCal hours.
+  // These are fall and spring semester hours. Only Thanksgiving break is posted, so winter break, spring break, and
+  // summer are unconfirmed. The Union food court is closed for renovation except Chick-fil-A.
+  const nebraskaUnion = [40.81764, -96.70043];
+  const abelSandoz = [40.82219, -96.69558];
+  const catherDining = [40.81871, -96.69601];
+  const knollHall = [40.81765, -96.69619];
+  const unlHallKind = "Nebraska dining center · all you care to eat · meal plan or pay at the door";
+  const unlMobileKind = "Nebraska dining center · mobile order · meal plan or pay";
+  // Herbie's Markets at Abel, Knoll, and the Village share their Thanksgiving hours.
+  const herbiesThanksgiving = { "2026-11-25": [[420, 1260]], ...closedOn("2026-11-26", "2026-11-26"),
+    ...during("2026-11-27", "2026-11-28", [[540, 1260]]), "2026-11-29": [[540, 1380]] };
+  const unlFoodPlaces = [
+    { name: "Cather Dining Center", kind: unlHallKind, isHall: true, location: catherDining,
+      hours: byWeekday([[480, 840], [990, 1200]], [[405, 600], [660, 840], [990, 1200]], [[405, 600], [660, 840], [990, 1200]], [[480, 840], [990, 1200]]),
+      specialHours: { "2026-11-25": [[480, 840]], "2026-11-26": [], ...during("2026-11-27", "2026-11-29", [[480, 840], [1020, 1140]]) } },
+    { name: "Harper Dining Center", kind: unlHallKind, isHall: true, location: [40.82505, -96.70038],
+      hours: byWeekday([[480, 840], [1020, 1200]], [[420, 840], [1020, 1200], [1230, 1350]], [[420, 840], [1020, 1200], [1230, 1350]], [[480, 840], [1020, 1200]]),
+      specialHours: { ...closedOn("2026-11-25", "2026-11-28"), "2026-11-29": [[1020, 1200]] } },
+    { name: "Abel Dining Center", kind: unlMobileKind, isHall: true, location: abelSandoz,
+      hours: byWeekday([[480, 1230]], [[405, 1380]], [[405, 1230]], [[480, 1230]]),
+      specialHours: { ...closedOn("2026-11-25", "2026-11-28"), "2026-11-29": [[990, 1230]] } },
+    { name: "Selleck Food Court", kind: unlMobileKind, isHall: true, location: [40.81899, -96.69947],
+      hours: byWeekday([], [[405, 1200]], [[405, 1200]], []),
+      specialHours: { "2026-11-25": [[405, 840]], ...closedOn("2026-11-26", "2026-11-29") } },
+    { name: "Husker Heroes (Abel)", kind: "Fast food · sandwiches", location: abelSandoz, hours: Array(7).fill([[630, 1380]]),
+      specialHours: closedOn("2026-11-26", "2026-11-29") },
+    { name: "Herbie's Market (Nebraska Union)", kind: "Fast food · market · open 24 hours with a UNL ID", location: nebraskaUnion,
+      hours: Array(7).fill([[0, 1440]]) },
+    { name: "Herbie's Market (Abel)", kind: "Fast food · market", location: abelSandoz,
+      hours: byWeekday([[540, 1500]], [[420, 1500]], [[420, 1500]], [[540, 1500]]), specialHours: herbiesThanksgiving },
+    { name: "Herbie's Market (Knoll)", kind: "Fast food · market", location: knollHall, hours: Array(7).fill([[540, 1500]]),
+      specialHours: { ...herbiesThanksgiving, "2026-11-25": [[540, 1260]] } },
+    { name: "Herbie's Market (The Village)", kind: "Fast food · market", location: [40.82422, -96.69942],
+      hours: byWeekday([[540, 1500]], [[420, 1500]], [[420, 1500]], [[540, 1500]]), specialHours: herbiesThanksgiving },
+    { name: "Herbie's Market (Cather)", kind: "Fast food · market", location: catherDining,
+      hours: byWeekday([[780, 1260]], [[420, 1260]], [[420, 1260]], [[780, 1260]]),
+      specialHours: { "2026-11-25": [[420, 840]], ...closedOn("2026-11-26", "2026-11-29") } },
+    { name: "Starbucks (Nebraska Union)", kind: "Cafe · coffee", location: nebraskaUnion,
+      hours: byWeekday([[540, 960]], [[420, 1140]], [[420, 1140]], [[540, 960]]),
+      specialHours: { "2026-11-25": [[450, 960]], ...closedOn("2026-11-26", "2026-11-29") } },
+    { name: "Chick-fil-A (Nebraska Union)", kind: "Fast food · chicken", location: nebraskaUnion,
+      hours: byWeekday([], [[630, 1140]], [[630, 1140]], []), specialHours: { "2026-11-25": [[630, 960]], "2026-11-26": [], "2026-11-27": [] } },
+    { name: "Husker Heroes Pop-Up (Nebraska Union)", kind: "Fast food · sandwiches", location: nebraskaUnion,
+      hours: byWeekday([], [[660, 840]], [[660, 840]], []), specialHours: closedOn("2026-11-25", "2026-11-27") },
+    { name: "Dunkin' (Adele Hall Learning Commons)", kind: "Cafe · coffee and donuts", location: [40.81857, -96.70259],
+      hours: byWeekday([[720, 1380]], [[480, 1380]], [[480, 1140]], [[480, 1140]]),
+      specialHours: { "2026-11-25": [[480, 960]], ...closedOn("2026-11-26", "2026-11-28"), "2026-12-18": [[480, 960]],
+        ...closedOn("2026-12-19", "2026-12-20"), ...during("2026-12-21", "2026-12-23", [[480, 960]]) },
+      unknownDates: [["2026-12-24", "2027-08-31"]] },
+    { name: "Curious Curator Cafe (Morrill Hall)", kind: "Cafe", location: [40.81996, -96.70185],
+      hours: [[[750, 990]], [], [[570, 990]], [[570, 990]], [[570, 990]], [[570, 990]], [[570, 990]]], specialHours: { "2026-11-26": [] } },
+    { name: "Tazza (Knoll)", kind: "Cafe · coffee", location: knollHall, hours: byWeekday([], [[420, 1020]], [[420, 1020]], []),
+      specialHours: closedOn("2026-11-25", "2026-11-27") },
+    { name: "Tazza (Scott Engineering Center)", kind: "Cafe · coffee", location: [40.82249, -96.69743],
+      hours: byWeekday([], [[420, 1020]], [[420, 1020]], []), specialHours: closedOn("2026-11-25", "2026-11-27") },
+    { name: "Tazza Express (University Health Center)", kind: "Cafe · coffee", location: [40.81811, -96.69315],
+      hours: byWeekday([], [[420, 840]], [[420, 840]], []), specialHours: closedOn("2026-11-25", "2026-11-27") },
+    { name: "Kiewit Cafe (Kiewit Hall)", kind: "Cafe", location: [40.8212, -96.69646], hours: byWeekday([], [[420, 900]], [[420, 900]], []),
+      specialHours: { "2026-11-25": [[450, 900]], ...closedOn("2026-11-26", "2026-11-27") } },
+  ].map((place) => ({ ...place, campus: "unl", checked: "2026-11",
+    unknownDates: place.unknownDates ?? [["2026-12-19", "2027-01-10"], ["2027-03-14", "2027-03-21"], ["2027-05-08", "2027-08-31"]] }));
   const foodPlaces = [
+    ...unlFoodPlaces,
     ...iowaFoodPlaces,
     ...umnFoodPlaces,
     ...psuFoodPlaces,
