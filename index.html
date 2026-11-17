@@ -957,7 +957,7 @@
     osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
     wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
-    psu: "Penn State food places haven't been added yet, so this list is empty for now.",
+    psu: "Hours are from Penn State Dining, including this week and Thanksgiving week for the commons. HUB Dining, Starbucks, and Panera don't post break hours, and nothing is posted after Dec 18, so those days say \"Hours not confirmed\".",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
   };
 
@@ -1426,7 +1426,83 @@
       hours: byWeekday([[540, 1020]], [[420, 1140]], [[420, 1140]], [[540, 1020]]),
       specialHours: { "2026-11-24": [[420, 1020]], ...closedOn("2026-11-25", "2026-11-28") } },
   ].map((place) => ({ ...place, unknownDates: [["2026-12-18", "2027-08-31"]], campus: "osu", checked: "2026-11" }));
+  // Penn State food near Pattee, Hammond, Davey, and the HUB, from Penn State Dining's locations and hours page
+  // (liveon.psu.edu/university-park/dining/location-hours, checked 2026-11-16). Dining commons and markets post their
+  // Fall 2026 hours, this week's adjusted hours, and Thanksgiving week (Nov 22-28). HUB Dining, Starbucks, and Panera
+  // post only a regular week, so Thanksgiving week is unconfirmed for them. Nothing is posted after the fall semester.
+  const hubRobeson = [40.79823, -77.86103];
+  const pollockCommons = [40.80195, -77.8565];
+  const rediferCommons = [40.79955, -77.85584];
+  const waringCommons = [40.79576, -77.86742];
+  const warnockCommons = [40.80281, -77.8661];
+  const psuHallKind = "Penn State dining commons · all you care to eat · meal plan or pay at the door";
+  // Breakfast and lunch overlap, so a weekday buffet runs straight from breakfast through lunch.
+  const psuBuffet = (dinner) => byWeekday([[630, 840], dinner], [[420, 840], dinner], [[420, 840], dinner], [[630, 840], dinner]);
+  const psuFoodPlaces = [
+    { name: "Pollock Commons Buffet", kind: psuHallKind, isHall: true, location: pollockCommons, hours: psuBuffet([990, 1200]),
+      specialHours: { ...closedOn("2026-11-22", "2026-11-27"), "2026-11-28": [[630, 840], [990, 1200]] } },
+    { name: "Southside Buffet (Redifer Commons)", kind: psuHallKind, isHall: true, location: rediferCommons,
+      hours: byWeekday([[630, 840], [1020, 1260]], [[420, 840], [1020, 1260]], [[420, 840], [1020, 1200]], [[630, 840], [1020, 1200]]),
+      specialHours: { ...during("2026-11-22", "2026-11-27", [[660, 810], [1020, 1140]]), "2026-11-28": [[630, 840], [1020, 1200]] } },
+    { name: "Waring Square Buffet (West Halls)", kind: psuHallKind, isHall: true, location: waringCommons, hours: psuBuffet([1020, 1200]),
+      specialHours: closedOn("2026-11-22", "2026-11-28") },
+    { name: "Northside Buffet (Warnock Commons)", kind: psuHallKind, isHall: true, location: warnockCommons, hours: psuBuffet([1020, 1200]),
+      specialHours: { ...closedOn("2026-11-22", "2026-11-27"), "2026-11-28": [[1020, 1200]] } },
+    { name: "East Food District Buffet (Findlay Commons)", kind: psuHallKind, isHall: true, location: [40.80644, -77.86228],
+      hours: Array(7).fill([[420, 840], [1020, 1260]]),
+      specialHours: { "2026-11-21": [[420, 840], [1020, 1200]], ...closedOn("2026-11-22", "2026-11-27"), "2026-11-28": [[630, 840], [1020, 1200]] } },
+    { name: "Market Pollock", kind: "Fast food · market", location: pollockCommons,
+      hours: byWeekday([[480, 1440]], [[420, 1440]], [[420, 1440]], [[480, 1440]]),
+      specialHours: { "2026-11-20": [[420, 1320]], "2026-11-21": [[480, 1260]], "2026-11-22": [[480, 780]],
+        ...closedOn("2026-11-23", "2026-11-27"), "2026-11-28": [[480, 1260]] } },
+    { name: "Fresco @ Pollock", kind: "Restaurant · Italian", location: pollockCommons, hours: Array(7).fill([[660, 1380]]),
+      specialHours: { "2026-11-20": [[660, 1260]], ...closedOn("2026-11-21", "2026-11-28") } },
+    { name: "Edge @ Pollock", kind: "Cafe", location: pollockCommons,
+      hours: byWeekday([[480, 840]], [[420, 960]], [[420, 960]], [[480, 840]]),
+      specialHours: { ...closedOn("2026-11-22", "2026-11-27"), "2026-11-28": [[480, 840]] } },
+    { name: "Louie's Market (Redifer Commons)", kind: "Fast food · market", location: rediferCommons,
+      hours: byWeekday([[480, 1440]], [[420, 1440]], [[420, 1440]], [[480, 1440]]),
+      specialHours: { "2026-11-20": [[420, 1320]], "2026-11-21": [[480, 1260]], ...during("2026-11-22", "2026-11-27", [[480, 1200]]),
+        "2026-11-28": [[480, 1260]] } },
+    { name: "Redifer City Grill (Redifer Commons)", kind: "Fast food · burgers", location: rediferCommons,
+      hours: byWeekday([[660, 1380]], [[660, 1380]], [[660, 1380]], []),
+      specialHours: { "2026-11-20": [[660, 1260]], ...closedOn("2026-11-22", "2026-11-28") } },
+    { name: "Choolaah Indian BBQ (Redifer Commons)", kind: "Restaurant · Indian", location: rediferCommons,
+      hours: byWeekday([[720, 1260]], [[720, 1260]], [], []), specialHours: closedOn("2026-11-22", "2026-11-28") },
+    { name: "Market West (Waring Commons)", kind: "Fast food · market", location: waringCommons,
+      hours: byWeekday([[540, 1380]], [[420, 1380]], [[420, 1380]], [[540, 1380]]),
+      specialHours: { "2026-11-20": [[420, 1320]], "2026-11-21": [[540, 1260]], "2026-11-22": [[480, 780]],
+        ...closedOn("2026-11-23", "2026-11-27"), "2026-11-28": [[540, 1260]] } },
+    { name: "State Chik'n (Waring Commons)", kind: "Fast food · chicken", location: waringCommons,
+      hours: byWeekday([[780, 1260]], [[660, 1260]], [[660, 1260]], [[780, 1260]]),
+      specialHours: { ...closedOn("2026-11-21", "2026-11-27"), "2026-11-28": [[660, 1200]] } },
+    { name: "Market North (Warnock Commons)", kind: "Fast food · market", location: warnockCommons,
+      hours: byWeekday([[540, 1380]], [[420, 1380]], [[420, 1380]], [[540, 1380]]),
+      specialHours: { "2026-11-20": [[420, 1320]], "2026-11-21": [[540, 1260]], "2026-11-22": [[480, 780]],
+        ...closedOn("2026-11-23", "2026-11-27"), "2026-11-28": [[540, 1260]] } },
+    ...[
+      { name: "Starbucks (HUB-Robeson Center)", kind: "Cafe · coffee", location: hubRobeson,
+        hours: byWeekday([[660, 1140]], [[450, 1320]], [[450, 1020]], [[660, 1140]]) },
+      { name: "Starbucks (Paterno Library)", kind: "Cafe · coffee", location: [40.79847, -77.86538],
+        hours: byWeekday([[660, 1140]], [[465, 1320]], [[465, 1020]], [[660, 1140]]) },
+      { name: "Panda Express (HUB)", kind: "Fast food · Chinese", location: hubRobeson,
+        hours: byWeekday([[660, 1200]], [[540, 1260]], [[540, 1140]], [[660, 1020]]) },
+      { name: "Hibachi-San (HUB)", kind: "Fast food · Japanese", location: hubRobeson,
+        hours: byWeekday([[720, 1140]], [[540, 1140]], [[540, 1080]], []) },
+      { name: "McAlister's Deli (HUB)", kind: "Fast food · sandwiches", location: hubRobeson, hours: byWeekday([], [[660, 1140]], [[660, 1140]], []) },
+      { name: "Sbarro (HUB)", kind: "Fast food · pizza", location: hubRobeson, hours: byWeekday([], [[660, 1200]], [[660, 1200]], []) },
+      { name: "Burger King (HUB)", kind: "Fast food · burgers", location: hubRobeson, hours: byWeekday([], [[510, 960]], [[510, 960]], []) },
+      { name: "Jamba (HUB)", kind: "Cafe · smoothies", location: hubRobeson, hours: byWeekday([], [[600, 1020]], [[600, 1020]], []) },
+      { name: "Blue Burrito (HUB)", kind: "Fast food · Mexican", location: hubRobeson, hours: byWeekday([], [[600, 900]], [[600, 900]], []) },
+      { name: "Grate Chee (HUB)", kind: "Fast food · grilled cheese", location: hubRobeson, hours: byWeekday([], [[600, 900]], [[600, 900]], []) },
+      { name: "Slim Chickens (HUB)", kind: "Fast food · chicken", location: hubRobeson, hours: byWeekday([], [[600, 900]], [[600, 900]], []) },
+      { name: "Soup & Garden (HUB)", kind: "Fast food · soup and salad", location: hubRobeson, hours: byWeekday([], [[600, 900]], [[600, 900]], []) },
+      { name: "Panera (Kern Building)", kind: "Cafe · bakery", location: [40.79726, -77.86848], hours: byWeekday([], [[420, 1140]], [[420, 1020]], []) },
+      { name: "Panera (Westgate Building)", kind: "Cafe · bakery", location: [40.79363, -77.86843], hours: byWeekday([], [[420, 1020]], [[420, 960]], []) },
+    ].map((place) => ({ ...place, unknownDates: [["2026-11-21", "2026-11-29"]] })),
+  ].map((place) => ({ ...place, unknownDates: [...(place.unknownDates ?? []), ["2026-12-19", "2027-08-31"]], campus: "psu", checked: "2026-11" }));
   const foodPlaces = [
+    ...psuFoodPlaces,
     ...osuFoodPlaces,
     ...wiscFoodPlaces,
     ...rutgersFoodPlaces,
