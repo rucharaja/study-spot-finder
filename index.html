@@ -1007,7 +1007,7 @@
     osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
     wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
-    umn: "Minnesota food places haven't been added yet, so this list is empty for now.",
+    umn: "Hours are from M Food Co. (University of Minnesota Dining), including Thanksgiving week. Nothing is posted after Dec 16 yet, so from Dec 17 on those days say \"Hours not confirmed\".",
     psu: "Hours are from Penn State Dining, including this week and Thanksgiving week for the commons. HUB Dining, Starbucks, and Panera don't post break hours, and nothing is posted after Dec 18, so those days say \"Hours not confirmed\".",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
   };
@@ -1552,7 +1552,78 @@
       { name: "Panera (Westgate Building)", kind: "Cafe · bakery", location: [40.79363, -77.86843], hours: byWeekday([], [[420, 1020]], [[420, 960]], []) },
     ].map((place) => ({ ...place, unknownDates: [["2026-11-21", "2026-11-29"]] })),
   ].map((place) => ({ ...place, unknownDates: [...(place.unknownDates ?? []), ["2026-12-19", "2027-08-31"]], campus: "psu", checked: "2026-11" }));
+  // Minnesota food near Walter, Wilson, and Coffman, from M Food Co.'s hours page (dineoncampus.com/UMN/hours-of-operation,
+  // checked 2026-11-17). It posts every week through Dec 16, including Thanksgiving (short hours Nov 25, closed Nov 26-27).
+  // From Dec 17 every place reads "Closed" even into spring semester, so those dates are unconfirmed rather than closed.
+  // Comstock's dining hall is left out because only Comstock and Yudof residents can eat there.
+  const coffmanUnion = [44.97282, -93.23535];
+  const blegenHall = [44.97202, -93.24334];
+  const nelsonHall = [44.97046, -93.24477];
+  const middlebrookHall = [44.96975, -93.24099];
+  const sanfordHall = [44.98047, -93.24082];
+  const umnHallKind = "Minnesota dining hall · all you care to eat · meal plan or pay at the door";
+  // Thanksgiving week: shorter hours (or closed) on Wednesday, then closed Thursday and Friday.
+  const umnThanksgiving = (wednesday) => ({ "2026-11-25": wednesday, ...closedOn("2026-11-26", "2026-11-27") });
+  // Most campus cafés and restaurants open only Monday to Friday.
+  const umnWeekdays = (monToThu, friday) => byWeekday([], monToThu, friday, []);
+  const umnFoodPlaces = [
+    { name: "Pioneer Dining Hall & Market", kind: umnHallKind, isHall: true, location: [44.97087, -93.22942],
+      hours: byWeekday([[420, 1320]], [[420, 1320]], [[420, 1200]], [[420, 1200]]), specialHours: umnThanksgiving([[420, 840]]) },
+    { name: "Middlebrook Dining Hall", kind: umnHallKind, isHall: true, location: middlebrookHall,
+      hours: byWeekday([[420, 1320]], [[420, 1320]], [[420, 1200]], [[420, 1200]]), specialHours: umnThanksgiving([[420, 840]]) },
+    { name: "Sanford Dining Hall", kind: umnHallKind, isHall: true, location: sanfordHall,
+      hours: byWeekday([[540, 1200]], [[420, 1200]], [[420, 1200]], [[540, 1200]]), specialHours: umnThanksgiving([[420, 840]]) },
+    { name: "17th Ave. Dining Hall", kind: umnHallKind, isHall: true, location: [44.97827, -93.23094],
+      hours: byWeekday([[420, 1260]], [[420, 1260]], [[420, 1200]], [[420, 1200]]), specialHours: umnThanksgiving([[360, 840]]) },
+    { name: "Market @ Middlebrook", kind: "Fast food · market", location: middlebrookHall,
+      hours: byWeekday([[810, 1440]], [[660, 1440]], [[660, 1440]], [[810, 1440]]), specialHours: umnThanksgiving([]) },
+    { name: "Market @ Sanford", kind: "Fast food · market", location: sanfordHall,
+      hours: byWeekday([[810, 1440]], [[660, 1440]], [[660, 1440]], [[810, 1440]]), specialHours: umnThanksgiving([]) },
+    { name: "Starbucks (Coffman Union)", kind: "Cafe · coffee", location: coffmanUnion,
+      hours: umnWeekdays([[450, 1080]], [[450, 960]]), specialHours: umnThanksgiving([[480, 840]]) },
+    { name: "Einstein Bros. Bagels (Coffman Union)", kind: "Cafe · bagels", location: coffmanUnion,
+      hours: umnWeekdays([[450, 960]], [[450, 870]]), specialHours: umnThanksgiving([[450, 840]]) },
+    { name: "Market @ Coffman", kind: "Fast food · market", location: coffmanUnion,
+      hours: umnWeekdays([[510, 1200]], [[510, 960]]), specialHours: umnThanksgiving([[600, 840]]) },
+    { name: "SONIC (Coffman Union)", kind: "Fast food · burgers", location: coffmanUnion,
+      hours: umnWeekdays([[600, 1200]], [[600, 900]]), specialHours: umnThanksgiving([[600, 840]]) },
+    { name: "Panda Express (Coffman Union)", kind: "Fast food · Chinese", location: coffmanUnion,
+      hours: umnWeekdays([[600, 1200]], [[600, 960]]), specialHours: umnThanksgiving([[600, 840]]) },
+    { name: "Erbert & Gerbert's (Coffman Union)", kind: "Fast food · sandwiches", location: coffmanUnion,
+      hours: umnWeekdays([[600, 1080]], [[600, 900]]), specialHours: umnThanksgiving([]) },
+    { name: "King's Hawaiian Grill (Coffman Union)", kind: "Fast food · Hawaiian", location: coffmanUnion,
+      hours: umnWeekdays([[570, 930]], [[540, 870]]), specialHours: umnThanksgiving([[570, 840]]) },
+    { name: "Holy Guacamole (Coffman Union)", kind: "Fast food · Mexican", location: coffmanUnion,
+      hours: umnWeekdays([[600, 930]], [[600, 750]]), specialHours: umnThanksgiving([[600, 840]]) },
+    { name: "Wild Blue Sushi (Coffman Union)", kind: "Fast food · sushi", location: coffmanUnion,
+      hours: umnWeekdays([[600, 870]], [[600, 870]]), specialHours: umnThanksgiving([[600, 840]]) },
+    { name: "Wise Owl Cafe (Walter Library)", kind: "Cafe · coffee", location: [44.97536, -93.2363],
+      hours: umnWeekdays([[540, 1050]], [[540, 900]]), specialHours: umnThanksgiving([]) },
+    { name: "Starbucks (Lind Hall)", kind: "Cafe · coffee", location: [44.97452, -93.23353],
+      hours: umnWeekdays([[480, 1020]], [[480, 900]]), specialHours: umnThanksgiving([]) },
+    { name: "The Bistro (Northrop)", kind: "Cafe", location: [44.97648, -93.23537],
+      hours: umnWeekdays([[480, 1020]], [[480, 900]]), specialHours: umnThanksgiving([]) },
+    { name: "Caribou Coffee (Moos Tower)", kind: "Cafe · coffee", location: [44.9729, -93.23142],
+      hours: umnWeekdays([[420, 1020]], [[420, 960]]), specialHours: umnThanksgiving([[480, 840]]) },
+    { name: "Subway (Blegen Hall)", kind: "Fast food · sandwiches", location: blegenHall,
+      hours: umnWeekdays([[540, 1020]], [[540, 900]]), specialHours: umnThanksgiving([[600, 840]]) },
+    { name: "True North Coffee (Blegen Hall)", kind: "Cafe · coffee", location: blegenHall,
+      hours: umnWeekdays([[480, 900]], [[480, 900]]), specialHours: umnThanksgiving([[480, 840]]) },
+    { name: "Market @ Blegen", kind: "Fast food · market", location: blegenHall,
+      hours: umnWeekdays([[540, 1020]], [[540, 900]]), specialHours: umnThanksgiving([[420, 840]]) },
+    { name: "Legal Grounds (Mondale Hall)", kind: "Cafe · coffee", location: [44.97308, -93.24427],
+      hours: umnWeekdays([[480, 900]], [[480, 900]]), specialHours: umnThanksgiving([[480, 840]]) },
+    { name: "Panda Express (Nelson Hall)", kind: "Fast food · Chinese", location: nelsonHall,
+      hours: umnWeekdays([[600, 1020]], []), specialHours: umnThanksgiving([]) },
+    { name: "The Halal Shack (Nelson Hall)", kind: "Fast food · halal", location: nelsonHall,
+      hours: umnWeekdays([[600, 1020]], []), specialHours: umnThanksgiving([]) },
+    { name: "Market @ CSOM (Nelson Hall)", kind: "Fast food · market", location: nelsonHall,
+      hours: umnWeekdays([[600, 1020]], [[540, 900]]), specialHours: umnThanksgiving([]) },
+    { name: "Caribou Coffee (Hanson Hall)", kind: "Cafe · coffee", location: [44.96945, -93.24465],
+      hours: umnWeekdays([[420, 1080]], [[420, 900]]), specialHours: umnThanksgiving([]) },
+  ].map((place) => ({ ...place, unknownDates: [["2026-12-17", "2027-08-31"]], campus: "umn", checked: "2026-11" }));
   const foodPlaces = [
+    ...umnFoodPlaces,
     ...psuFoodPlaces,
     ...osuFoodPlaces,
     ...wiscFoodPlaces,
