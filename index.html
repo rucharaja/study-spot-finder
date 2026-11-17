@@ -405,6 +405,7 @@
         <option value="iu">IU (Bloomington)</option>
         <option value="umich">Michigan (Ann Arbor)</option>
         <option value="osu">Ohio State (Columbus)</option>
+        <option value="psu">Penn State (University Park)</option>
         <option value="purdue">Purdue (West Lafayette)</option>
         <option value="rutgers">Rutgers (New Brunswick)</option>
         <option value="wisc">Wisconsin (Madison)</option>
@@ -904,13 +905,47 @@
       specialHours: { ...during("2026-11-25", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-18", HOURS_UNCONFIRMED),
         ...during("2027-03-13", "2027-03-21", HOURS_UNCONFIRMED), ...during("2027-05-13", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
-  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots];
+  // Penn State (University Park), from Penn State University Libraries' LibCal hours (libraries.psu.edu/hours, posted
+  // through May 8, checked 2026-11-16). Thanksgiving break is the week of Nov 22, winter break runs to Jan 10, and
+  // spring break is the week of Mar 7. The HUB has no posted building hours; Penn State News says it "remains open
+  // 24/7 for students", so class days show 24 hours and breaks say "Hours not confirmed".
+  // Libraries close over Thanksgiving week, winter break, and MLK weekend, and keep short weekday hours in early January
+  // and over spring break.
+  const psuBreaks = (januaryHours, springBreakHours = januaryHours) => ({
+    ...during("2026-11-22", "2026-11-29", null), ...during("2026-12-19", "2027-01-03", null),
+    ...during("2027-01-04", "2027-01-08", januaryHours, null), ...during("2027-01-09", "2027-01-10", null),
+    ...during("2027-01-17", "2027-01-18", null), ...during("2027-03-07", "2027-03-07", null),
+    ...during("2027-03-08", "2027-03-12", springBreakHours, null), ...during("2027-03-13", "2027-03-14", null),
+    ...during("2027-05-09", "2027-08-31", HOURS_UNCONFIRMED) });
+  const psuSpots = [
+    { id: "psu-pattee", campus: "psu", type: "library", name: "Pattee and Paterno Library", offers: [], location: [40.79813, -77.86577],
+      keywords: "pattee paterno main library knowledge commons penn state psu",
+      hours: [[h(11), h(24)], [h(7.75), h(24)], [h(7.75), h(24)], [h(7.75), h(24)], [h(7.75), h(24)], [h(7.75), h(19)], [h(11), h(19)]],
+      specialHours: { ...psuBreaks([h(9), h(17)], [h(7.75), h(17)]), ...during("2026-11-20", "2026-11-20", [h(7.75), h(17)]),
+        ...during("2026-11-21", "2026-11-21", null), ...during("2026-11-23", "2026-11-24", [h(9), h(17)]),
+        ...during("2026-12-18", "2026-12-18", [h(7.75), h(17)]) } },
+    { id: "psu-engineering", campus: "psu", type: "library", name: "Engineering Library (Hammond)", offers: [], location: [40.79365, -77.86312],
+      keywords: "engineering library hammond penn state psu",
+      hours: [[h(13), h(17)], [h(9), h(21)], [h(9), h(21)], [h(9), h(21)], [h(9), h(21)], [h(9), h(17)], null],
+      specialHours: psuBreaks([h(10), h(14)], [h(13), h(17)]) },
+    { id: "psu-pms", campus: "psu", type: "library", name: "Physical and Mathematical Sciences Library (Davey)", offers: [], location: [40.7982, -77.86284],
+      keywords: "physical mathematical sciences pms library davey lab math physics penn state psu",
+      hours: [[h(13), h(21)], [h(9), h(22)], [h(9), h(22)], [h(9), h(22)], [h(9), h(22)], [h(9), h(17)], null],
+      specialHours: psuBreaks([h(13), h(17)]) },
+    { id: "psu-hub", campus: "psu", type: "union", name: "HUB-Robeson Center", offers: [], location: [40.79823, -77.86103],
+      keywords: "hub robeson center student union penn state psu",
+      hours: sameEveryDay(0, 24),
+      specialHours: { ...during("2026-11-21", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-10", HOURS_UNCONFIRMED),
+        ...during("2027-03-06", "2027-03-14", HOURS_UNCONFIRMED), ...during("2027-05-09", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
+  const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
+    ...psuSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
-    wisc: "Wisconsin", rutgers: "Rutgers" };
+    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
-    rutgers: "Search: alex, lsm, carr" };
+    rutgers: "Search: alex, lsm, carr", psu: "Search: pattee, hub, engineering" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
@@ -922,6 +957,7 @@
     osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
     wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
+    psu: "Penn State food places haven't been added yet, so this list is empty for now.",
     purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
   };
 
@@ -1540,6 +1576,10 @@
   spotIcons["ru-lsm"] = spotIcons.lhs;
   spotIcons["ru-carr"] = spotIcons.main;
   spotIcons["ru-casc"] = spotIcons.union;
+  spotIcons["psu-pattee"] = spotIcons.main;
+  spotIcons["psu-engineering"] = spotIcons.grainger;
+  spotIcons["psu-pms"] = spotIcons.idea;
+  spotIcons["psu-hub"] = spotIcons.union;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
