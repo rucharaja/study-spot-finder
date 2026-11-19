@@ -404,6 +404,7 @@
       <optgroup label="Big Ten">
         <option value="iu">IU (Bloomington)</option>
         <option value="iowa">Iowa (Iowa City)</option>
+        <option value="umd">Maryland (College Park)</option>
         <option value="umich">Michigan (Ann Arbor)</option>
         <option value="umn">Minnesota (Twin Cities)</option>
         <option value="unl">Nebraska (Lincoln)</option>
@@ -1065,16 +1066,66 @@
       specialHours: { ...during("2026-11-25", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-01-10", HOURS_UNCONFIRMED),
         ...during("2027-03-14", "2027-03-21", HOURS_UNCONFIRMED), ...during("2027-05-08", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // Maryland (College Park), from UMD Libraries' LibCal hours (lib.umd.edu/visit/hours, McKeldin and Hornbake posted through
+  // Aug 21, 2027, the STEM Library through May 11) and the Stamp's hours of operation (stamp.umd.edu/visit/hours_operation,
+  // posted through Jan 3), checked 2026-11-18. McKeldin stays open overnight Sunday to Friday during the semester. Times are
+  // Maryland's own (Eastern), like Ohio State and Penn State.
+  const umdWinterWeek = [null, [h(8), h(17)], [h(8), h(17)], [h(8), h(17)], [h(8), h(17)], [h(8), h(17)], null];
+  const mckeldinEarlySpringWeek = [[h(11), h(23)], [h(8), h(23)], [h(8), h(23)], [h(8), h(23)], [h(8), h(23)], [h(8), h(20)], [h(11), h(20)]];
+  const mckeldinSummerWeek = [[h(14), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(18)], [h(11), h(18)]];
+  const umdSpots = [
+    { id: "umd-mckeldin", campus: "umd", type: "library", name: "McKeldin Library", offers: [], location: [38.98595, -76.94511],
+      keywords: "mckeldin library terrapin learning commons tlc mall umd maryland terps",
+      hours: [[h(11), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(20)], [h(11), h(20)]],
+      specialHours: { ...during("2026-11-22", "2026-11-22", [h(11), h(23)]), ...during("2026-11-23", "2026-11-23", [h(8), h(23)]),
+        ...during("2026-11-24", "2026-11-24", [h(8), h(17)]), ...during("2026-11-25", "2026-11-28", null),
+        ...during("2026-12-11", "2026-12-17", [h(0), h(24)]), ...during("2026-12-18", "2026-12-18", [h(0), h(23)]),
+        ...during("2026-12-19", "2026-12-20", [h(10), h(23)]), ...during("2026-12-21", "2026-12-21", [h(8), h(23)]),
+        ...during("2026-12-22", "2026-12-23", [h(8), h(17)]), ...during("2026-12-24", "2027-01-03", null),
+        ...weeklyDuring("2027-01-04", "2027-01-26", umdWinterWeek), ...during("2027-01-18", "2027-01-18", null),
+        ...weeklyDuring("2027-01-27", "2027-02-06", mckeldinEarlySpringWeek), ...during("2027-03-12", "2027-03-12", [h(0), h(17)]),
+        ...during("2027-03-13", "2027-03-20", null), ...during("2027-05-07", "2027-05-07", [h(0), h(23)]),
+        ...during("2027-05-08", "2027-05-08", [h(10), h(23)]), ...during("2027-05-09", "2027-05-09", [h(10), h(24)]),
+        ...during("2027-05-10", "2027-05-19", [h(0), h(24)]), ...during("2027-05-20", "2027-05-20", [h(0), h(23)]),
+        ...during("2027-05-21", "2027-05-21", [h(8), h(17)]), ...weeklyDuring("2027-05-22", "2027-05-29", umdWinterWeek),
+        ...weeklyDuring("2027-05-30", "2027-08-21", mckeldinSummerWeek), ...during("2027-05-30", "2027-05-31", null),
+        ...during("2027-06-17", "2027-06-17", [h(8), h(17)]), ...during("2027-06-18", "2027-06-19", null),
+        ...during("2027-07-04", "2027-07-05", null), ...during("2027-07-10", "2027-07-11", null),
+        ...during("2027-08-21", "2027-08-21", null), ...during("2027-08-22", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "umd-hornbake", campus: "umd", type: "library", name: "Hornbake Library", offers: [], location: [38.98822, -76.94155],
+      keywords: "hornbake library umd maryland terps",
+      hours: [null, [h(7), h(22)], [h(7), h(22)], [h(7), h(22)], [h(7), h(22)], [h(7), h(22)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-27", null), ...during("2026-12-11", "2026-12-11", [h(7), h(24)]),
+        ...during("2026-12-12", "2026-12-17", [h(0), h(24)]), ...during("2026-12-18", "2026-12-18", [h(0), h(22)]),
+        ...during("2026-12-24", "2027-01-03", null), ...during("2026-12-29", "2026-12-29", [h(7), h(22)]),
+        ...during("2027-01-18", "2027-01-18", null), ...during("2027-03-15", "2027-03-19", null),
+        ...during("2027-05-31", "2027-05-31", null), ...during("2027-06-18", "2027-06-18", null),
+        ...during("2027-07-05", "2027-07-05", null), ...during("2027-08-22", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "umd-stem", campus: "umd", type: "library", name: "STEM Library", offers: [], location: [38.98894, -76.93934],
+      keywords: "stem library engineering physical sciences epsl umd maryland terps",
+      hours: [null, [h(8), h(21)], [h(8), h(21)], [h(8), h(21)], [h(8), h(21)], [h(8), h(17)], null],
+      specialHours: { ...during("2026-11-24", "2026-11-24", [h(8), h(17)]), ...during("2026-11-25", "2026-11-27", null),
+        ...during("2026-12-22", "2027-01-03", null), ...weeklyDuring("2027-01-04", "2027-01-26", umdWinterWeek),
+        ...during("2027-01-18", "2027-01-18", null), ...during("2027-03-15", "2027-03-19", null),
+        ...during("2027-05-12", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "umd-stamp", campus: "umd", type: "union", name: "Stamp Student Union", offers: [], location: [38.98816, -76.94472],
+      keywords: "adele h stamp student union the stamp umd maryland terps",
+      hours: [[h(11), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(24)], [h(7), h(25.5)], [h(8), h(25.5)]],
+      specialHours: { ...during("2026-11-24", "2026-11-24", [h(7), h(22)]), ...during("2026-11-25", "2026-11-27", null),
+        ...during("2026-11-28", "2026-11-28", HOURS_UNCONFIRMED), ...during("2026-12-21", "2026-12-21", [h(7), h(22)]),
+        ...during("2026-12-22", "2026-12-23", [h(7), h(18)]), ...during("2026-12-24", "2026-12-24", HOURS_UNCONFIRMED),
+        ...during("2026-12-25", "2027-01-03", null), ...during("2027-01-04", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
   const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
-    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots];
+    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
-    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska" };
+    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
     rutgers: "Search: alex, lsm, carr", psu: "Search: pattee, hub, engineering",
     umn: "Search: walter, wilson, coffman", iowa: "Search: main, engineering, imu",
-    unl: "Search: love, adele, union" };
+    unl: "Search: love, adele, union", umd: "Search: mckeldin, stem, stamp" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
@@ -1086,6 +1137,7 @@
     osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
     wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
     rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
+    umd: "Maryland food places haven't been added yet, so this list is empty for now.",
     unl: "Hours are from UNL Dining and Nebraska Unions, including Thanksgiving break. Winter break, spring break, and summer hours aren't posted yet, so those days say \"Hours not confirmed\". The Union food court is closed for renovation.",
     iowa: "Hours are from University Housing and Dining and the IMU, including Thanksgiving week. Most places haven't posted winter break or spring yet, so those days say \"Hours not confirmed\".",
     umn: "Hours are from M Food Co. (University of Minnesota Dining), including Thanksgiving week. Nothing is posted after Dec 16 yet, so from Dec 17 on those days say \"Hours not confirmed\".",
@@ -2012,6 +2064,10 @@
   spotIcons["unl-love"] = spotIcons.main;
   spotIcons["unl-adele"] = spotIcons.idea;
   spotIcons["unl-union"] = spotIcons.union;
+  spotIcons["umd-mckeldin"] = spotIcons.main;
+  spotIcons["umd-hornbake"] = spotIcons.idea;
+  spotIcons["umd-stem"] = spotIcons.grainger;
+  spotIcons["umd-stamp"] = spotIcons.union;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
