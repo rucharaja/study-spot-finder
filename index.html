@@ -412,6 +412,7 @@
         <option value="psu">Penn State (University Park)</option>
         <option value="purdue">Purdue (West Lafayette)</option>
         <option value="rutgers">Rutgers (New Brunswick)</option>
+        <option value="ucla">UCLA (Los Angeles)</option>
         <option value="wisc">Wisconsin (Madison)</option>
       </optgroup>
     </select>
@@ -712,7 +713,7 @@
   // Purdue spots. Library hours come from Purdue Libraries' calendar (calendar.lib.purdue.edu/hours), checked 2026-11-15
   // and posted through April 3, 2027. WALC's doors open 7am to midnight to everyone; students with a Purdue ID can swipe in
   // all night, which the app can't check, so it shows the public hours. The Union posts only two weeks at a time
-  // (purdue.edu/operations/pmu/visit/hours, checked 2026-11-15), so its break dates say "Hours not confirmed".
+  // (purdue.edu/operations/pmu/visit/hours, checked 2026-11-15), so its break dates say "Hours TBD".
   const purdueSpots = [
     { id: "walc", campus: "purdue", type: "library", name: "Wilmeth Active Learning Center (WALC)", offers: [], location: [40.42738, -86.91323],
       keywords: "walc wilmeth library purdue",
@@ -739,7 +740,7 @@
   ];
   // IU Bloomington spots. Library hours come from IU Libraries' own data (libraries.indiana.edu/hours), checked 2026-11-15
   // and posted through May 7, 2027, including Thanksgiving, finals, winter break, and spring break. The IMU says only that it
-  // is open 6am to midnight and that break hours vary (imu.indiana.edu/about), so its break dates say "Hours not confirmed".
+  // is open 6am to midnight and that break hours vary (imu.indiana.edu/about), so its break dates say "Hours TBD".
   const iuSpots = [
     { id: "wells", campus: "iu", type: "library", name: "Herman B Wells Library", offers: [], location: [39.17105, -86.51685],
       keywords: "wells main library iu",
@@ -784,7 +785,7 @@
   // University of Michigan (Ann Arbor), from U-M Library's published hours (lib.umich.edu/locations-and-hours,
   // through May 8, 2027) and the Michigan Union's posted week (uunions.umich.edu/union), checked 2026-11-16.
   // Overnight, Shapiro and the Duderstadt Center need an MCard to get in. The Union hasn't posted 2026-27 break hours,
-  // so Thanksgiving, winter break, spring break (Mar 6-14, from the Regents' calendar), and summer say "Hours not confirmed".
+  // so Thanksgiving, winter break, spring break (Mar 6-14, from the Regents' calendar), and summer say "Hours TBD".
   const umichSummer = during("2027-05-09", "2027-08-29", HOURS_UNCONFIRMED);
   const umichSpots = [
     { id: "shapiro", campus: "umich", type: "library", name: "Shapiro Undergraduate Library", offers: [], location: [42.27563, -83.73719],
@@ -912,7 +913,7 @@
   // Penn State (University Park), from Penn State University Libraries' LibCal hours (libraries.psu.edu/hours, posted
   // through May 8, checked 2026-11-16). Thanksgiving break is the week of Nov 22, winter break runs to Jan 10, and
   // spring break is the week of Mar 7. The HUB has no posted building hours; Penn State News says it "remains open
-  // 24/7 for students", so class days show 24 hours and breaks say "Hours not confirmed".
+  // 24/7 for students", so class days show 24 hours and breaks say "Hours TBD".
   // Libraries close over Thanksgiving week, winter break, and MLK weekend, and keep short weekday hours in early January
   // and over spring break.
   const psuBreaks = (januaryHours, springBreakHours = januaryHours) => ({
@@ -1116,33 +1117,67 @@
         ...during("2026-12-22", "2026-12-23", [h(7), h(18)]), ...during("2026-12-24", "2026-12-24", HOURS_UNCONFIRMED),
         ...during("2026-12-25", "2027-01-03", null), ...during("2027-01-04", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // UCLA (Los Angeles), from UCLA Library's hours calendar (calendar.library.ucla.edu/hours), checked 2026-11-19. Powell is
+  // posted through Dec 19, the Research Library through Feb 6, and SEL/Boelter through Apr 3; later days say "Hours not
+  // confirmed". Night Powell, the overnight study hall for BruinCard holders, isn't counted as open. Times are Los Angeles's
+  // own (Pacific).
+  const uclaSpots = [
+    { id: "ucla-powell", campus: "ucla", type: "library", name: "Powell Library", offers: [], location: [34.07161, -118.44218],
+      keywords: "powell library night powell clicc undergraduate ucla bruins",
+      hours: [[h(10), h(21)], [h(8), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(18)], [h(10), h(18)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-29", null),
+        ...during("2026-12-04", "2026-12-04", [h(8), h(22)]), ...during("2026-12-05", "2026-12-06", [h(10), h(22)]),
+        ...during("2026-12-11", "2026-12-11", [h(8), h(17)]), ...during("2026-12-12", "2026-12-13", null),
+        ...during("2026-12-14", "2026-12-18", [h(10), h(16)]), ...during("2026-12-19", "2026-12-19", null),
+        ...during("2026-12-20", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "ucla-yrl", campus: "ucla", type: "library", name: "Charles E. Young Research Library", offers: [], location: [34.07500, -118.44150],
+      keywords: "yrl young research library charles ucla bruins",
+      hours: [[h(12), h(21)], [h(8), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(18)], [h(10), h(18)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-29", null),
+        ...during("2026-12-11", "2026-12-11", [h(8), h(17)]), ...during("2026-12-12", "2026-12-13", null),
+        ...during("2026-12-14", "2026-12-18", [h(10), h(16)]), ...during("2026-12-19", "2027-01-03", null),
+        ...during("2027-01-18", "2027-01-18", [h(9), h(17)]), ...during("2027-02-07", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "ucla-sel", campus: "ucla", type: "library", name: "Science and Engineering Library (Boelter Hall)", offers: [], location: [34.06915, -118.44330],
+      keywords: "sel boelter science engineering library samueli ucla bruins",
+      hours: [[h(13), h(20)], [h(8), h(21)], [h(8), h(21)], [h(8), h(21)], [h(8), h(21)], [h(8), h(18)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-29", null),
+        ...during("2026-11-30", "2026-12-04", [h(8), h(23)]), ...during("2026-12-06", "2026-12-06", [h(13), h(22)]),
+        ...during("2026-12-07", "2026-12-10", [h(8), h(23)]), ...during("2026-12-11", "2026-12-11", [h(8), h(17)]),
+        ...during("2026-12-12", "2027-01-02", null), ...during("2027-01-18", "2027-01-18", null),
+        ...during("2027-02-15", "2027-02-15", null), ...during("2027-03-07", "2027-03-07", [h(13), h(22)]),
+        ...during("2027-03-08", "2027-03-12", [h(8), h(23)]), ...during("2027-03-14", "2027-03-14", [h(13), h(22)]),
+        ...during("2027-03-15", "2027-03-18", [h(8), h(23)]), ...during("2027-03-19", "2027-03-19", [h(8), h(17)]),
+        ...during("2027-03-20", "2027-03-21", null), ...during("2027-03-22", "2027-03-25", [h(12), h(16)]),
+        ...during("2027-03-26", "2027-03-28", null), ...during("2027-04-04", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
   const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
-    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots];
+    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...uclaSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
-    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland" };
+    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland", ucla: "UCLA" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
     rutgers: "Search: alex, lsm, carr", psu: "Search: pattee, hub, engineering",
     umn: "Search: walter, wilson, coffman", iowa: "Search: main, engineering, imu",
-    unl: "Search: love, adele, union", umd: "Search: mckeldin, stem, stamp" };
+    unl: "Search: love, adele, union", umd: "Search: mckeldin, stem, stamp", ucla: "Search: powell, yrl, sel" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
+    ucla: "UCLA food places haven't been added yet, so this list is empty for now.",
     uiuc: `${osmFoodNote} Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.`,
     uic: osmFoodNote,
     uis: "Hours are from UIS Dining (uis.edu/dining), including Thanksgiving and winter break. Summer hours aren't posted yet.",
-    iu: "Hours are from IU Dining, including Thanksgiving and winter break. Spring break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
-    umich: "Hours are from MDining and University Unions. Only South Quad posts Thanksgiving hours, and break and summer hours aren't posted yet, so those days say \"Hours not confirmed\".",
-    osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours not confirmed\".",
-    wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
-    rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours not confirmed\".",
-    umd: "Hours are from UMD Dining, which posts four weeks at a time, through Dec 13 including Thanksgiving. Later days say \"Hours not confirmed\". Panda Express, Moby Freestyle, and Hibachi San in the Stamp don't post hours, so they aren't listed.",
-    unl: "Hours are from UNL Dining and Nebraska Unions, including Thanksgiving break. Winter break, spring break, and summer hours aren't posted yet, so those days say \"Hours not confirmed\". The Union food court is closed for renovation.",
-    iowa: "Hours are from University Housing and Dining and the IMU, including Thanksgiving week. Most places haven't posted winter break or spring yet, so those days say \"Hours not confirmed\".",
-    umn: "Hours are from M Food Co. (University of Minnesota Dining), including Thanksgiving week. Nothing is posted after Dec 16 yet, so from Dec 17 on those days say \"Hours not confirmed\".",
-    psu: "Hours are from Penn State Dining, including this week and Thanksgiving week for the commons. HUB Dining, Starbucks, and Panera don't post break hours, and nothing is posted after Dec 18, so those days say \"Hours not confirmed\".",
-    purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours not confirmed\".",
+    iu: "Hours are from IU Dining, including Thanksgiving and winter break. Spring break and summer hours aren't posted yet, so those days say \"Hours TBD\".",
+    umich: "Hours are from MDining and University Unions. Only South Quad posts Thanksgiving hours, and break and summer hours aren't posted yet, so those days say \"Hours TBD\".",
+    osu: "Hours are from Ohio State Dining, including Thanksgiving week. Winter break and spring hours aren't posted yet, so from Dec 18 on those days say \"Hours TBD\".",
+    wisc: "Hours are from the Wisconsin Union and University Housing. Union places haven't posted Thanksgiving or spring hours, and spring break and summer aren't posted, so those days say \"Hours TBD\".",
+    rutgers: "Hours are from Rutgers Dining and Student Centers. Dining posts Thanksgiving and winter break; student center restaurants don't, and spring break and summer aren't posted, so those days say \"Hours TBD\".",
+    umd: "Hours are from UMD Dining, which posts four weeks at a time, through Dec 13 including Thanksgiving. Later days say \"Hours TBD\". Panda Express, Moby Freestyle, and Hibachi San in the Stamp don't post hours, so they aren't listed.",
+    unl: "Hours are from UNL Dining and Nebraska Unions, including Thanksgiving break. Winter break, spring break, and summer hours aren't posted yet, so those days say \"Hours TBD\". The Union food court is closed for renovation.",
+    iowa: "Hours are from University Housing and Dining and the IMU, including Thanksgiving week. Most places haven't posted winter break or spring yet, so those days say \"Hours TBD\".",
+    umn: "Hours are from M Food Co. (University of Minnesota Dining), including Thanksgiving week. Nothing is posted after Dec 16 yet, so from Dec 17 on those days say \"Hours TBD\".",
+    psu: "Hours are from Penn State Dining, including this week and Thanksgiving week for the commons. HUB Dining, Starbucks, and Panera don't post break hours, and nothing is posted after Dec 18, so those days say \"Hours TBD\".",
+    purdue: "Hours are from Purdue Dining and Purdue Food Co., including Thanksgiving. Winter and spring break hours aren't posted yet, so those days say \"Hours TBD\".",
   };
 
   // The spots on one campus; UIUC spots don't name a campus.
@@ -1250,7 +1285,7 @@
   ];
   // Purdue food near WALC, Hicks, and the Union, checked 2026-11-15. Dining courts and Lawson On-the-GO! come from
   // Purdue Dining's own data (api.hfs.purdue.edu, "Fall 2026" hours), with meals joined where one runs into the next;
-  // it only lists about a week ahead, so breaks say "Hours not confirmed". Union and MSEE places come from Purdue Food Co.
+  // it only lists about a week ahead, so breaks say "Hours TBD". Union and MSEE places come from Purdue Food Co.
   // (purdue.mydininghub.com), which posts Thanksgiving hours but not winter or spring break yet.
   const purdueUnion = [40.42466, -86.91094];
   const byWeekday = (sunday, monToThu, friday, saturday) => [sunday, monToThu, monToThu, monToThu, monToThu, friday, saturday];
@@ -1305,7 +1340,7 @@
   const purdueFoodPlaces = [...purdueHalls, ...purdueRetail];
   // IU food near Wells Library and the IMU, from IU Dining (dining.indiana.edu/dining-hours, checked 2026-11-16):
   // fall 2026 hours, Thanksgiving (Nov 20-29), and winter break (through Jan 10, though the IMU list stops at Jan 8).
-  // Spring hours aren't posted, so the fall week is used; spring break and summer say "Hours not confirmed".
+  // Spring hours aren't posted, so the fall week is used; spring break and summer say "Hours TBD".
   const iuBreaks = [["2027-03-13", "2027-03-21"], ["2027-05-08", "2027-08-22"]];
   // Special hours from [start, end, periods] date ranges.
   const datedHours = (...ranges) => Object.assign({}, ...ranges.map(([start, end, periods]) => during(start, end, periods)));
@@ -1401,7 +1436,7 @@
   // Michigan food near Shapiro, the Union, and the Duderstadt Center, checked 2026-11-16. MDining places come from its
   // "Fall 2026 - Winter 2027" regular hours (dining.umich.edu/menus-locations/regularhours), with meals joined where one
   // runs into the next; Union and Pierpont restaurants come from uunions.umich.edu/eat. Only South Quad posts Thanksgiving
-  // hours, and nobody posts winter break, spring break (Mar 6-14), or summer yet, so those days say "Hours not confirmed".
+  // hours, and nobody posts winter break, spring break (Mar 6-14), or summer yet, so those days say "Hours TBD".
   const umichBreaks = [["2026-12-18", "2027-01-12"], ["2027-03-06", "2027-03-14"], ["2027-05-07", "2027-08-29"]];
   const umichThanksgiving = ["2026-11-25", "2026-11-29"];
   const umichHallKind = "Michigan dining hall · all you care to eat · meal plan or pay at the door";
@@ -1564,7 +1599,7 @@
   ].map((place) => ({ ...place, unknownDates: [...(place.unknownDates ?? []), ...rutgersBreaks], campus: "rutgers", checked: "2026-11" }));
   // Ohio State food near Thompson, 18th Avenue, and the Ohio Union, from Ohio State Dining's Autumn 2026 hours
   // (dining.osu.edu/hours, through Dec 17) and its Thanksgiving week page, checked 2026-11-16. Winter break and spring
-  // semester hours aren't posted yet, so from Dec 18 on everything says "Hours not confirmed".
+  // semester hours aren't posted yet, so from Dec 18 on everything says "Hours TBD".
   const ohioUnion = [39.99766, -83.00855];
   const kennedyCommons = [39.99652, -83.01396];
   const scottHouse = [40.0045, -83.01328];
@@ -2149,6 +2184,9 @@
   spotIcons["umd-hornbake"] = spotIcons.idea;
   spotIcons["umd-stem"] = spotIcons.grainger;
   spotIcons["umd-stamp"] = spotIcons.union;
+  spotIcons["ucla-powell"] = spotIcons.main;
+  spotIcons["ucla-yrl"] = spotIcons.idea;
+  spotIcons["ucla-sel"] = spotIcons.grainger;
 
   function spotIcon(spotId) {
     const icon = spotIcons[spotId];
@@ -2235,10 +2273,10 @@
   }
 
   function openStatus(spot, now) {
-    if (!spot.hours) return { isOpen: null, text: "Hours not confirmed" };
+    if (!spot.hours) return { isOpen: null, text: "Hours TBD" };
     const minutes = now.getHours() * 60 + now.getMinutes();
     const today = hoursOn(spot, now);
-    if (today === HOURS_UNCONFIRMED) return { isOpen: null, text: "Hours not confirmed" };
+    if (today === HOURS_UNCONFIRMED) return { isOpen: null, text: "Hours TBD" };
     const yesterday = hoursOn(spot, daysLater(now, -1));
     if (yesterday && yesterday[1] > h(24) && minutes < yesterday[1] - h(24)) {
       return openUntil(yesterday[1] - h(24), yesterday[1], minutes);
@@ -2454,7 +2492,7 @@
   function foodStatus(place, now) {
     const today = dateKeyFor(now);
     if (place.unknownDates?.some(([start, end]) => today >= start && today <= end)) {
-      return { isOpen: null, text: "Hours not confirmed" };
+      return { isOpen: null, text: "Hours TBD" };
     }
     const minutes = now.getHours() * 60 + now.getMinutes();
     const lastNight = foodHoursOn(place, daysLater(now, -1)).find(([, close]) => close > 1440 && minutes < close - 1440);
@@ -2536,7 +2574,7 @@
       const date = daysLater(now, daysAhead);
       const label = daysAhead === 0 ? "Today" : `${dayNames[date.getDay()]} ${monthNames[date.getMonth()]} ${date.getDate()}`;
       const key = dateKeyFor(date);
-      if (place.unknownDates?.some(([start, end]) => key >= start && key <= end)) return { label, text: "Hours not confirmed" };
+      if (place.unknownDates?.some(([start, end]) => key >= start && key <= end)) return { label, text: "Hours TBD" };
       const periods = foodHoursOn(place, date);
       if (periods.length === 0) return { label, text: "Closed" };
       if (periods.length === 1 && periods[0][0] === 0 && periods[0][1] === 1440) return { label, text: "Open 24 hours" };
@@ -2962,7 +3000,7 @@
       const hours = hoursOn(spot, date);
       const label = daysAhead === 0 && startsToday ? "Today" : `${dayNames[date.getDay()]} ${monthNames[date.getMonth()]} ${date.getDate()}`;
       let text = "Closed";
-      if (hours === HOURS_UNCONFIRMED) text = "Hours not confirmed";
+      if (hours === HOURS_UNCONFIRMED) text = "Hours TBD";
       else if (hours?.[0] === 0 && hours[1] === h(24)) text = "Open 24 hours";
       else if (hours) text = `${formatTime(hours[0])} – ${formatTime(hours[1])}`;
       return { label, text };
