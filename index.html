@@ -372,6 +372,21 @@
     color: #ffffff; font-weight: 700; }
   .skip-link:focus { top: 12px; outline: 2px solid var(--illini-orange); }
   #spot-list:focus { outline: none; }
+  .instead-line { margin: 4px 0 6px; color: var(--open); font-size: .85rem; font-weight: 600; }
+  .stale-hours { margin: 4px 0 0; color: var(--closed); font-size: .78rem; font-weight: 600; }
+  .exam-note { margin: 0; color: var(--accent); font-size: .85rem; font-weight: 700; }
+  .exam-form { display: flex; flex-wrap: wrap; gap: 6px; }
+  .exam-form input { flex: 1 1 140px; min-width: 0; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; max-width: 260px; margin-top: 4px; }
+  .calendar-day { color: var(--muted); font-size: .65rem; text-align: center; }
+  .calendar-cell { aspect-ratio: 1; border-radius: 3px; border: 1px solid var(--border); background: var(--card); }
+  .calendar-cell.level-1 { background: color-mix(in srgb, var(--illini-orange) 30%, var(--card)); border-color: transparent; }
+  .calendar-cell.level-2 { background: color-mix(in srgb, var(--illini-orange) 65%, var(--card)); border-color: transparent; }
+  .calendar-cell.level-3 { background: var(--illini-orange); border-color: transparent; }
+  .calendar-cell.future { opacity: .35; }
+  .session-progress { flex: 1 1 100%; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .25); overflow: hidden; }
+  .session-progress span { display: block; height: 100%; width: 0; background: var(--illini-orange); transition: width 1s linear; }
+  button.share-week { position: sticky; left: 0; margin: 6px 8px 0; }
   .card-note { display: block; margin-top: 2px; color: var(--muted); font-size: .78rem; font-style: italic; }
   .spot-stats { margin: 4px 0 0; color: var(--accent); font-size: .8rem; font-weight: 600; }
   button.empty-now-spot { min-height: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
@@ -510,6 +525,7 @@
     <button class="plan-reset" id="session-pause">Pause</button>
     <button class="plan-reset" id="session-stop">Stop</button>
     <div class="session-checkin" id="session-checkin" role="group" hidden></div>
+    <span class="session-progress" aria-hidden="true"><span id="session-progress-fill"></span></span>
   </div>
   <section class="tips" id="tips" aria-labelledby="tips-heading" hidden>
     <h2 id="tips-heading">How it works</h2>
@@ -551,6 +567,7 @@
   </label>
   <p class="time-zone-note" id="time-zone-note" hidden></p>
   <p class="time-zone-note outside-note" id="outside-note"></p>
+  <p class="exam-note" id="exam-note" hidden></p>
   <div class="find-school-row"><button class="clear-reports find-school" id="find-school" type="button">Find my school near me</button>
     <p class="time-zone-note" id="find-school-status" aria-live="polite"></p></div>
   <div class="recent-schools" id="recent-schools" role="group" aria-label="Recent schools" hidden></div>
@@ -613,6 +630,7 @@
     <button class="find-closest" id="sort-food-by-distance">Sort by distance from me</button>
     <div class="food-sort-row">
       <button class="offer" id="food-open-latest" aria-pressed="false">Open latest first</button>
+      <button class="offer" id="food-starred-only" aria-pressed="false">Starred only</button>
       <label class="food-from-label">Distance from <select id="food-from" class="food-from"></select></label>
     </div>
     <div class="closest-result" id="food-location-result" role="status"></div>
@@ -696,6 +714,7 @@
       <p class="study-summary" id="study-summary"></p>
       <p class="study-summary report-count" id="report-count" hidden></p>
       <div class="study-chart" id="study-chart" hidden></div>
+      <div class="study-calendar" id="study-calendar" hidden></div>
       <ul class="recent-sessions" id="recent-sessions" aria-label="Recent study sessions" hidden></ul>
       <span class="offer-filter-label" id="goal-label">Weekly goal</span>
       <div class="offer-choices" role="group" aria-labelledby="goal-label">
@@ -711,6 +730,17 @@
       </div>
       <label class="switch-row"><input type="checkbox" id="session-alerts"> Notify me when a timer ends or a spot I asked about opens</label>
       <p class="map-note" id="session-alerts-note">Works while the app is open in a tab. On iPhone, add the app to your home screen first.</p>
+    </div>
+    <div class="setting">
+      <span class="offer-filter-label">My exams</span>
+      <p class="map-note">Add an exam to count down to it at the top of the page. Saved only on this device.</p>
+      <div class="exam-form">
+        <input type="text" id="exam-name" maxlength="40" placeholder="Like: CS 124 final" aria-label="Exam name">
+        <input type="date" id="exam-date" aria-label="Exam date">
+        <button class="offer" id="add-exam">Add</button>
+      </div>
+      <p class="location-problem" id="exam-error" role="alert" hidden>Add a name and a date.</p>
+      <ul class="recent-sessions" id="exam-list"></ul>
     </div>
     <div class="setting" id="reminder-setting" hidden>
       <span class="offer-filter-label">Your reminders</span>
@@ -3454,7 +3484,8 @@
   // note is the viewer's own note on the spot, so "outlets by the windows" finds the spot it was written for.
   function matchesSearch(spot, query, note = "") {
     const cleanQuery = query.trim().toLowerCase();
-    const text = `${spot.name} ${spot.keywords ?? ""} ${note}`.toLowerCase();
+    const offers = (spot.offers ?? []).map((offerId) => offerLabels[offerId] ?? "").join(" ");
+    const text = `${spot.name} ${spot.keywords ?? ""} ${offers} ${note}`.toLowerCase();
     if (!cleanQuery || text.includes(cleanQuery)) return true;
     const textWords = text.split(/[^a-z0-9]+/).filter(Boolean);
     return cleanQuery.split(/\s+/).every((queryWord) => textWords.some((word) => word.includes(queryWord)
@@ -4293,6 +4324,66 @@
     return `${text.length} / ${NOTE_LIMIT}`;
   }
 
+  // The last five weeks of study time for a calendar, Sunday-first rows ending with this week: [[{ date, minutes }]].
+  function studyCalendar(log, now, weeks = 5) {
+    const thisSunday = daysLater(now, -now.getDay());
+    return Array.from({ length: weeks }, (_, week) => Array.from({ length: 7 }, (__, day) => {
+      const date = daysLater(thisSunday, (week - weeks + 1) * 7 + day);
+      const key = dateKeyFor(date);
+      return { date, minutes: log.filter((entry) => dateKeyFor(new Date(entry.endTime)) === key).reduce((total, entry) => total + entry.minutes, 0) };
+    }));
+  }
+  // How dark a calendar square is: 0 for none, then 1 (under 30 min), 2 (under 90), 3 (90 or more).
+  function studyLevel(minutes) {
+    return minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 90 ? 2 : 3;
+  }
+
+  // Which panel a "?view=" link opens: "food", "map", or "week", or null.
+  function viewFromLink(search) {
+    const match = /[?&]view=(food|map|week)(?:&|#|$)/.exec(search ?? "");
+    return match ? match[1] : null;
+  }
+
+  // Every spot's week as text, for sharing a school's hours in a group chat.
+  function weekTableText(spots, now, campusName) {
+    const { days, rows } = weekTable(spots, now);
+    return [`This week's hours at ${campusName}:`, ...rows.map(({ spot, cells }) =>
+      `${spot.name}: ${cells.map(({ text }, index) => `${days[index]} ${text}`).join(", ")}`)].join("\n");
+  }
+
+  // Days since a school's hours were checked, or null when unknown.
+  function hoursAgeDays(campus, nowMs) {
+    const date = hoursCheckedOn[campus];
+    if (!date) return null;
+    const [year, month, day] = date.split("-").map(Number);
+    return Math.floor((nowMs - new Date(year, month - 1, day).getTime()) / 86400000);
+  }
+
+  // How far through a study session is, from 0 to 1, including when paused.
+  function sessionProgress(session, nowMs) {
+    const total = (session.minutes ?? 0) * 60000;
+    if (!total) return 0;
+    return Math.min(1, Math.max(0, 1 - sessionTimeLeft(session, nowMs) / total));
+  }
+
+  // Exams you've added: a name (up to 40 letters) and a date ("YYYY-MM-DD"), soonest first; bad entries are skipped.
+  function addExam(exams, name, date) {
+    const cleanName = (name ?? "").trim().slice(0, 40);
+    if (!cleanName || !/^\d{4}-\d{2}-\d{2}$/.test(date ?? "")) return null;
+    return [...exams, { name: cleanName, date }].sort((a, b) => a.date.localeCompare(b.date));
+  }
+  // "CS 124 final in 12 days (Fri, Dec 11)" for the next exam today or later, or "" when there isn't one.
+  function nextExamText(exams, now) {
+    const todayKey = dateKeyFor(now);
+    const next = exams.find((exam) => exam.date >= todayKey);
+    if (!next) return "";
+    const [year, month, day] = next.date.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    const days = Math.round((date - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+    const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+    return `${next.name} ${when} (${dayNames[date.getDay()]}, ${monthNames[date.getMonth()]} ${date.getDate()})`;
+  }
+
   // The day and part of the day a report falls in. Late night counts toward the evening it started.
   function timeBlock(time) {
     const date = new Date(time);
@@ -4736,6 +4827,14 @@
       `<li><span class="study-bar-value" aria-hidden="true">${minutes ? shortDuration(minutes) : ""}</span>
         <span class="study-bar" style="height:${Math.max(minutes ? 6 : 2, Math.round(minutes / most * 64))}px"></span>
         <span class="study-bar-label">${label}</span><span class="visually-hidden">: ${minutes ? formatDuration(minutes) : "none"}</span></li>`).join("")}</ul>`;
+    const calendar = studyCalendar(studyLog, now);
+    const calendarBox = document.getElementById("study-calendar");
+    calendarBox.hidden = calendar.every((week) => week.every(({ minutes }) => minutes === 0));
+    calendarBox.innerHTML = calendarBox.hidden ? "" : `<p class="offer-filter-label">Last 5 weeks</p><div class="calendar-grid" role="img"
+      aria-label="Study time each day over the last five weeks">${dayNames.map((name) => `<span class="calendar-day">${name[0]}</span>`).join("")}${calendar.flat()
+      .map(({ date, minutes }) => `<span class="calendar-cell level-${studyLevel(minutes)}${date > now ? " future" : ""}"
+        title="${monthNames[date.getMonth()]} ${date.getDate()}: ${minutes ? formatDuration(minutes) : "no study"}"></span>`).join("")}</div>
+      <p class="map-note">Darker squares mean more study time that day.</p>`;
     const sessionList = document.getElementById("recent-sessions");
     const sessions = recentSessions(studyLog, allSpots);
     sessionList.hidden = sessions.length === 0;
@@ -4871,7 +4970,7 @@
 
   // Each filter button says how many spots it would leave, so a filter that matches nothing is clear before tapping it.
   function renderOfferButtons() {
-    const labels = { ...offerLabels, [LATE_FOOD_FILTER]: "Late food nearby", [OPEN_LATE_FILTER]: "Open past 11pm", [REPORTED_EMPTY_FILTER]: "Reported empty" };
+    const labels = { ...offerLabels, [LATE_FOOD_FILTER]: "Late food nearby", [OPEN_LATE_FILTER]: `Open past ${formatTime(23 * 60)}`, [REPORTED_EMPTY_FILTER]: "Reported empty" };
     const counts = filterCounts(withoutHidden(currentSpots(), hiddenSpotIds, showHiddenSpots), displayTime(), visibleReports(),
       searchText, selectedCategoryId, selectedOfferIds, Object.keys(labels));
     document.getElementById("offer-choices").innerHTML = Object.entries(labels).map(([offerId, label]) =>
@@ -4914,17 +5013,24 @@
       `<dt>${label}</dt><dd>${text}${miniDayBar(spot, daysLater(displayTime(), daysAhead))}</dd>`).join("");
     const source = hoursSourceFor(spot);
     const checked = hoursCheckedText(spot.campus ?? "uiuc");
+    const age = hoursAgeDays(spot.campus ?? "uiuc", Date.now());
+    const staleLine = age > 30 ? `<p class="stale-hours">These hours were checked ${age} days ago and may have changed. Check the official page.</p>` : "";
     const sourceLine = source ? `<p class="hours-source">Hours from the official page:
       <a href="${source}" target="_blank" rel="noopener">${new URL(source).hostname.replace(/^www\./, "")}</a>${checked ? `, ${checked}` : ""}. Check it before a long trip.</p>`
       : checked ? `<p class="hours-source">Hours ${checked}. Check before a long trip.</p>` : "";
     const shareHours = `<button class="clear-reports share-hours" data-action="share-hours" data-spot="${spot.id}">Share these hours</button>`;
+    const nowAtSpot = displayTime();
+    const instead = openStatus(spot, nowAtSpot).isOpen === false
+      ? tryNearbyInstead(spot, spotsOnCampus(withoutHidden(allSpots, hiddenSpotIds), spot.campus ?? "uiuc"), nowAtSpot, visibleReports()) : null;
+    const insteadLine = instead ? `<p class="instead-line">Open nearby instead: <button class="empty-now-spot" data-action="focus-spot" data-spot="${instead.spot.id}">${escapeHtml(instead.spot.name)}</button>,
+      ${describeDistance(instead.miles)}, ${openStatus(instead.spot, nowAtSpot).text.toLowerCase()}.</p>` : "";
     const closure = nextUnusualClosure(spot, displayTime());
     const closureLine = closure ? `<p class="hours-source">Next unusual closure: ${dayNames[closure.getDay()]}, ${monthNames[closure.getMonth()]} ${closure.getDate()}.</p>` : "";
     const stats = spotStats(spot.id, studyLog, reportHistory);
     const statsLine = stats.sessions || stats.reports ? `<p class="spot-stats">You: ${[
       stats.sessions ? `${stats.sessions} ${stats.sessions === 1 ? "session" : "sessions"} here (${formatDuration(stats.minutes)})` : "",
       stats.reports ? `${stats.reports} ${stats.reports === 1 ? "report" : "reports"}` : ""].filter(Boolean).join(", ")}.</p>` : "";
-    return `${offerTags}${timeline}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>${closureLine}${sourceLine}${shareHours}${statsLine}
+    return `${insteadLine}${offerTags}${timeline}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>${closureLine}${staleLine}${sourceLine}${shareHours}${statsLine}
       <div class="notes"><label for="note-${spot.id}">My notes (only on this device)</label>
         <textarea id="note-${spot.id}" data-note-spot="${spot.id}" rows="2" maxlength="${NOTE_LIMIT}"
           placeholder="Like: outlets by the east windows">${escapeHtml(spotNotes[spot.id] ?? "")}</textarea>
@@ -5118,12 +5224,46 @@
       ?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
   document.getElementById("last-spot").addEventListener("click", (event) => focusSpot(event.currentTarget.dataset.spot));
+  document.getElementById("week-table").addEventListener("click", (event) => {
+    if (event.target.closest("[data-share-week]")) shareText(weekTableText(withoutHidden(currentSpots(), hiddenSpotIds), campusNow(), campuses[selectedCampus]));
+  });
   for (const id of ["empty-now", "week-table"]) {
     document.getElementById(id).addEventListener("click", (event) => {
       const button = event.target.closest("[data-focus-spot]");
       if (button) focusSpot(button.dataset.focusSpot);
     });
   }
+
+  let exams = loadList("exams", (saved) => saved.filter((exam) => exam && typeof exam.name === "string" && /^\d{4}-\d{2}-\d{2}$/.test(exam.date ?? "")));
+  function renderExams() {
+    const now = new Date();
+    const text = nextExamText(exams, now);
+    const note = document.getElementById("exam-note");
+    note.hidden = !text;
+    note.textContent = text ? `Next exam: ${text}. You've got this.` : "";
+    const todayKey = dateKeyFor(now);
+    document.getElementById("exam-list").innerHTML = exams.filter((exam) => exam.date >= todayKey).map((exam, index) =>
+      `<li><span>${escapeHtml(exam.name)} · ${(() => { const [year, month, day] = exam.date.split("-").map(Number); const date = new Date(year, month - 1, day);
+        return `${dayNames[date.getDay()]}, ${monthNames[date.getMonth()]} ${date.getDate()}`; })()}</span><button class="clear-reports" data-remove-exam="${escapeHtml(exam.name)}|${exam.date}">Remove</button></li>`).join("");
+  }
+  document.getElementById("add-exam").addEventListener("click", () => {
+    const added = addExam(exams, document.getElementById("exam-name").value, document.getElementById("exam-date").value);
+    document.getElementById("exam-error").hidden = Boolean(added);
+    if (!added) return;
+    exams = added;
+    saveList("exams", exams);
+    document.getElementById("exam-name").value = "";
+    document.getElementById("exam-date").value = "";
+    renderExams();
+    showToast("Exam added. The countdown is at the top of the page.");
+  });
+  document.getElementById("exam-list").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-remove-exam]");
+    if (!button) return;
+    exams = exams.filter((exam) => `${exam.name}|${exam.date}` !== button.dataset.removeExam);
+    saveList("exams", exams);
+    renderExams();
+  });
 
   function renderReminderList() {
     const upcoming = upcomingReminders(openReminders, allSpots, Date.now());
@@ -5151,6 +5291,7 @@
       <thead><tr><th scope="col">Spot</th>${days.map((day, index) => `<th scope="col"${index === 0 ? ' class="wk-today"' : ""}>${day}</th>`).join("")}</tr></thead>
       <tbody>${rows.map(({ spot, cells }) => `<tr><th scope="row"><button class="week-spot" data-focus-spot="${spot.id}">${escapeHtml(spot.name)}</button></th>${cells
         .map(({ text, state }, index) => `<td class="wk-${state}${index === 0 ? " wk-today" : ""}">${text}</td>`).join("")}</tr>`).join("")}</tbody></table>
+      <button class="clear-reports share-week" data-share-week>Share this table</button>
       <p class="week-key"><span class="wk-open">Green</span>: open · <span class="wk-closed">Red</span>: closed · <span class="wk-tbd">TBD</span>: hours not posted yet · Shaded: today · Tap a name to open it</p>`;
   }
 
@@ -5174,6 +5315,7 @@
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     renderSchoolCounts();
     renderWeekTable();
+    renderExams();
     document.getElementById("reset-filters").hidden = !filtersAreSet();
     document.getElementById("center-on-me").hidden = !lastKnownLocation;
     renderReportCount();
@@ -5306,6 +5448,10 @@
       render();
       // The list was redrawn, so put keyboard focus back on the same star.
       document.querySelector(`button.favorite[data-spot="${spotId}"]`)?.focus();
+      return;
+    }
+    if (button.dataset.action === "focus-spot") {
+      focusSpot(button.dataset.spot);
       return;
     }
     if (button.dataset.action === "go-elsewhere") {
@@ -5592,6 +5738,9 @@
   let foodMode = "open";
   let selectedFoodType = "all";
   let foodSortLatest = false;
+  let foodStarredOnly = false;
+  let showHiddenFood = false;
+  let hiddenFoodKeys = loadList("hiddenFood", (saved) => saved.filter((key) => typeof key === "string"));
   // A study spot to measure food distances from, instead of the viewer's location ("" for the viewer).
   let foodFromSpotId = "";
   function renderFoodFrom() {
@@ -5610,8 +5759,10 @@
 
   function renderFood() {
     const now = displayTime();
+    const hiddenHere = foodOnCampus(foodPlaces, selectedCampus).filter((place) => hiddenFoodKeys.includes(foodKeyFor(place))).length;
     const campusFood = foodOnCampus(foodPlaces, selectedCampus)
-      .filter((place) => matchesFoodSearch(place, foodSearchText) && (selectedFoodType === "all" || foodType(place) === selectedFoodType));
+      .filter((place) => matchesFoodSearch(place, foodSearchText) && (selectedFoodType === "all" || foodType(place) === selectedFoodType)
+        && (!foodStarredOnly || foodFavoriteKeys.includes(foodKeyFor(place))) && (showHiddenFood || !hiddenFoodKeys.includes(foodKeyFor(place))));
     const latest = latestFoodTonight(foodOnCampus(foodPlaces, selectedCampus), now);
     const latestLine = document.getElementById("food-latest");
     latestLine.hidden = !latest;
@@ -5623,6 +5774,8 @@
     const foodList = document.getElementById("food-list");
     if (foodOnCampus(foodPlaces, selectedCampus).length === 0) {
       foodList.innerHTML = `<p class="food-empty">No food places are listed for ${campuses[selectedCampus]} yet.</p>`;
+    } else if (results.length === 0 && foodStarredOnly) {
+      foodList.innerHTML = `<p class="food-empty">None of your starred places match right now. Tap the star on a place to add it, or turn off Starred only.</p>`;
     } else if (results.length === 0 && selectedFoodType !== "all" && !foodSearchText.trim()) {
       const typeName = { meals: "meals", coffee: "coffee or snacks", market: "markets" }[selectedFoodType];
       const listName = { open: "open right now", late: "open late tonight", dining: "in the dining halls" }[foodMode];
@@ -5654,8 +5807,9 @@
             <textarea id="food-note-${escapeHtml(foodKey)}" data-note-food="${escapeHtml(foodKey)}" rows="2" maxlength="${NOTE_LIMIT}"
               placeholder="Like: mobile order ahead at lunch">${escapeHtml(foodNotes[foodKey] ?? "")}</textarea>
             <span class="note-count" aria-live="polite">${noteCountText(foodNotes[foodKey] ?? "")}</span>
-            <button class="clear-reports share-hours" data-share-food="${escapeHtml(foodKey)}">Share this place</button></div>` : ""}</li>`;
-      }).join("")}</ul>${results.length > FOOD_LIST_LENGTH
+            <button class="clear-reports share-hours" data-share-food="${escapeHtml(foodKey)}">Share this place</button>
+            <button class="clear-reports share-hours" data-hide-food="${escapeHtml(foodKey)}">${hiddenFoodKeys.includes(foodKey) ? "Show this place again" : "Hide this place"}</button></div>` : ""}</li>`;
+      }).join("")}</ul>${hiddenHere ? `<button class="clear-reports" id="toggle-hidden-food">${showHiddenFood ? "Leave hidden places out" : `Show ${hiddenHere} hidden ${hiddenHere === 1 ? "place" : "places"}`}</button>` : ""}${results.length > FOOD_LIST_LENGTH
         ? `<button class="show-all-food" id="show-all-food">${showAllFood ? "Show fewer" : `Show all ${results.length}`}</button>`
         : ""}`;
     }
@@ -5835,6 +5989,13 @@
     requestLocation(document.getElementById("closest-result"), showClosestSpots);
   });
 
+  document.getElementById("food-starred-only").addEventListener("click", (event) => {
+    foodStarredOnly = !foodStarredOnly;
+    event.currentTarget.setAttribute("aria-pressed", String(foodStarredOnly));
+    showAllFood = false;
+    renderFood();
+  });
+
   document.getElementById("food-open-latest").addEventListener("click", (event) => {
     foodSortLatest = !foodSortLatest;
     event.currentTarget.setAttribute("aria-pressed", String(foodSortLatest));
@@ -5999,6 +6160,27 @@
     try { return cleanFoodNotes(JSON.parse(localStorage.getItem("foodNotes") || "{}")); } catch { return {}; }
   })();
   document.getElementById("food-list").addEventListener("click", (event) => {
+    if (event.target.closest("#toggle-hidden-food")) {
+      showHiddenFood = !showHiddenFood;
+      renderFood();
+      return;
+    }
+    const hide = event.target.closest("[data-hide-food]");
+    if (hide) {
+      const key = hide.dataset.hideFood;
+      const before = hiddenFoodKeys;
+      const nowHidden = !hiddenFoodKeys.includes(key);
+      hiddenFoodKeys = nowHidden ? [...hiddenFoodKeys, key] : hiddenFoodKeys.filter((other) => other !== key);
+      saveList("hiddenFood", hiddenFoodKeys);
+      expandedFoodKey = null;
+      renderFood();
+      showToast(nowHidden ? `Hid ${key.split("|")[0]}. The "Show hidden" button at the end of the list brings it back.` : `${key.split("|")[0]} is back in your list.`, () => {
+        hiddenFoodKeys = before;
+        saveList("hiddenFood", hiddenFoodKeys);
+        renderFood();
+      });
+      return;
+    }
     const button = event.target.closest("[data-share-food]");
     if (!button) return;
     const place = foodPlaces.find((food) => foodKeyFor(food) === button.dataset.shareFood);
@@ -6540,6 +6722,7 @@
     banner.hidden = !studySession && !sessionPrompt;
     document.getElementById("session-checkin").hidden = !sessionPrompt;
     document.getElementById("session-stop").hidden = Boolean(sessionPrompt);
+    document.getElementById("session-progress-fill").style.width = studySession && !sessionPrompt ? `${(sessionProgress(studySession, Date.now()) * 100).toFixed(1)}%` : "0%";
     const pauseButton = document.getElementById("session-pause");
     pauseButton.hidden = Boolean(sessionPrompt) || !studySession;
     pauseButton.textContent = studySession?.pausedLeft !== undefined ? "Resume" : "Pause";
@@ -6787,13 +6970,13 @@
 
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
-    const keys = ["busynessReports", "lastFloors", "lastSpot", "recentSchools", "recentSearches", "foodNotes", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "contrast", "usualMinutes", "weather", "clock", "units", "studySession", "openOnly",
+    const keys = ["busynessReports", "lastFloors", "hiddenFood", "exams", "lastSpot", "recentSchools", "recentSearches", "foodNotes", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "contrast", "usualMinutes", "weather", "clock", "units", "studySession", "openOnly",
       "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders", "soundChoice", "soundVolume", "soundWithTimer"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
       hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders,
-      campus: selectedCampus, theme: themeChoice, large: document.documentElement.dataset.text === "large", lastSpot, lastFloors, recentCampuses, recentSearches, foodNotes, compact: document.documentElement.dataset.density === "compact",
+      campus: selectedCampus, theme: themeChoice, large: document.documentElement.dataset.text === "large", lastSpot, lastFloors, exams, hiddenFoodKeys, recentCampuses, recentSearches, foodNotes, compact: document.documentElement.dataset.density === "compact",
       contrast: document.documentElement.dataset.contrast === "high", units: { ...displayUnits } };
     favoriteIds = [];
     reportHistory = [];
@@ -6803,6 +6986,8 @@
     sessionPrompt = null;
     lastSpot = null;
     lastFloors = {};
+    exams = [];
+    hiddenFoodKeys = [];
     recentCampuses = [];
     recentSearches = [];
     foodNotes = {};
@@ -6824,7 +7009,7 @@
     showToast("Erased everything on this device.", () => {
       try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
       ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus,
-        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot, lastFloors, recentCampuses, recentSearches, foodNotes } = before);
+        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot, lastFloors, exams, hiddenFoodKeys, recentCampuses, recentSearches, foodNotes } = before);
       applyDisplaySettings(before.theme, before.large);
       applyCompactList(before.compact);
       applyUnits(before.units);
@@ -6944,14 +7129,19 @@
   const linkedSpot = spotFromLink(location.search, allSpots);
   if (linkedSpot) selectedCampus = linkedSpot.campus ?? "uiuc";
   const linkedSpotId = linkedSpot?.id ?? null;
+  // A "?view=" link (from a home screen shortcut) opens Food, the map, or this week's hours.
+  const linkedView = viewFromLink(location.search);
   // A "?school=" link opens on that school and remembers it, then leaves the address plain.
   const linkedSchool = linkedSpot ? null : schoolFromLink(location.search, campuses);
   if (linkedSchool) {
     selectedCampus = linkedSchool;
     saveCampus(selectedCampus);
-    history.replaceState(null, "", location.pathname);
   }
+  if (linkedSchool || linkedView) history.replaceState(null, "", location.pathname);
   applyCampus();
+  if (linkedView === "food") document.getElementById("food-toggle").click();
+  if (linkedView === "map") document.getElementById("map-toggle").click();
+  if (linkedView === "week") showWeekHours();
   if (linkedSpotId) {
     expandedSpotId = linkedSpotId;
     if (openStatus(linkedSpot, campusClock(linkedSpot.campus)).isOpen === false) showClosed = true;

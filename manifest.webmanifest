@@ -1,12 +1,17 @@
 {
   "name": "Study Spot Finder",
   "short_name": "Study Spots",
-  "description": "Find empty study spots and nearby food at UIUC",
+  "description": "Find empty study spots and nearby food at UIUC, the Big Ten, and more",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#13294b",
   "theme_color": "#13294b",
+  "shortcuts": [
+    { "name": "Food nearby", "short_name": "Food", "url": "./?view=food" },
+    { "name": "Map", "short_name": "Map", "url": "./?view=map" },
+    { "name": "This week's hours", "short_name": "This week", "url": "./?view=week" }
+  ],
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
