@@ -10,6 +10,7 @@
     const theme = localStorage.getItem("theme");
     if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     if (localStorage.getItem("textSize") === "large") document.documentElement.dataset.text = "large";
+    if (localStorage.getItem("compactList") === "on") document.documentElement.dataset.density = "compact";
   } catch { /* storage unavailable: use the defaults */ }
 </script>
 <link rel="manifest" href="manifest.webmanifest">
@@ -78,6 +79,13 @@
   .spot.some { background: var(--some-tint); border-left-color: var(--some); }
   .spot.packed { background: var(--packed-tint); border-left-color: var(--packed); }
   .spot.closed { opacity: .55; }
+  /* Compact list: each card keeps its name, status, and busyness, and folds the extra lines away until it's opened. */
+  html[data-density="compact"] .spot { min-height: 0; padding-top: 8px; padding-bottom: 8px; }
+  html[data-density="compact"] .spot:not(.expanded) :is(.food-line, .usual-line, .report-tags, .special-tag:not(.hidden-tag)) { display: none; }
+  html[data-density="compact"] .icon-tile { width: 36px; height: 36px; }
+  /* Star and Walk sit side by side at the top right, so a one-line card stays short. */
+  html[data-density="compact"] a.walk-link { top: 2px; right: 46px; }
+  html[data-density="compact"] .card-text { padding-right: 82px; }
   button.card-tap { display: block; width: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0;
     background: none; color: inherit; text-align: left; font-weight: inherit; }
   button.card-tap:focus-visible { outline: 2px solid var(--illini-orange); outline-offset: 4px; border-radius: 6px; }
@@ -204,6 +212,11 @@
   .time-zone-note { margin: 0; color: var(--muted); font-size: .8rem; }
   .find-school-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-top: -8px; }
   .find-school-row .time-zone-note:empty { display: none; }
+  .food-sort-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .food-from-label { display: flex; align-items: center; gap: 6px; flex: 1 1 200px; min-width: 0; max-width: 100%; color: var(--muted); font-size: .85rem; }
+  /* width: 0 with flex: 1 makes the menu fill the space left instead of growing to its longest spot name. */
+  select.food-from { flex: 1; width: 0; min-width: 0; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font: inherit; }
   .recent-schools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: -4px; color: var(--muted); font-size: .8rem; }
   .recent-schools button.offer { min-height: 36px; }
   .elsewhere { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; font-size: .85rem; }
@@ -319,6 +332,8 @@
   .week-hours { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: .8rem; color: var(--muted); }
   .week-hours dt { font-weight: 600; color: var(--text); }
   .week-hours dd { margin: 0; }
+  .mini-bar { position: relative; display: block; height: 5px; margin: 2px 0 3px; border-radius: 3px; overflow: hidden;
+    background: var(--border); background: color-mix(in srgb, var(--closed) 18%, var(--card)); }
   .notes { display: grid; gap: 4px; margin-top: 10px; }
   .notes label { font-size: .8rem; font-weight: 600; color: var(--muted); }
   .spot-distance { color: var(--muted); font-size: .8rem; white-space: nowrap; }
@@ -335,7 +350,10 @@
   .history-grid td.packed { background: var(--packed); border-color: var(--packed); }
   .session-choices { display: flex; gap: 6px; }
   .session-choices button.share-spot { flex: 1 1 0; width: auto; min-width: 0; margin-top: 10px; }
-  .session-banner { position: sticky; top: 76px; z-index: 5; }
+  .session-banner { position: sticky; top: 76px; z-index: 5; flex-wrap: wrap; }
+  /* The timer text takes the whole first line on a phone, with +5 min, Pause, and Stop on a row below. */
+  .session-banner #session-text { flex: 1 1 100%; }
+  @media (min-width: 600px) { .session-banner #session-text { flex: 1 1 auto; } }
   .session-banner.checking-in { flex-wrap: wrap; }
   .session-checkin { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
   .session-checkin[hidden] { display: none; }
@@ -429,6 +447,7 @@
 <main>
   <div class="plan-banner session-banner" id="session-banner" hidden>
     <span id="session-text" aria-live="off"></span>
+    <button class="plan-reset" id="session-extend" aria-label="Add 5 minutes">+5 min</button>
     <button class="plan-reset" id="session-pause">Pause</button>
     <button class="plan-reset" id="session-stop">Stop</button>
     <div class="session-checkin" id="session-checkin" role="group" hidden></div>
@@ -472,6 +491,7 @@
     </select>
   </label>
   <p class="time-zone-note" id="time-zone-note" hidden></p>
+  <p class="time-zone-note outside-note" id="outside-note"></p>
   <div class="find-school-row"><button class="clear-reports find-school" id="find-school" type="button">Find my school near me</button>
     <p class="time-zone-note" id="find-school-status" aria-live="polite"></p></div>
   <div class="recent-schools" id="recent-schools" role="group" aria-label="Recent schools" hidden></div>
@@ -482,6 +502,7 @@
     <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
     <input type="search" id="spot-search" placeholder="Search: law, sie, gies" aria-label="Search study spots" autocomplete="off">
   </div>
+  <div class="recent-schools recent-searches" id="recent-searches" role="group" aria-label="Recent searches" hidden></div>
   <div class="category-choices" id="category-choices" role="group" aria-label="Show one kind of place"></div>
   <div class="hint-row">
     <button class="filters-toggle" id="map-toggle" aria-expanded="false" aria-controls="map-panel">Map</button>
@@ -524,6 +545,10 @@
       <button class="offer" data-food-type="market" aria-pressed="false">Markets</button>
     </div>
     <button class="find-closest" id="sort-food-by-distance">Sort by distance from me</button>
+    <div class="food-sort-row">
+      <button class="offer" id="food-open-latest" aria-pressed="false">Open latest first</button>
+      <label class="food-from-label">Distance from <select id="food-from" class="food-from"></select></label>
+    </div>
     <div class="closest-result" id="food-location-result" role="status"></div>
     <input type="search" id="food-search" class="food-search" placeholder="Search food: pizza, coffee" aria-label="Search food">
     <div id="food-list" role="status"></div>
@@ -573,6 +598,7 @@
       </div>
     </div>
     <label class="switch-row"><input type="checkbox" id="large-text"> Larger text</label>
+    <label class="switch-row"><input type="checkbox" id="compact-list"> Compact list (name, status, and busyness only)</label>
     <div class="setting">
       <span class="offer-filter-label" id="maps-label">Walking directions open in</span>
       <div class="offer-choices" role="group" aria-labelledby="maps-label">
@@ -1511,6 +1537,62 @@
   // The official page a spot's hours come from, or null when there isn't one to link.
   function hoursSourceFor(spot) {
     return hoursSources[spot.campus ?? "uiuc"]?.[spot.type] ?? null;
+  }
+
+  // Sunrise and sunset on a calendar day at a place, as real moments, from NOAA's sunrise equation (accurate to a few
+  // minutes), so the app can say when it gets dark without going online.
+  function sunTimes(year, month, day, latitude, longitude) {
+    const rad = Math.PI / 180;
+    const midnightUtc = Date.UTC(year, month, day);
+    const dayOfYear = Math.round((midnightUtc - Date.UTC(year, 0, 1)) / 86400000) + 1;
+    const gamma = 2 * Math.PI / 365 * (dayOfYear - 1);
+    const equationOfTime = 229.18 * (0.000075 + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma)
+      - 0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma));
+    const declination = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma) - 0.006758 * Math.cos(2 * gamma)
+      + 0.000907 * Math.sin(2 * gamma) - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
+    const hourAngle = Math.acos(Math.cos(90.833 * rad) / (Math.cos(latitude * rad) * Math.cos(declination))
+      - Math.tan(latitude * rad) * Math.tan(declination)) / rad;
+    const atMinutes = (minutes) => new Date(midnightUtc + minutes * 60000);
+    return { sunrise: atMinutes(720 - 4 * (longitude + hourAngle) - equationOfTime), sunset: atMinutes(720 - 4 * (longitude - hourAngle) - equationOfTime) };
+  }
+
+  // The middle of a school's spots, for its sunset and weather.
+  function campusCenter(spots, campus) {
+    const onCampus = spotsOnCampus(spots, campus);
+    return [0, 1].map((index) => onCampus.reduce((total, spot) => total + spot.location[index], 0) / onCampus.length);
+  }
+
+  // "Sunset 4:31pm" during the day, "Dark since 4:31pm" in the evening, and "Sunrise 7:05am" after midnight, on the
+  // campus's clock.
+  function daylightNote(campus, spots, moment = new Date()) {
+    const [latitude, longitude] = campusCenter(spots, campus);
+    const clock = campusClock(campus, moment);
+    const today = sunTimes(clock.getFullYear(), clock.getMonth(), clock.getDate(), latitude, longitude);
+    const atCampus = (time) => { const local = campusClock(campus, time); return formatTime(local.getHours() * 60 + local.getMinutes()); };
+    if (moment < today.sunrise) return `Sunrise ${atCampus(today.sunrise)}`;
+    if (moment < today.sunset) return `Sunset ${atCampus(today.sunset)}`;
+    return `Dark since ${atCampus(today.sunset)}`;
+  }
+
+  // Words for Open-Meteo's weather codes (the WMO standard), like "light rain".
+  function weatherWords(code) {
+    if (code === 0) return "clear";
+    if (code <= 2) return "partly cloudy";
+    if (code === 3) return "cloudy";
+    if (code === 45 || code === 48) return "fog";
+    if (code >= 51 && code <= 57) return "drizzle";
+    if (code >= 61 && code <= 67) return "rain";
+    if (code >= 71 && code <= 77) return "snow";
+    if (code >= 80 && code <= 82) return "rain showers";
+    if (code >= 85 && code <= 86) return "snow showers";
+    if (code >= 95 && code <= 99) return "thunderstorms";
+    return "";
+  }
+  // "41°F, rain" from Open-Meteo's current conditions, or "" when the reply is missing pieces.
+  function weatherNote(current) {
+    if (!current || !Number.isFinite(current.temperature_2m)) return "";
+    const words = weatherWords(current.weather_code);
+    return `${Math.round(current.temperature_2m)}°F${words ? `, ${words}` : ""}`;
   }
 
   // How many spots are open right now at each school, each on its own clock, as { campus: count }.
@@ -3226,9 +3308,10 @@
 
   // A search matches part of a spot's name or one of its nicknames, ignoring case and extra spaces.
   // When nothing matches exactly, each typed word of 4+ letters may be one typo off the start of a word ("grainer").
-  function matchesSearch(spot, query) {
+  // note is the viewer's own note on the spot, so "outlets by the windows" finds the spot it was written for.
+  function matchesSearch(spot, query, note = "") {
     const cleanQuery = query.trim().toLowerCase();
-    const text = `${spot.name} ${spot.keywords ?? ""}`.toLowerCase();
+    const text = `${spot.name} ${spot.keywords ?? ""} ${note}`.toLowerCase();
     if (!cleanQuery || text.includes(cleanQuery)) return true;
     const textWords = text.split(/[^a-z0-9]+/).filter(Boolean);
     return cleanQuery.split(/\s+/).every((queryWord) => textWords.some((word) => word.includes(queryWord)
@@ -3352,13 +3435,13 @@
   }
 
   // Favorites come out separately, open or closed, so each spot appears once.
-  function spotsToShow(spots, now, reports, query, categoryId = "all", favoriteIds = [], offerIds = []) {
+  function spotsToShow(spots, now, reports, query, categoryId = "all", favoriteIds = [], offerIds = [], notes = {}) {
     const spotOffers = offerIds.filter((offerId) => ![LATE_FOOD_FILTER, OPEN_LATE_FILTER, REPORTED_EMPTY_FILTER].includes(offerId));
     const needsLateFood = offerIds.includes(LATE_FOOD_FILTER);
     const needsOpenLate = offerIds.includes(OPEN_LATE_FILTER);
     const needsReportedEmpty = offerIds.includes(REPORTED_EMPTY_FILTER);
     const matching = sortBestFirst(spots, now, reports).filter((spot) =>
-      matchesSearch(spot, query) && (categoryId === "all" || spot.type === categoryId) && hasAllOffers(spot, spotOffers)
+      matchesSearch(spot, query, notes[spot.id]) && (categoryId === "all" || spot.type === categoryId) && hasAllOffers(spot, spotOffers)
       && (!needsLateFood || nearestFood(spot, foodPlaces, now, true) !== null)
       && (!needsOpenLate || isOpenLateTonight(spot, now)) && (!needsReportedEmpty || isEmptyNow(spot, now, reports)));
     const isClosed = (spot) => openStatus(spot, now).isOpen === false;
@@ -3474,6 +3557,19 @@
     return withDistance.sort((a, b) => (here ? a.miles - b.miles : a.place.name.localeCompare(b.place.name)));
   }
 
+  // How many more minutes a food place stays open from now, checked in 15-minute steps (0 when closed).
+  function foodMinutesLeft(place, now) {
+    if (foodStatus(place, now).isOpen !== true) return 0;
+    for (let minutes = 15; minutes < 24 * 60; minutes += 15) {
+      if (foodStatus(place, new Date(now.getTime() + minutes * 60000)).isOpen !== true) return minutes;
+    }
+    return 24 * 60;
+  }
+  // Food list entries with the places that stay open latest first; ties keep their order.
+  function sortByFoodOpenLatest(entries, now) {
+    return [...entries].sort((a, b) => foodMinutesLeft(b.place, now) - foodMinutesLeft(a.place, now));
+  }
+
   // The nearest food within a short walk of a spot, or null. Meals only for a hall's residents don't count.
   function nearestFood(spot, places, now, lateOnly = false) {
     const usable = places.filter((place) => place.kind !== residentMealsKind);
@@ -3585,6 +3681,12 @@
     if (session.pausedLeft === undefined) return session;
     const { pausedLeft, ...rest } = session;
     return { ...rest, endTime: nowMs + pausedLeft };
+  }
+  // Adds minutes to a running or paused session (and to the length it logs).
+  function extendSession(session, minutes) {
+    const extra = minutes * 60000;
+    return { ...session, minutes: (session.minutes ?? 0) + minutes,
+      ...(session.pausedLeft !== undefined ? { pausedLeft: session.pausedLeft + extra } : { endTime: session.endTime + extra }) };
   }
   function sessionTimeLeft(session, nowMs) {
     return session.pausedLeft ?? Math.max(0, session.endTime - nowMs);
@@ -3993,6 +4095,22 @@
     return Number.isNaN(picked.getTime()) || picked.getTime() <= now.getTime() ? null : picked;
   }
 
+  // After a Packed report: the closest other spot that's open for at least 30 more minutes and not reported packed.
+  function tryNearbyInstead(spot, spots, now, reports) {
+    const options = spots.filter((other) => other.id !== spot.id && openStatus(other, now).isOpen === true
+      && !closesWithin(other, now, 30) && recentLevel(other, now, reports) !== "packed")
+      .map((other) => ({ spot: other, miles: distanceMiles(spot.location, other.location) }))
+      .sort((a, b) => a.miles - b.miles);
+    return options[0] ?? null;
+  }
+
+  // Searches worth repeating, latest first: at least 3 letters, no repeats (ignoring case), up to four.
+  function addRecentSearch(recent, term, max = 4) {
+    const clean = term.trim();
+    if (clean.length < 3) return recent;
+    return [clean, ...recent.filter((other) => other.toLowerCase() !== clean.toLowerCase())].slice(0, max);
+  }
+
   // Schools you've switched to, most recent first, without repeats.
   function addRecentCampus(recent, campus, max = 4) {
     return [campus, ...recent.filter((other) => other !== campus)].slice(0, max);
@@ -4300,7 +4418,7 @@
 
   // The open spots the list would show right now with the current search and filters, favorites first.
   function spotsMatchingNow(now) {
-    const shown = spotsToShow(withoutHidden(currentSpots(), hiddenSpotIds), now, reports, searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    const shown = spotsToShow(withoutHidden(currentSpots(), hiddenSpotIds), now, reports, searchText, selectedCategoryId, favoriteIds, selectedOfferIds, spotNotes);
     return [...shown.favoriteSpots, ...shown.openSpots];
   }
 
@@ -4403,7 +4521,8 @@
     }
     toast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove("show"), onUndo ? 7000 : 4000);
+    // Long messages (like a Packed report's suggestion) stay up long enough to read: about 0.3 s a word.
+    toastTimer = setTimeout(() => toast.classList.remove("show"), Math.max(onUndo ? 7000 : 4000, message.split(/\s+/).length * 300));
   }
 
   function updatePlanBanner() {
@@ -4485,7 +4604,8 @@
     const offerTags = spot.offers?.length ? `<span class="offer-tags">${spot.offers.map((offerId) =>
       `<span class="offer-tag">${offerLabels[offerId]}</span>`).join("")}</span>` : "";
     const timeline = todayTimelineHtml(spot);
-    const hours = weekHours(spot, displayTime(), viewTime === null).map(({ label, text }) => `<dt>${label}</dt><dd>${text}</dd>`).join("");
+    const hours = weekHours(spot, displayTime(), viewTime === null).map(({ label, text }, daysAhead) =>
+      `<dt>${label}</dt><dd>${text}${miniDayBar(spot, daysLater(displayTime(), daysAhead))}</dd>`).join("");
     const source = hoursSourceFor(spot);
     const sourceLine = source ? `<p class="hours-source">Hours from the official page:
       <a href="${source}" target="_blank" rel="noopener">${new URL(source).hostname.replace(/^www\./, "")}</a>. Check it before a long trip.</p>` : "";
@@ -4494,6 +4614,15 @@
       <div class="notes"><label for="note-${spot.id}">My notes (only on this device)</label>
         <textarea id="note-${spot.id}" data-note-spot="${spot.id}" rows="2" maxlength="${NOTE_LIMIT}"
           placeholder="Like: outlets by the east windows">${escapeHtml(spotNotes[spot.id] ?? "")}</textarea></div>`;
+  }
+
+  // A thin bar for one day in the week list: green while open, so the week's pattern shows at a glance.
+  function miniDayBar(spot, date) {
+    const stretches = todayOpenStretches(spot, date);
+    if (!stretches) return "";
+    const percent = (minutes) => `${(minutes / 1440 * 100).toFixed(2)}%`;
+    return `<span class="mini-bar" aria-hidden="true">${stretches.map(([start, end]) =>
+      `<span class="timeline-open" style="left:${percent(start)};width:${percent(end - start)}"></span>`).join("")}</span>`;
   }
 
   // A bar across the day: green while open, with a line at the current time (or the planned time).
@@ -4670,11 +4799,12 @@
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     renderSchoolCounts();
     renderWeekTable();
+    renderOutsideNote();
     renderQuickTimes();
     renderLastSpot();
     const list = document.getElementById("spot-list");
     list.innerHTML = "";
-    const shown = spotsToShow(withoutHidden(currentSpots(), hiddenSpotIds, showHiddenSpots), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
+    const shown = spotsToShow(withoutHidden(currentSpots(), hiddenSpotIds, showHiddenSpots), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds, spotNotes);
     // Nearest first and Open longest keep the same groups, but reorder each one.
     const byDistance = (spots) => {
       if (sortMode === "near" && lastKnownLocation) return sortByDistance(spots, lastKnownLocation);
@@ -4920,7 +5050,9 @@
     rememberLastSpot(spot.id);
     reportHistory = addToHistory(reportHistory, spot.id, level, reports[key].time);
     saveHistory(reportHistory);
-    showToast(reportConfirmation(spot, area, level, saveReports(reports), tags), () => {
+    const alternative = level === "packed" ? tryNearbyInstead(spot, spotsOnCampus(withoutHidden(allSpots, hiddenSpotIds), spot.campus ?? "uiuc"), campusClock(spot.campus), reports) : null;
+    const suggestion = alternative ? ` Try ${alternative.spot.name}: ${describeDistance(alternative.miles)}, ${openStatus(alternative.spot, campusClock(spot.campus)).text.toLowerCase()}.` : "";
+    showToast(`${reportConfirmation(spot, area, level, saveReports(reports), tags)}.${suggestion}`.replace(/\.\.$/, "."), () => {
       reports = undoReport(reports, key, previousReport);
       reportHistory = historyBefore;
       saveHistory(reportHistory);
@@ -4970,6 +5102,26 @@
     applyCampus();
   });
 
+  // Current weather per school, fetched at most every 15 minutes. Only the campus's location is sent, never the viewer's.
+  const weatherCache = {};
+  const WEATHER_REFRESH_MS = 15 * 60000;
+  function renderOutsideNote() {
+    const campus = selectedCampus;
+    const weather = weatherCache[campus]?.text;
+    document.getElementById("outside-note").textContent = `${daylightNote(campus, allSpots)}${weather ? ` · ${weather}` : ""}`;
+    const cached = weatherCache[campus];
+    if (!navigator.onLine || (cached && Date.now() - cached.time < WEATHER_REFRESH_MS)) return;
+    weatherCache[campus] = { text: weather ?? "", time: Date.now() };
+    const [latitude, longitude] = campusCenter(allSpots, campus);
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(3)}&longitude=${longitude.toFixed(3)}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((reply) => {
+        weatherCache[campus] = { text: weatherNote(reply?.current), time: Date.now() };
+        if (selectedCampus === campus) renderOutsideNote();
+      })
+      .catch(() => { /* no weather is fine: the sunset still shows */ });
+  }
+
   function applyCampus() {
     recentCampuses = addRecentCampus(recentCampuses, selectedCampus);
     saveList("recentSchools", recentCampuses);
@@ -4978,6 +5130,8 @@
     document.getElementById("tagline").textContent = `Find empty study spots at ${campuses[selectedCampus]}`;
     document.getElementById("spot-search").placeholder = searchHints[selectedCampus];
     document.getElementById("food-source").textContent = foodSourceNotes[selectedCampus];
+    renderOutsideNote();
+    renderFoodFrom();
     const zoneNote = document.getElementById("time-zone-note");
     zoneNote.textContent = timeZoneNote(selectedCampus);
     zoneNote.hidden = zoneNote.textContent === "";
@@ -5016,6 +5170,15 @@
   let foodPinLayer = null;
   let foodMode = "open";
   let selectedFoodType = "all";
+  let foodSortLatest = false;
+  // A study spot to measure food distances from, instead of the viewer's location ("" for the viewer).
+  let foodFromSpotId = "";
+  function renderFoodFrom() {
+    const select = document.getElementById("food-from");
+    if (!currentSpots().some((spot) => spot.id === foodFromSpotId)) foodFromSpotId = "";
+    select.innerHTML = `<option value="">${lastKnownLocation ? "you" : "you (tap above)"}</option>${currentSpots().map((spot) =>
+      `<option value="${spot.id}"${spot.id === foodFromSpotId ? " selected" : ""}>${escapeHtml(spot.name)}</option>`).join("")}`;
+  }
   let lastKnownLocation = null;
   let showAllFood = false;
   let foodSearchText = "";
@@ -5028,7 +5191,9 @@
     const now = displayTime();
     const campusFood = foodOnCampus(foodPlaces, selectedCampus)
       .filter((place) => matchesFoodSearch(place, foodSearchText) && (selectedFoodType === "all" || foodType(place) === selectedFoodType));
-    const results = favoriteFoodFirst(foodToShow(campusFood, now, foodMode, lastKnownLocation), foodFavoriteKeys);
+    const fromSpot = currentSpots().find((spot) => spot.id === foodFromSpotId);
+    const shownFood = foodToShow(campusFood, now, foodMode, fromSpot?.location ?? lastKnownLocation);
+    const results = favoriteFoodFirst(foodSortLatest ? sortByFoodOpenLatest(shownFood, now) : shownFood, foodFavoriteKeys);
     const listed = showAllFood ? results : results.slice(0, FOOD_LIST_LENGTH);
     const foodList = document.getElementById("food-list");
     if (foodOnCampus(foodPlaces, selectedCampus).length === 0) {
@@ -5196,11 +5361,27 @@
     requestLocation(document.getElementById("closest-result"), showClosestSpots);
   });
 
+  document.getElementById("food-open-latest").addEventListener("click", (event) => {
+    foodSortLatest = !foodSortLatest;
+    event.currentTarget.setAttribute("aria-pressed", String(foodSortLatest));
+    showAllFood = false;
+    renderFood();
+  });
+
+  document.getElementById("food-from").addEventListener("change", (event) => {
+    foodFromSpotId = event.target.value;
+    showAllFood = false;
+    renderFood();
+  });
+
   document.getElementById("sort-food-by-distance").addEventListener("click", () => {
+    foodFromSpotId = "";
+    renderFoodFrom();
     const result = document.getElementById("food-location-result");
     requestLocation(result, (here) => {
       result.textContent = "";
       showClosestSpots(here);
+      renderFoodFrom();
     });
   });
 
@@ -5405,6 +5586,17 @@
     const theme = button.dataset.themeChoice;
     try { localStorage.setItem("theme", theme); } catch { /* storage unavailable: keep for this visit */ }
     applyDisplaySettings(theme, document.documentElement.dataset.text === "large");
+  });
+
+  function applyCompactList(isCompact) {
+    if (isCompact) document.documentElement.dataset.density = "compact";
+    else delete document.documentElement.dataset.density;
+    document.getElementById("compact-list").checked = isCompact;
+  }
+  applyCompactList(document.documentElement.dataset.density === "compact");
+  document.getElementById("compact-list").addEventListener("change", (event) => {
+    try { localStorage.setItem("compactList", event.target.checked ? "on" : "off"); } catch { /* storage unavailable */ }
+    applyCompactList(event.target.checked);
   });
 
   document.getElementById("large-text").addEventListener("change", (event) => {
@@ -5739,6 +5931,7 @@
     const pauseButton = document.getElementById("session-pause");
     pauseButton.hidden = Boolean(sessionPrompt) || !studySession;
     pauseButton.textContent = studySession?.pausedLeft !== undefined ? "Resume" : "Pause";
+    document.getElementById("session-extend").hidden = Boolean(sessionPrompt) || !studySession;
     banner.classList.toggle("checking-in", Boolean(sessionPrompt));
     banner.classList.toggle("on-break", Boolean(studySession?.isBreak));
     banner.classList.toggle("paused", studySession?.pausedLeft !== undefined && !sessionPrompt);
@@ -5762,7 +5955,7 @@
       return;
     }
     if (studySession.isBreak) {
-      document.getElementById("session-text").textContent = `Break · ${formatTimer(studySession.endTime - now)} left`;
+      document.getElementById("session-text").textContent = `Break · ${formatTimer(studySession.endTime - now)} left · ends ${clockTime(studySession.endTime)}`;
       document.title = timerTitle(studySession.endTime - now).replace("left", "left on break");
       return;
     }
@@ -5776,7 +5969,7 @@
       notify(`${spot.name} closes soon`, `${spot.name} closes in about 15 minutes. Time to pack up.`);
       showToast(`${spot.name} closes in about 15 minutes. Time to pack up.`);
     }
-    document.getElementById("session-text").textContent = `Studying at ${spot.name} · ${formatTimer(studySession.endTime - now)} left${warning}`;
+    document.getElementById("session-text").textContent = `Studying at ${spot.name} · ${formatTimer(studySession.endTime - now)} left · ends ${clockTime(studySession.endTime)}${warning}`;
     document.title = timerTitle(studySession.endTime - now);
   }
 
@@ -5830,6 +6023,20 @@
     soundForTimer("timer-stop");
     if (wasBreak) showToast("Break ended");
     else showToast(studied >= 1 ? `Session stopped. Logged ${formatDuration(studied)} of study.` : "Session stopped");
+  });
+
+  // A moment as a time on this device's clock, like "4:15pm", for when a timer ends.
+  function clockTime(ms) {
+    const time = new Date(ms);
+    return formatTime(time.getHours() * 60 + time.getMinutes());
+  }
+
+  document.getElementById("session-extend").addEventListener("click", () => {
+    if (!studySession) return;
+    studySession = extendSession(studySession, 5);
+    saveSession(studySession);
+    updateSessionBanner();
+    showToast(studySession.isBreak ? "5 more minutes of break" : "5 more minutes added");
   });
 
   document.getElementById("session-pause").addEventListener("click", () => {
@@ -5959,13 +6166,13 @@
 
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
-    const keys = ["busynessReports", "lastSpot", "recentSchools", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
+    const keys = ["busynessReports", "lastSpot", "recentSchools", "recentSearches", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "studySession", "openOnly",
       "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders", "soundChoice", "soundVolume", "soundWithTimer"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
       hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders,
-      campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large", lastSpot, recentCampuses };
+      campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large", lastSpot, recentCampuses, recentSearches, compact: document.documentElement.dataset.density === "compact" };
     favoriteIds = [];
     reportHistory = [];
     spotNotes = {};
@@ -5974,6 +6181,7 @@
     sessionPrompt = null;
     lastSpot = null;
     recentCampuses = [];
+    recentSearches = [];
     openReminders = [];
     hiddenSpotIds = [];
     foodFavoriteKeys = [];
@@ -5984,13 +6192,15 @@
     sessionAlerts = false;
     selectedCampus = "uiuc";
     applyDisplaySettings("system", false);
+    applyCompactList(false);
     applyCampus();
     updateSessionBanner();
     showToast("Erased everything on this device.", () => {
       try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
       ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus,
-        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot, recentCampuses } = before);
+        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot, recentCampuses, recentSearches } = before);
       applyDisplaySettings(before.theme, before.large);
+      applyCompactList(before.compact);
       applyCampus();
       updateSessionBanner();
       showToast("Your data is back");
@@ -6043,6 +6253,35 @@
 
   document.getElementById("spot-search").addEventListener("input", (event) => {
     searchText = event.target.value;
+    renderRecentSearches();
+    render();
+  });
+
+  // Recent searches show as buttons while the search box is empty and in use.
+  let recentSearches = loadList("recentSearches", (saved) => saved.filter((term) => typeof term === "string").slice(0, 4));
+  function renderRecentSearches() {
+    const box = document.getElementById("recent-searches");
+    const searchBox = document.getElementById("spot-search");
+    const show = document.activeElement === searchBox && !searchBox.value.trim() && recentSearches.length > 0;
+    box.hidden = !show;
+    box.innerHTML = show ? `<span>Recent:</span>${recentSearches.map((term) =>
+      `<button class="offer" data-recent-search="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}` : "";
+  }
+  document.getElementById("spot-search").addEventListener("change", (event) => {
+    recentSearches = addRecentSearch(recentSearches, event.target.value);
+    saveList("recentSearches", recentSearches);
+  });
+  document.getElementById("spot-search").addEventListener("focus", renderRecentSearches);
+  document.getElementById("spot-search").addEventListener("blur", () => setTimeout(renderRecentSearches, 150));
+  // Pressing a button would take focus from the box and hide the row before the tap lands, so keep the focus.
+  document.getElementById("recent-searches").addEventListener("pointerdown", (event) => event.preventDefault());
+  document.getElementById("recent-searches").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-recent-search]");
+    if (!button) return;
+    const searchBox = document.getElementById("spot-search");
+    searchBox.value = button.dataset.recentSearch;
+    searchText = searchBox.value;
+    renderRecentSearches();
     render();
   });
 
