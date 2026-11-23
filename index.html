@@ -104,6 +104,12 @@
   button.last-spot .last-spot-status.open { color: var(--open); }
   button.last-spot .last-spot-status.closed { color: var(--closed); }
   .hours-source { margin: 4px 0 0; color: var(--muted); font-size: .75rem; }
+  .study-bars { display: flex; align-items: flex-end; gap: 6px; margin: 4px 0 0; padding: 0; list-style: none; }
+  .study-bars li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+  .study-bar { width: 100%; max-width: 28px; border-radius: 4px 4px 0 0; background: var(--illini-orange); }
+  .study-bar-value { min-height: 1em; color: var(--muted); font-size: .65rem; white-space: nowrap; }
+  .study-bar-label { color: var(--muted); font-size: .7rem; }
+  button.share-hours { margin-top: 2px; padding: 0; }
   .hours-source a { color: var(--accent); overflow-wrap: anywhere; }
   .timeline-bar { position: relative; height: 12px; border-radius: 6px; background: var(--border); background: color-mix(in srgb, var(--closed) 18%, var(--card)); overflow: hidden; }
   .timeline-open { position: absolute; top: 0; bottom: 0; background: var(--open); }
@@ -193,9 +199,15 @@
   .campus-choice { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: .9rem; font-weight: 600; color: var(--text); }
   .campus-choice select { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 999px; font: inherit; font-weight: 600;
     background: var(--illini-navy); color: #ffffff; border: 2px solid var(--illini-orange); }
+  /* Anything marked hidden stays hidden, even when its own style sets a display (like flex). */
+  [hidden] { display: none !important; }
   .time-zone-note { margin: 0; color: var(--muted); font-size: .8rem; }
   .find-school-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-top: -8px; }
   .find-school-row .time-zone-note:empty { display: none; }
+  .recent-schools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: -4px; color: var(--muted); font-size: .8rem; }
+  .recent-schools button.offer { min-height: 36px; }
+  .elsewhere { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; font-size: .85rem; }
+  .elsewhere button.offer { text-align: left; }
   button.find-school { margin-top: 0; padding: 0; }
   .category-choices { display: flex; gap: 6px; flex-wrap: wrap; }
   button.category { flex: 1 1 auto; min-height: 40px; padding: 0 8px; border-radius: 999px; border-width: 1px; font-size: .85rem;
@@ -253,6 +265,12 @@
   .floor-name { font-weight: 600; }
   .floor-level.empty { color: var(--empty); } .floor-level.some { color: var(--some); } .floor-level.packed { color: var(--packed); }
   .floor-age { margin-left: auto; color: var(--muted); }
+  dialog.shortcuts { width: min(92vw, 360px); padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); color: var(--text); }
+  dialog.shortcuts::backdrop { background: rgba(0, 0, 0, .4); }
+  dialog.shortcuts h2 { margin: 0 0 8px; font-size: 1rem; }
+  dialog.shortcuts button.find-closest { width: 100%; margin-top: 12px; }
+  dialog.shortcuts kbd { display: inline-block; min-width: 1.6em; padding: 1px 6px; border: 1px solid var(--border); border-radius: 6px; font: inherit; font-weight: 700; text-align: center; }
+  .report-tags { display: block; margin-top: 2px; color: var(--accent); font-size: .78rem; font-weight: 600; }
   .where { margin: 10px 0 0; font-size: .8rem; font-weight: 600; color: var(--muted); }
   .area-choices { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
   button.area { flex: none; min-height: 36px; padding: 0 12px; border-radius: 999px; border-width: 1px; font-size: .8rem;
@@ -456,6 +474,7 @@
   <p class="time-zone-note" id="time-zone-note" hidden></p>
   <div class="find-school-row"><button class="clear-reports find-school" id="find-school" type="button">Find my school near me</button>
     <p class="time-zone-note" id="find-school-status" aria-live="polite"></p></div>
+  <div class="recent-schools" id="recent-schools" role="group" aria-label="Recent schools" hidden></div>
   <button class="last-spot" id="last-spot" type="button" hidden></button>
   <section class="empty-now" id="empty-now" aria-live="polite" hidden></section>
   <div class="today-notes" id="today-notes"></div>
@@ -516,6 +535,7 @@
     <div class="plan-picker">
       <label class="offer-filter-label" for="view-time">Show what's open at</label>
       <input type="datetime-local" id="view-time">
+      <div class="offer-choices" id="quick-times" role="group" aria-label="Quick times to plan for"></div>
       <p class="location-problem" id="view-time-error" role="alert" hidden>Pick a time in the future.</p>
     </div>
     <button class="share-spot week-toggle" id="week-toggle" aria-expanded="false" aria-controls="week-table">This week's hours</button>
@@ -571,6 +591,7 @@
     <div class="setting">
       <span class="offer-filter-label">Study time</span>
       <p class="study-summary" id="study-summary"></p>
+      <div class="study-chart" id="study-chart" hidden></div>
       <span class="offer-filter-label" id="goal-label">Weekly goal</span>
       <div class="offer-choices" role="group" aria-labelledby="goal-label">
         <button class="offer" data-goal="0">None</button>
@@ -602,10 +623,16 @@
       <button class="offer" id="reset-data">Erase all my data on this device</button>
       <p class="map-note">Removes favorites, hidden spots, notes, reports, history, study time, and settings. You can undo right after.</p>
     </div>
-    <p class="map-note">On a keyboard: press / to search, and Esc to close an open spot.</p>
+    <p class="map-note">On a keyboard: press / to search, ? for every shortcut, and Esc to close an open spot.</p>
+    <button class="offer" id="show-shortcuts">Keyboard shortcuts</button>
     <button class="offer" id="show-tips">Show "How it works" again</button>
   </div>
 </details>
+<dialog class="shortcuts" id="shortcuts" aria-labelledby="shortcuts-heading">
+  <h2 id="shortcuts-heading">Keyboard shortcuts</h2>
+  <dl class="week-hours" id="shortcut-list"></dl>
+  <button class="find-closest" id="shortcuts-close">Close</button>
+</dialog>
 <p class="note">Hours checked against official pages through May 2027, including breaks and finals. Dates without published hours say so. Reports are saved only in this browser.</p>
 <div class="toast" id="report-toast" role="status"></div>
 <script id="app-logic">
@@ -3097,6 +3124,8 @@
   const SESSION_MIN_MINUTES = 5;
   const SESSION_MAX_MINUTES = 240;
   const BREAK_MINUTES = 5;
+  // Break lengths offered after a session; the shortest is the default suggestion.
+  const BREAK_CHOICES = [5, 10, 15];
   const pickLevelWords = { empty: "Reported empty", some: "Some seats", packed: "Packed" };
   const APP_LINK = "https://rucharaja.github.io/study-spot-finder/";
   const shareLevelWords = { empty: "It's empty right now.", some: "There are some seats right now.", packed: "It's packed right now." };
@@ -3206,6 +3235,13 @@
       || (queryWord.length >= 4 && [word, word.slice(0, queryWord.length)].some((part) => withinOneEdit(queryWord, part)))));
   }
 
+  // Spots at other schools whose name or nickname matches a search, for when nothing matches here. Up to three, and only
+  // for searches of 3 letters or more, so a stray letter doesn't list half the Big Ten.
+  function matchesElsewhere(spots, query, campus) {
+    if (query.trim().length < 3) return [];
+    return spots.filter((spot) => (spot.campus ?? "uiuc") !== campus && matchesSearch(spot, query)).slice(0, 3);
+  }
+
   function escapeHtml(text) {
     return text.replace(/[&<>"']/g, (character) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
@@ -3230,6 +3266,27 @@
       .map((area) => ({ area, report: reports[reportKey(spot, area)] }))
       .filter(({ report }) => report)
       .sort((a, b) => b.report.time - a.report.time);
+  }
+
+  // Optional details that can come with a report. Quiet and Noisy can't both be picked.
+  const reportTagLabels = { outlets: "Outlets free", tables: "Group tables free", quiet: "Quiet", noisy: "Noisy" };
+  function toggleReportTag(tags, tag) {
+    if (tags.includes(tag)) return tags.filter((other) => other !== tag);
+    const opposite = { quiet: "noisy", noisy: "quiet" }[tag];
+    return [...tags.filter((other) => other !== opposite), tag];
+  }
+  // The details from a spot's reports in the last hour, newest report first, without repeats; when two recent
+  // reports disagree on Quiet and Noisy, the newer one wins.
+  function recentReportTags(spot, now, reports) {
+    const tags = [];
+    const fresh = reportsFor(spot, reports).filter(({ report }) => (now.realTime ?? now.getTime()) - report.time < reportLifetimeMs);
+    for (const { report } of fresh) {
+      for (const tag of report.tags ?? []) {
+        const opposite = { quiet: "noisy", noisy: "quiet" }[tag];
+        if (tag in reportTagLabels && !tags.includes(tag) && !tags.includes(opposite)) tags.push(tag);
+      }
+    }
+    return Object.keys(reportTagLabels).filter((tag) => tags.includes(tag));
   }
 
   // Recent reports for a spot, emptiest first; ties keep the newest first.
@@ -3513,6 +3570,13 @@
     return null;
   }
 
+  // A food idea for a study break: the closest open place within a 5-minute walk, or "" when there isn't one.
+  function breakFoodIdea(spot, places, now) {
+    const [nearest] = foodNearSpot(spot, places, now, 1);
+    if (!nearest) return "";
+    return `Snack nearby: ${nearest.place.name}, ${describeDistance(nearest.miles)}, ${foodStatus(nearest.place, now).text.toLowerCase()}.`;
+  }
+
   // Pausing keeps the time left; resuming starts the countdown again from there.
   function pauseSession(session, nowMs) {
     return session.pausedLeft === undefined ? { ...session, pausedLeft: Math.max(0, session.endTime - nowMs) } : session;
@@ -3624,6 +3688,23 @@
   function addStudyTime(log, spotId, minutes, endTime) {
     if (!(minutes >= 1)) return log;
     return [...log, { spotId, minutes: Math.round(minutes), endTime }].slice(-STUDY_LOG_LIMIT);
+  }
+
+  // A duration short enough for a chart label: "25m", "1h", "1.5h".
+  function shortDuration(minutes) {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.round(minutes / 6) / 10;
+    return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+  }
+
+  // Minutes studied on each of the last 7 days, oldest first, ending today: [{ label, minutes }].
+  function studyMinutesByDay(log, now) {
+    return [6, 5, 4, 3, 2, 1, 0].map((daysAgo) => {
+      const day = daysLater(now, -daysAgo);
+      const minutes = log.filter((entry) => dateKeyFor(new Date(entry.endTime)) === dateKeyFor(day))
+        .reduce((total, entry) => total + entry.minutes, 0);
+      return { label: daysAgo === 0 ? "Today" : dayNames[day.getDay()], minutes };
+    });
   }
 
   function cleanStudyLog(saved, spots) {
@@ -3912,6 +3993,48 @@
     return Number.isNaN(picked.getTime()) || picked.getTime() <= now.getTime() ? null : picked;
   }
 
+  // Schools you've switched to, most recent first, without repeats.
+  function addRecentCampus(recent, campus, max = 4) {
+    return [campus, ...recent.filter((other) => other !== campus)].slice(0, max);
+  }
+
+  // One-tap planning times, since the date and time picker is fiddly on a phone: in an hour (rounded up to the quarter
+  // hour), tonight at 9 while it's before 8pm, and tomorrow at 10am and 7pm.
+  function quickPlanTimes(now) {
+    const inAnHour = new Date(now.getTime() + 60 * 60000);
+    inAnHour.setMinutes(Math.ceil(inAnHour.getMinutes() / 15) * 15, 0, 0);
+    const at = (daysAhead, hour) => {
+      const date = daysLater(now, daysAhead);
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, 0);
+    };
+    return [
+      { label: "In 1 hour", time: inAnHour },
+      ...(now.getHours() < 20 ? [{ label: "Tonight 9pm", time: at(0, 21) }] : []),
+      { label: "Tomorrow 10am", time: at(1, 10) },
+      { label: "Tomorrow 7pm", time: at(1, 19) },
+    ];
+  }
+
+  // The value a datetime-local input shows for a time, like "2026-11-24T19:00".
+  function timeInputValue(time) {
+    const pad = (number) => String(number).padStart(2, "0");
+    return `${time.getFullYear()}-${pad(time.getMonth() + 1)}-${pad(time.getDate())}T${pad(time.getHours())}:${pad(time.getMinutes())}`;
+  }
+
+  // A spot's next 7 days of hours as plain text, for a group chat.
+  function weekHoursText(spot, now, campusName) {
+    const lines = weekHours(spot, now).map(({ label, text }) => `${label}: ${text}`);
+    return `${spot.name} (${campusName}) hours:\n${lines.join("\n")}\n${spotLink(spot)}`;
+  }
+
+  // An invitation to study together at a planned time, with whether the spot is open then and a link to it.
+  function planInviteText(spot, time, campusName) {
+    const status = openStatus(spot, time);
+    const then = status.isOpen === true ? `It's ${status.text.replace(/^Open/, "open").replace(/^Closes/, "closing")} then.`
+      : status.isOpen === null ? "Its hours aren't posted for then yet." : "Heads up: it's closed then.";
+    return `Study with me at ${spot.name} (${campusName}) on ${describeViewTime(time)}? ${then} ${spotLink(spot)}`;
+  }
+
   // A planning time in words, like "Sat, Nov 14 at 2pm".
   function describeViewTime(time) {
     return `${dayNames[time.getDay()]}, ${monthNames[time.getMonth()]} ${time.getDate()} at ${formatTime(time.getHours() * 60 + time.getMinutes())}`;
@@ -4031,10 +4154,11 @@
   }
 
   // The message shown after a report. wasSaved is false when the browser can't store it.
-  function reportConfirmation(spot, area, level, wasSaved) {
+  function reportConfirmation(spot, area, level, wasSaved, tags = []) {
     const place = `${spot.name}${area ? `, ${area.name}` : ""}`;
+    const details = tags.length ? ` (${tags.map((tag) => reportTagLabels[tag]).join(", ")})` : "";
     return wasSaved
-      ? `Saved: ${busynessLabels[level]} at ${place}`
+      ? `Saved: ${busynessLabels[level]}${details} at ${place}`
       : `Reported ${busynessLabels[level]} at ${place}, but this browser can't keep it after a reload`;
   }
 
@@ -4108,6 +4232,7 @@
   let expandedSpotId = null;
   // The floor picked in the open report choices, or null for the whole building.
   let pickedAreaId = null;
+  let pickedTags = [];
   let searchText = "";
   let selectedCategoryId = "all";
   function loadCampus() {
@@ -4187,6 +4312,14 @@
     const streak = studyStreak(studyLog, now);
     document.getElementById("study-summary").textContent = `${studySummary(studyLog, allSpots, now)}${streak >= 2 ? ` ${streak}-day streak, keep it going!` : ""}`;
     for (const button of document.querySelectorAll("[data-goal]")) button.setAttribute("aria-pressed", String(Number(button.dataset.goal) === studyGoalHours));
+    const days = studyMinutesByDay(studyLog, now);
+    const most = Math.max(...days.map(({ minutes }) => minutes));
+    const chart = document.getElementById("study-chart");
+    chart.hidden = most === 0;
+    chart.innerHTML = most === 0 ? "" : `<ul class="study-bars" aria-label="Minutes studied each day this week">${days.map(({ label, minutes }) =>
+      `<li><span class="study-bar-value" aria-hidden="true">${minutes ? shortDuration(minutes) : ""}</span>
+        <span class="study-bar" style="height:${Math.max(minutes ? 6 : 2, Math.round(minutes / most * 64))}px"></span>
+        <span class="study-bar-label">${label}</span><span class="visually-hidden">: ${minutes ? formatDuration(minutes) : "none"}</span></li>`).join("")}</ul>`;
     const progress = goalProgress(studyLog, now, studyGoalHours);
     const box = document.getElementById("goal-progress");
     box.hidden = !progress;
@@ -4356,7 +4489,8 @@
     const source = hoursSourceFor(spot);
     const sourceLine = source ? `<p class="hours-source">Hours from the official page:
       <a href="${source}" target="_blank" rel="noopener">${new URL(source).hostname.replace(/^www\./, "")}</a>. Check it before a long trip.</p>` : "";
-    return `${offerTags}${timeline}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>${sourceLine}
+    const shareHours = `<button class="clear-reports share-hours" data-action="share-hours" data-spot="${spot.id}">Share these hours</button>`;
+    return `${offerTags}${timeline}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>${sourceLine}${shareHours}
       <div class="notes"><label for="note-${spot.id}">My notes (only on this device)</label>
         <textarea id="note-${spot.id}" data-note-spot="${spot.id}" rows="2" maxlength="${NOTE_LIMIT}"
           placeholder="Like: outlets by the east windows">${escapeHtml(spotNotes[spot.id] ?? "")}</textarea></div>`;
@@ -4390,7 +4524,8 @@
 
   // The panel for a spot that can't be reported on right now: closed, or while planning ahead.
   function infoPanel(spot) {
-    const calendar = viewTime ? `<button class="share-spot" data-spot="${spot.id}" data-action="add-calendar">Add to my calendar (${describeViewTime(viewTime)})</button>` : "";
+    const calendar = viewTime ? `<button class="share-spot" data-spot="${spot.id}" data-action="add-calendar">Add to my calendar (${describeViewTime(viewTime)})</button>
+      <button class="share-spot" data-spot="${spot.id}" data-action="invite-friend">Invite a friend</button>` : "";
     return `${spotInfo(spot)}<div class="buttons"><button class="cancel" data-action="close">Close</button></div>
       ${calendar}${viewTime ? "" : reminderButton(spot)}${mapButton(spot)}${hideButton(spot)}`;
   }
@@ -4433,7 +4568,9 @@
       : "";
     const hasHistory = reportHistory.some((entry) => entry.spotId === spot.id);
     const historyLine = `<p class="history-line">${historyMessage(spot.id, reportHistory)}</p>${hasHistory ? historyGridHtml(spot.id) : ""}`;
-    return `${spotInfo(spot)}${historyLine}${areaPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
+    const tagPicker = `<p class="where">Anything to add? (optional)</p><div class="area-choices">${Object.entries(reportTagLabels).map(([tag, label]) =>
+      `<button class="area" data-action="toggle-tag" data-tag="${tag}" aria-pressed="${pickedTags.includes(tag)}">${label}</button>`).join("")}</div>`;
+    return `${spotInfo(spot)}${historyLine}${areaPicker}${tagPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
         `<button data-spot="${spot.id}" data-level="${busynessLevel}">${label}</button>`).join("")}
         <button class="cancel" data-action="close">Cancel</button></div>
         ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}
@@ -4453,6 +4590,33 @@
         ${hasHistory ? `<button class="clear-reports" data-spot="${spot.id}" data-action="forget-history">Forget my history</button>` : ""}
         ${hideButton(spot)}`;
   }
+
+  // "Outlets free · Quiet" from the last hour's reports, under the card's status.
+  function tagsLine(spot, now) {
+    const tags = recentReportTags(spot, now, visibleReports());
+    return tags.length ? `<span class="report-tags"><span class="visually-hidden">Reported: </span>${tags.map((tag) => reportTagLabels[tag]).join(" · ")}</span>` : "";
+  }
+
+  // "At other schools: Hatcher Graduate Library (Michigan)", shown when a search finds nothing here.
+  function elsewhereHtml() {
+    const found = matchesElsewhere(allSpots, searchText, selectedCampus);
+    return found.length ? `<div class="elsewhere"><span>At other schools:</span>${found.map((spot) =>
+      `<button class="offer" data-action="go-elsewhere" data-spot="${spot.id}">${escapeHtml(spot.name)} (${campuses[spot.campus ?? "uiuc"]})</button>`).join("")}</div>` : "";
+  }
+
+  function renderQuickTimes() {
+    document.getElementById("quick-times").innerHTML = quickPlanTimes(campusNow()).map(({ label, time }) =>
+      `<button class="offer" data-quick-time="${time.getTime()}" aria-pressed="${viewTime?.getTime() === time.getTime()}">${label}</button>`).join("");
+  }
+
+  document.getElementById("quick-times").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-quick-time]");
+    if (!button) return;
+    viewTime = new Date(Number(button.dataset.quickTime));
+    document.getElementById("view-time").value = timeInputValue(viewTime);
+    document.getElementById("view-time-error").hidden = true;
+    applyViewTime();
+  });
 
   // "Back to Grainger · Open until 12am", one tap to reopen the spot you used last.
   function renderLastSpot() {
@@ -4506,6 +4670,7 @@
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     renderSchoolCounts();
     renderWeekTable();
+    renderQuickTimes();
     renderLastSpot();
     const list = document.getElementById("spot-list");
     list.innerHTML = "";
@@ -4523,7 +4688,7 @@
     if (favoriteSpots.length + openSpots.length + closedSpots.length === 0) {
       const noMatchReason = searchText.trim() ? ` match "${escapeHtml(searchText.trim())}"` : " match those filters";
       list.innerHTML = `<div class="all-closed">No spots${selectedCategory ? ` in ${selectedCategory.heading}` : ""}${noMatchReason}${searchText.trim() && selectedOfferIds.length ? " with those filters" : ""}.
-        <button class="clear-search" data-action="clear-search">${clearButtonLabel(searchText, selectedOfferIds)}</button></div>`;
+        <button class="clear-search" data-action="clear-search">${clearButtonLabel(searchText, selectedOfferIds)}</button>${elsewhereHtml()}</div>`;
     } else if (openSpots.length === 0 && !favoriteOpen) {
       list.innerHTML = `<p class="all-closed">${searchText.trim() || selectedOfferIds.length ? "Every matching spot" : "Every spot"}${selectedCategory ? ` in ${selectedCategory.heading}` : ""} is closed ${viewTime ? "at that time" : "right now"}.</p>`;
     }
@@ -4591,6 +4756,7 @@
               ${sortMode === "near" && lastKnownLocation ? distanceTag(spot, now) : ""}
             </span>
             ${usualLine(spot, now, level)}
+            ${tagsLine(spot, now)}
             ${hasSpecialHours(spot, now) ? `<span class="special-tag">Special hours today</span>` : ""}
             ${hiddenSpotIds.includes(spot.id) ? `<span class="special-tag hidden-tag">Hidden</span>` : ""}
             ${foodLine(spot, status, now)}
@@ -4626,6 +4792,19 @@
       document.querySelector(`button.favorite[data-spot="${spotId}"]`)?.focus();
       return;
     }
+    if (button.dataset.action === "go-elsewhere") {
+      const spot = allSpots.find((place) => place.id === button.dataset.spot);
+      searchText = "";
+      document.getElementById("spot-search").value = "";
+      selectedCampus = spot.campus ?? "uiuc";
+      saveCampus(selectedCampus);
+      applyCampus();
+      expandedSpotId = spot.id;
+      if (openStatus(spot, campusClock(selectedCampus)).isOpen === false) showClosed = true;
+      render();
+      document.querySelector(`.card-tap[data-spot="${spot.id}"]`)?.closest(".spot")?.scrollIntoView({ block: "center" });
+      return;
+    }
     if (button.dataset.action === "clear-search") {
       searchText = "";
       selectedOfferIds = [];
@@ -4638,6 +4817,7 @@
       // Tapping the open card again folds its choices away.
       expandedSpotId = expandedSpotId === button.dataset.spot ? null : button.dataset.spot;
       pickedAreaId = null;
+      pickedTags = [];
     } else if (button.dataset.action === "clear-reports") {
       const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
       const reportsBefore = reports;
@@ -4670,6 +4850,14 @@
       return;
     } else if (button.dataset.action === "toggle-reminder") {
       toggleReminder(allSpots.find((studySpot) => studySpot.id === button.dataset.spot));
+    } else if (button.dataset.action === "invite-friend") {
+      const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      shareText(planInviteText(spot, viewTime, campuses[spot.campus ?? "uiuc"]));
+      return;
+    } else if (button.dataset.action === "share-hours") {
+      const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
+      shareText(weekHoursText(spot, campusClock(spot.campus), campuses[spot.campus ?? "uiuc"]));
+      return;
     } else if (button.dataset.action === "share-spot") {
       shareSpot(allSpots.find((studySpot) => studySpot.id === button.dataset.spot));
       return;
@@ -4710,26 +4898,29 @@
       });
     } else if (button.dataset.action === "pick-area") {
       pickedAreaId = button.dataset.area || null;
+    } else if (button.dataset.action === "toggle-tag") {
+      pickedTags = toggleReportTag(pickedTags, button.dataset.tag);
     } else if (button.dataset.action === "close") {
       expandedSpotId = null;
     } else if (button.dataset.level) {
       const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
-      recordReport(spot, spot.areas?.find((spotArea) => spotArea.id === pickedAreaId) ?? null, button.dataset.level);
+      recordReport(spot, spot.areas?.find((spotArea) => spotArea.id === pickedAreaId) ?? null, button.dataset.level, pickedTags);
+      pickedTags = [];
       expandedSpotId = null;
     }
     render();
   });
 
   // Saves a report and its history entry, then confirms it with a chance to undo.
-  function recordReport(spot, area, level) {
+  function recordReport(spot, area, level, tags = []) {
     const key = reportKey(spot, area);
     const previousReport = reports[key];
     const historyBefore = reportHistory;
-    reports[key] = { level, time: Date.now() };
+    reports[key] = { level, time: Date.now(), ...(tags.length ? { tags } : {}) };
     rememberLastSpot(spot.id);
     reportHistory = addToHistory(reportHistory, spot.id, level, reports[key].time);
     saveHistory(reportHistory);
-    showToast(reportConfirmation(spot, area, level, saveReports(reports)), () => {
+    showToast(reportConfirmation(spot, area, level, saveReports(reports), tags), () => {
       reports = undoReport(reports, key, previousReport);
       reportHistory = historyBefore;
       saveHistory(reportHistory);
@@ -4762,7 +4953,27 @@
     showToast(`Saved a 2-hour study event at ${spot.name}. Open it to add it to your calendar.`);
   }
 
+  let recentCampuses = loadList("recentSchools", (saved) => saved.filter((campus) => campus in campuses));
+  // Up to three other schools you used recently, one tap each, for checking a friend's campus and coming back.
+  function renderRecentSchools() {
+    const box = document.getElementById("recent-schools");
+    const others = recentCampuses.filter((campus) => campus !== selectedCampus).slice(0, 3);
+    box.hidden = others.length === 0;
+    box.innerHTML = others.length ? `<span>Recent:</span>${others.map((campus) =>
+      `<button class="offer" data-recent-campus="${campus}">${campuses[campus]}</button>`).join("")}` : "";
+  }
+  document.getElementById("recent-schools").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-recent-campus]");
+    if (!button) return;
+    selectedCampus = button.dataset.recentCampus;
+    saveCampus(selectedCampus);
+    applyCampus();
+  });
+
   function applyCampus() {
+    recentCampuses = addRecentCampus(recentCampuses, selectedCampus);
+    saveList("recentSchools", recentCampuses);
+    renderRecentSchools();
     document.getElementById("campus-select").value = selectedCampus;
     document.getElementById("tagline").textContent = `Find empty study spots at ${campuses[selectedCampus]}`;
     document.getElementById("spot-search").placeholder = searchHints[selectedCampus];
@@ -5494,7 +5705,8 @@
         <button class="plan-reset prompt-skip" data-prompt-action="skip-checkin">Skip</button>`;
     }
     if (prompt.kind === "break") {
-      return `<button class="plan-reset" data-prompt-action="start-break">Start ${BREAK_MINUTES}-min break</button>
+      return `${BREAK_CHOICES.map((minutes) => `<button class="plan-reset" data-prompt-action="start-break" data-break-minutes="${minutes}"
+        aria-label="Start a ${minutes}-minute break">${minutes} min</button>`).join("")}
         <button class="plan-reset prompt-skip" data-prompt-action="dismiss">No thanks</button>`;
     }
     const spot = allSpots.find((studySpot) => studySpot.id === prompt.spotId);
@@ -5507,7 +5719,7 @@
   function sessionPromptText(prompt) {
     const spot = allSpots.find((studySpot) => studySpot.id === prompt.spotId);
     if (prompt.kind === "checkin") return `Session done. How busy is ${spot.name} now?`;
-    if (prompt.kind === "break") return "Nice work. Take a break before the next one?";
+    if (prompt.kind === "break") return `Nice work. How long a break? ${breakFoodIdea(spot, foodPlaces, campusClock(spot.campus))}`.trim();
     return openStatus(spot, campusClock(spot.campus)).isOpen === false ? `Break's over. ${spot.name} has closed for now.` : `Break's over. Back to ${spot.name}?`;
   }
 
@@ -5583,8 +5795,8 @@
       setSessionPrompt({ kind: "again", spotId: spot.id });
       return;
     }
-    notify("Study session done", `Your session at ${spot.name} is done. Take a ${BREAK_MINUTES}-minute break.`);
-    showToast(`Study session done. Take a ${BREAK_MINUTES}-minute break.`);
+    notify("Study session done", `Your session at ${spot.name} is done. Time for a short break.`);
+    showToast("Study session done. Time for a short break.");
     // Only ask about a spot that's still open, since a report means "right now".
     setSessionPrompt({ kind: openStatus(spot, campusClock(spot.campus)).isOpen !== false ? "checkin" : "break", spotId: spot.id });
   }
@@ -5642,7 +5854,8 @@
     } else if (action === "skip-checkin") {
       setSessionPrompt({ kind: "break", spotId: spot.id });
     } else if (action === "start-break") {
-      startSession(spot.id, BREAK_MINUTES, true);
+      const breakMinutes = Number(button.dataset.breakMinutes);
+      startSession(spot.id, BREAK_CHOICES.includes(breakMinutes) ? breakMinutes : BREAK_MINUTES, true);
     } else if (action === "study-again") {
       startSession(spot.id, 25);
     } else {
@@ -5746,13 +5959,13 @@
 
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
-    const keys = ["busynessReports", "lastSpot", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
+    const keys = ["busynessReports", "lastSpot", "recentSchools", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
       "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders", "soundChoice", "soundVolume", "soundWithTimer"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
       hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders,
-      campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large", lastSpot };
+      campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large", lastSpot, recentCampuses };
     favoriteIds = [];
     reportHistory = [];
     spotNotes = {};
@@ -5760,6 +5973,7 @@
     studySession = null;
     sessionPrompt = null;
     lastSpot = null;
+    recentCampuses = [];
     openReminders = [];
     hiddenSpotIds = [];
     foodFavoriteKeys = [];
@@ -5775,7 +5989,7 @@
     showToast("Erased everything on this device.", () => {
       try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
       ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus,
-        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot } = before);
+        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot, recentCampuses } = before);
       applyDisplaySettings(before.theme, before.large);
       applyCampus();
       updateSessionBanner();
@@ -5783,22 +5997,47 @@
     });
   });
 
-  // Keyboard shortcuts: "/" searches, Escape closes an open spot or leaves the search box.
+  // Keyboard shortcuts: "/" searches, f, m, and w open Food, Map, and this week's hours, "?" lists them all, and Escape
+  // closes an open spot or leaves the search box.
+  const shortcutList = [["/", "Search spots"], ["f", "Open or close Food"], ["m", "Open or close the map"],
+    ["w", "This week's hours for every spot"], ["?", "Show this list"], ["Esc", "Close an open spot, or leave a text box"]];
+  function showShortcuts() {
+    document.getElementById("shortcut-list").innerHTML = shortcutList.map(([key, action]) => `<dt><kbd>${escapeHtml(key)}</kbd></dt><dd>${action}</dd>`).join("");
+    const dialog = document.getElementById("shortcuts");
+    if (!dialog.open) dialog.showModal();
+  }
+  document.getElementById("show-shortcuts").addEventListener("click", showShortcuts);
+  document.getElementById("shortcuts-close").addEventListener("click", () => document.getElementById("shortcuts").close());
+  function showWeekHours() {
+    const panel = document.getElementById("filters-panel");
+    if (panel.hidden) document.getElementById("filters-toggle").click();
+    if (document.getElementById("week-table").hidden) document.getElementById("week-toggle").click();
+    document.getElementById("week-toggle").scrollIntoView({ block: "start" });
+  }
   document.addEventListener("keydown", (event) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName);
-    if (event.key === "/" && !typing && !event.metaKey && !event.ctrlKey) {
+    if (event.key === "Escape") {
+      if (expandedSpotId) {
+        const closingId = expandedSpotId;
+        expandedSpotId = null;
+        render();
+        document.querySelector(`.card-tap[data-spot="${closingId}"]`)?.focus();
+      } else if (typing) {
+        event.target.blur();
+      }
+      return;
+    }
+    if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key === "/") {
       event.preventDefault();
       document.getElementById("spot-search").focus();
       return;
     }
-    if (event.key !== "Escape") return;
-    if (expandedSpotId) {
-      const closingId = expandedSpotId;
-      expandedSpotId = null;
-      render();
-      document.querySelector(`.card-tap[data-spot="${closingId}"]`)?.focus();
-    } else if (typing) {
-      event.target.blur();
+    const actions = { "?": showShortcuts, f: () => document.getElementById("food-toggle").click(),
+      m: () => document.getElementById("map-toggle").click(), w: showWeekHours };
+    if (actions[event.key] && !document.getElementById("shortcuts").open) {
+      event.preventDefault();
+      actions[event.key]();
     }
   });
 
