@@ -406,6 +406,7 @@
         <option value="iowa">Iowa (Iowa City)</option>
         <option value="umd">Maryland (College Park)</option>
         <option value="umich">Michigan (Ann Arbor)</option>
+        <option value="msu">Michigan State (East Lansing)</option>
         <option value="umn">Minnesota (Twin Cities)</option>
         <option value="unl">Nebraska (Lincoln)</option>
         <option value="nu">Northwestern (Evanston)</option>
@@ -1309,6 +1310,45 @@
       specialHours: { ...during("2026-11-25", "2026-11-25", [h(7), h(21)]), ...during("2026-11-26", "2026-11-28", null),
         ...during("2026-12-19", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // Michigan State (East Lansing), from MSU Libraries' LibCal hours (msu.libcal.com/hours, the Main Library posted through
+  // Aug 20, 2027, the Business Library through May 8) and the MSU Union's posted fall hours (union.msu.edu), checked
+  // 2026-11-23. The Main Library is open 24 hours Monday to Thursday during the semester; after 6pm the Union needs an
+  // MSU ID. Times are Michigan's own (Eastern), like Ohio State.
+  const msuMainSummerWeek = [[h(12), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(17)], [h(12), h(17)]];
+  const msuSpots = [
+    { id: "msu-main", campus: "msu", type: "library", name: "Main Library", offers: [], location: [42.73089, -84.48321],
+      keywords: "main library 24 hour msu michigan state spartans",
+      hours: [[h(10), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(22)], [h(10), h(18)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(0), h(17)]), ...during("2026-11-26", "2026-11-28", null),
+        ...during("2026-12-11", "2026-12-13", [h(0), h(24)]), ...during("2026-12-18", "2026-12-18", [h(8), h(17)]),
+        ...during("2026-12-19", "2026-12-20", null), ...during("2026-12-21", "2026-12-23", [h(8), h(17)]),
+        ...during("2026-12-24", "2027-01-03", null), ...during("2027-01-04", "2027-01-08", [h(8), h(17)]),
+        ...during("2027-01-09", "2027-01-10", null), ...during("2027-01-11", "2027-01-15", [h(8), h(17)]),
+        ...during("2027-01-16", "2027-01-16", [h(12), h(17)]), ...during("2027-01-17", "2027-01-17", [h(12), h(22)]),
+        ...during("2027-01-18", "2027-01-18", null), ...during("2027-01-19", "2027-01-22", [h(8), h(22)]),
+        ...during("2027-03-05", "2027-03-05", [h(0), h(17)]), ...during("2027-03-06", "2027-03-07", null),
+        ...during("2027-03-08", "2027-03-12", [h(8), h(17)]), ...during("2027-03-13", "2027-03-13", [h(12), h(17)]),
+        ...during("2027-04-30", "2027-05-02", [h(0), h(24)]), ...during("2027-05-07", "2027-05-07", [h(0), h(17)]),
+        ...during("2027-05-08", "2027-05-09", null), ...during("2027-05-10", "2027-05-14", [h(8), h(17)]),
+        ...during("2027-05-15", "2027-05-15", null), ...weeklyDuring("2027-05-16", "2027-08-20", msuMainSummerWeek),
+        ...during("2027-05-29", "2027-05-31", null), ...during("2027-07-03", "2027-07-05", null),
+        ...during("2027-08-21", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "msu-business", campus: "msu", type: "library", name: "Gast Business Library", offers: [], location: [42.7259, -84.4733],
+      keywords: "gast business library law college broad msu michigan state spartans",
+      hours: [[h(12), h(22)], [h(9), h(22)], [h(9), h(22)], [h(9), h(22)], [h(9), h(22)], [h(9), h(17)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(9), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-11-29", "2026-11-29", null), ...during("2026-12-20", "2026-12-20", null),
+        ...during("2026-12-21", "2026-12-23", [h(13), h(17)]), ...during("2026-12-24", "2027-01-03", null),
+        ...during("2027-01-04", "2027-01-08", [h(13), h(17)]), ...during("2027-01-10", "2027-01-10", null),
+        ...during("2027-01-11", "2027-01-15", [h(13), h(17)]), ...during("2027-01-17", "2027-01-18", null),
+        ...during("2027-01-19", "2027-01-19", [h(9), h(17)]), ...during("2027-03-07", "2027-03-14", null),
+        ...during("2027-05-09", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "msu-union", campus: "msu", type: "union", name: "MSU Union", offers: [], location: [42.73419, -84.48286],
+      keywords: "msu union student union msu michigan state spartans",
+      hours: [[h(9), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)], [h(7), h(23)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(7), h(20)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-11-28", "2026-11-28", HOURS_UNCONFIRMED), ...during("2026-12-19", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
   // UCLA (Los Angeles), from UCLA Library's hours calendar (calendar.library.ucla.edu/hours), checked 2026-11-19. Powell is
   // posted through Dec 19, the Research Library through Feb 6, and SEL/Boelter through Apr 3; later days say "Hours not
   // confirmed". Night Powell, the overnight study hall for BruinCard holders, isn't counted as open. Times are Los Angeles's
@@ -1343,11 +1383,11 @@
         ...during("2027-03-26", "2027-03-28", null), ...during("2027-04-04", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
   const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
-    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...nuSpots, ...uoSpots, ...uclaSpots, ...uscSpots, ...uwSpots];
+    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...nuSpots, ...uoSpots, ...uclaSpots, ...uscSpots, ...uwSpots, ...msuSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
     wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland", nu: "Northwestern",
     uo: "Oregon", ucla: "UCLA", usc: "USC",
-    uw: "Washington" };
+    uw: "Washington", msu: "Michigan State" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
@@ -1357,11 +1397,12 @@
     nu: "Search: main, mudd, norris",
     uo: "Search: knight, price, emu", ucla: "Search: powell, yrl, sel",
     usc: "Search: leavey, doheny, sel",
-    uw: "Search: suzzallo, odegaard, hub" };
+    uw: "Search: suzzallo, odegaard, hub", msu: "Search: main, business, union" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
     ucla: "Hours are from UCLA Dining and ASUCLA, which post one week at a time. This is Thanksgiving week, so from Nov 30 on every place says \"Hours TBD\" until it's checked again.",
+    msu: "Michigan State food places haven't been added yet, so this list is empty for now.",
     uw: "Hours are from UW Housing & Food Services, which posts autumn quarter hours only. Thanksgiving week and everything from Dec 19 on say \"Hours TBD\", except days a building is posted closed.",
     usc: "Hours are from USC Hospitality, including Thanksgiving week. Regular hours are posted through Dec 4; finals, winter break, and spring aren't posted yet, so from Dec 5 on days say \"Hours TBD\".",
     uo: "Hours are from University Housing and the EMU, including Thanksgiving. Both post fall term hours only, so from Jan 2 on days say \"Hours TBD\". The EMU doesn't post its restaurants' Thanksgiving or winter break hours, so those days say \"Hours TBD\" unless the building is closed.",
@@ -2782,6 +2823,9 @@
   spotIcons["uw-odegaard"] = spotIcons.idea;
   spotIcons["uw-engineering"] = spotIcons.grainger;
   spotIcons["uw-hub"] = spotIcons.union;
+  spotIcons["msu-main"] = spotIcons.main;
+  spotIcons["msu-business"] = spotIcons.bif;
+  spotIcons["msu-union"] = spotIcons.union;
   spotIcons["ucla-powell"] = spotIcons.main;
   spotIcons["ucla-yrl"] = spotIcons.idea;
   spotIcons["ucla-sel"] = spotIcons.grainger;
