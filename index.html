@@ -110,6 +110,22 @@
   button.last-spot { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 14px; border-radius: 999px;
     border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: .85rem; font-weight: 600; text-align: left; }
   button.last-spot .last-spot-status { margin-left: auto; font-weight: 600; white-space: nowrap; }
+  .here-prompt { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px;
+    background: var(--card); border: 2px solid var(--illini-orange); box-shadow: var(--shadow); font-size: .9rem; font-weight: 600; }
+  .here-text { flex: 1 1 100%; }
+  .here-buttons { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
+  button.here-level { flex: 1 1 0; min-width: 0; min-height: 40px; border-radius: 10px; background: var(--card); font-size: .85rem; }
+  button.here-level.empty { color: var(--empty); border-color: var(--empty); }
+  button.here-level.some { color: var(--some); border-color: var(--some); }
+  button.here-level.packed { color: var(--packed); border-color: var(--packed); }
+  .popup-levels { display: flex; gap: 4px; margin-top: 6px; }
+  .session-task-label { display: grid; gap: 4px; margin-top: 10px; color: var(--muted); font-size: .8rem; font-weight: 600; }
+  input.session-task { width: 100%; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 1rem; }
+  .usual-tag { color: var(--muted); font-size: .75rem; font-weight: 500; }
+  .session-choices button.share-spot.usual-length { flex: 1 1 100%; margin-top: 0; }
+  button.plan-reset.suggested { background: #ffffff; color: var(--illini-navy); }
+  .popup-levels button.here-level { min-height: 36px; padding: 0 6px; font-size: .75rem; }
+  button.here-dismiss { flex: none; min-width: 40px; min-height: 40px; border-color: transparent; background: transparent; color: var(--muted); font-size: 1.2rem; }
   button.last-spot .last-spot-status.open { color: var(--open); }
   button.last-spot .last-spot-status.closed { color: var(--closed); }
   .hours-source { margin: 4px 0 0; color: var(--muted); font-size: .75rem; }
@@ -211,6 +227,17 @@
   /* Anything marked hidden stays hidden, even when its own style sets a display (like flex). */
   [hidden] { display: none !important; }
   .time-zone-note { margin: 0; color: var(--muted); font-size: .8rem; }
+  svg.weather-icon { width: 16px; height: 16px; margin: 0 3px -3px 0; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  svg.weather-icon.sun { stroke: #c98a00; } svg.weather-icon.moon { stroke: #5b5fa8; }
+  :root[data-theme="dark"] svg.weather-icon.moon { stroke: #c9cdf5; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) svg.weather-icon.moon { stroke: #c9cdf5; } }
+  svg.weather-icon.cloud, svg.weather-icon.fog { stroke: #6b7385; }
+  svg.weather-icon.rain { stroke: #2b6cb0; } svg.weather-icon.snow { stroke: #5a9bd5; } svg.weather-icon.storm { stroke: #7b4bb3; }
+  :root[data-theme="dark"] svg.weather-icon.sun { stroke: #ffd166; } :root[data-theme="dark"] svg.weather-icon.rain { stroke: #7fb7ff; }
+  :root[data-theme="dark"] svg.weather-icon.cloud, :root[data-theme="dark"] svg.weather-icon.fog { stroke: #a3b0c6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) svg.weather-icon.sun { stroke: #ffd166; }
+    :root:not([data-theme="light"]) svg.weather-icon.rain { stroke: #7fb7ff; }
+    :root:not([data-theme="light"]) :is(svg.weather-icon.cloud, svg.weather-icon.fog) { stroke: #a3b0c6; } }
   .find-school-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-top: -8px; }
   .find-school-row .time-zone-note:empty { display: none; }
   .food-sort-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -258,8 +285,8 @@
   .status.open { color: var(--open); } .status.closed { color: var(--closed); }
   .status.closing { color: var(--heading); }
   .status.unknown { color: var(--muted); }
-  .report-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
-  .report { flex: 1; color: var(--muted); font-size: .85rem; line-height: 1.25; margin: 0; min-width: 0;
+  .report-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin-top: 8px; }
+  .report { flex: 1 0 auto; color: var(--muted); font-size: .85rem; line-height: 1.25; margin: 0; min-width: 0;
     display: flex; align-items: center; gap: 6px; }
   .spot .buttons { margin-top: 10px; }
   .spot .buttons button[data-level] { padding: 0 6px; min-width: 64px; }
@@ -338,11 +365,13 @@
   .notes { display: grid; gap: 4px; margin-top: 10px; }
   .notes label { font-size: .8rem; font-weight: 600; color: var(--muted); }
   .food-list .notes { flex: 1 1 100%; margin-top: 0; }
+  .food-latest { margin: 0; color: var(--accent); font-size: .85rem; font-weight: 600; }
   .food-note-line { display: block; margin-top: 2px; color: var(--accent); font-size: .78rem; }
   .recent-sessions { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: .85rem; }
   .recent-sessions li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .recent-sessions button.clear-reports { margin-top: 0; flex: none; }
-  .spot-distance { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+  /* The distance gets its own line under the status, so a long one can't push the card (and page) wider. */
+  .spot-distance { flex: 1 1 100%; color: var(--muted); font-size: .8rem; }
   .spot.closed.expanded { opacity: 1; }
   .sort-choices { display: flex; gap: 6px; flex-wrap: wrap; }
   .special-tag { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--heading);
@@ -354,7 +383,7 @@
   .history-grid td.empty { background: var(--empty); border-color: var(--empty); }
   .history-grid td.some { background: var(--some); border-color: var(--some); }
   .history-grid td.packed { background: var(--packed); border-color: var(--packed); }
-  .session-choices { display: flex; gap: 6px; }
+  .session-choices { display: flex; flex-wrap: wrap; gap: 6px; }
   .session-choices button.share-spot { flex: 1 1 0; width: auto; min-width: 0; margin-top: 10px; }
   .session-banner { position: sticky; top: 76px; z-index: 5; flex-wrap: wrap; }
   /* The timer text takes the whole first line on a phone, with +5 min, Pause, and Stop on a row below. */
@@ -509,6 +538,7 @@
     <p class="time-zone-note" id="find-school-status" aria-live="polite"></p></div>
   <div class="recent-schools" id="recent-schools" role="group" aria-label="Recent schools" hidden></div>
   <button class="last-spot" id="last-spot" type="button" hidden></button>
+  <div class="here-prompt" id="here-prompt" role="group" hidden></div>
   <section class="empty-now" id="empty-now" aria-live="polite" hidden></section>
   <div class="today-notes" id="today-notes"></div>
   <div class="search">
@@ -542,6 +572,10 @@
     <div class="closest-result" id="closest-result" role="status"></div>
     <div class="spot-map" id="spot-map"></div>
     <p class="map-key" id="map-key"></p>
+    <div class="offer-choices" role="group" aria-label="What the map shows">
+      <button class="offer" id="map-hide-closed" aria-pressed="false">Hide closed spots</button>
+      <button class="offer" id="map-food-pins" aria-pressed="true">Food pins</button>
+    </div>
     <p class="map-note">Your location stays on this device and isn't saved. Distances are straight lines, not walking routes.</p>
   </div>
   <section class="food-section map-panel" id="food-panel" aria-labelledby="food-heading" hidden>
@@ -564,6 +598,7 @@
     </div>
     <div class="closest-result" id="food-location-result" role="status"></div>
     <input type="search" id="food-search" class="food-search" placeholder="Search food: pizza, coffee" aria-label="Search food">
+    <p class="food-latest" id="food-latest" hidden></p>
     <div id="food-list" role="status"></div>
     <p class="map-note" id="food-source"></p>
     <p class="map-note">Your location stays on this device and isn't saved. Distances are straight lines, not walking routes.</p>
@@ -613,6 +648,7 @@
     </div>
     <label class="switch-row"><input type="checkbox" id="large-text"> Larger text</label>
     <label class="switch-row"><input type="checkbox" id="high-contrast"> High contrast (darker text and borders)</label>
+    <label class="switch-row"><input type="checkbox" id="show-weather"> Show the weather (asks Open-Meteo, sending only the school's location)</label>
     <label class="switch-row"><input type="checkbox" id="compact-list"> Compact list (name, status, and busyness only)</label>
     <div class="setting">
       <span class="offer-filter-label" id="maps-label">Walking directions open in</span>
@@ -1557,6 +1593,21 @@
     uw: { library: "https://cal.lib.uw.edu/hours/", union: "https://hub.washington.edu/about/plan-your-visit/" },
     msu: { library: "https://msu.libcal.com/hours", union: "https://union.msu.edu/" },
   };
+  // When each school's spot hours were last checked against the official pages (from PLAN.md's history).
+  const hoursCheckedOn = {
+    uiuc: "2026-11-03", uic: "2026-11-09", uis: "2026-11-11", purdue: "2026-11-15", iu: "2026-11-15", umich: "2026-11-16",
+    osu: "2026-11-16", wisc: "2026-11-16", rutgers: "2026-11-16", psu: "2026-11-16", umn: "2026-11-16", iowa: "2026-11-17",
+    unl: "2026-11-17", umd: "2026-11-18", ucla: "2026-11-19", nu: "2026-11-23", uo: "2026-11-23", usc: "2026-11-23",
+    uw: "2026-11-23", msu: "2026-11-23",
+  };
+  // "checked Nov 23, 2026" for a school, or "" when unknown.
+  function hoursCheckedText(campus) {
+    const date = hoursCheckedOn[campus];
+    if (!date) return "";
+    const [year, month, day] = date.split("-").map(Number);
+    return `checked ${monthNames[month - 1]} ${day}, ${year}`;
+  }
+
   // The official page a spot's hours come from, or null when there isn't one to link.
   function hoursSourceFor(spot) {
     return hoursSources[spot.campus ?? "uiuc"]?.[spot.type] ?? null;
@@ -1636,6 +1687,21 @@
     const chance = hourly.precipitation_probability?.[index];
     if (!base || !(chance >= 20)) return base;
     return `${base}, ${chance}% chance of ${weatherWords(hourly.weather_code[index]).includes("snow") ? "snow" : "rain"}`;
+  }
+
+  // The kind of icon for a weather code: "sun" (or "moon" after dark), "cloud", "fog", "rain", "snow", or "storm".
+  function weatherIconKind(code, isDark = false) {
+    if (code === 0 || code === 1) return isDark ? "moon" : "sun";
+    if (code === 45 || code === 48) return "fog";
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "snow";
+    if (code >= 95) return "storm";
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+    return "cloud";
+  }
+  // The weather code for the hour containing a moment, or null.
+  function hourlyCodeAt(hourly, momentMs) {
+    const index = hourly?.time?.indexOf(new Date(momentMs).toISOString().slice(0, 13) + ":00") ?? -1;
+    return index < 0 ? null : hourly.weather_code[index];
   }
 
   // How many spots are open right now at each school, each on its own clock, as { campus: count }.
@@ -3249,6 +3315,8 @@
   const SESSION_MIN_MINUTES = 5;
   const SESSION_MAX_MINUTES = 240;
   const BREAK_MINUTES = 5;
+  // The longest "what you're working on" label for a study session.
+  const TASK_LIMIT = 60;
   // Break lengths offered after a session; the shortest is the default suggestion.
   const BREAK_CHOICES = [5, 10, 15];
   const pickLevelWords = { empty: "Reported empty", some: "Some seats", packed: "Packed" };
@@ -3613,6 +3681,18 @@
     return [...entries].sort((a, b) => foodMinutesLeft(b.place, now) - foodMinutesLeft(a.place, now));
   }
 
+  // In the evening (5pm to 5am), the open food place that stays open latest, as { place, status }; otherwise null.
+  function latestFoodTonight(places, now) {
+    const hour = now.getHours();
+    if (hour >= 5 && hour < 17) return null;
+    let best = null;
+    for (const place of places) {
+      const left = foodMinutesLeft(place, now);
+      if (left > 0 && (!best || left > best.left)) best = { place, left };
+    }
+    return best ? { place: best.place, status: foodStatus(best.place, now) } : null;
+  }
+
   // The nearest food within a short walk of a spot, or null. Meals only for a hall's residents don't count.
   function nearestFood(spot, places, now, lateOnly = false) {
     const usable = places.filter((place) => place.kind !== residentMealsKind);
@@ -3830,9 +3910,10 @@
   }
 
   // Adds finished study time to the log. Sessions under a minute aren't worth keeping.
-  function addStudyTime(log, spotId, minutes, endTime) {
+  function addStudyTime(log, spotId, minutes, endTime, task = "") {
     if (!(minutes >= 1)) return log;
-    return [...log, { spotId, minutes: Math.round(minutes), endTime }].slice(-STUDY_LOG_LIMIT);
+    const label = typeof task === "string" ? task.trim().slice(0, TASK_LIMIT) : "";
+    return [...log, { spotId, minutes: Math.round(minutes), endTime, ...(label ? { task: label } : {}) }].slice(-STUDY_LOG_LIMIT);
   }
 
   // A duration short enough for a chart label: "25m", "1h", "1.5h".
@@ -3840,6 +3921,15 @@
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.round(minutes / 6) / 10;
     return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+  }
+
+  // The open spot you're standing at (within about 80 meters of its pin), or null, so the app can ask how busy it is.
+  function spotYouAreAt(here, spots, now, maxMiles = 0.05) {
+    const nearby = spots.filter((spot) => openStatus(spot, now).isOpen === true)
+      .map((spot) => ({ spot, miles: distanceMiles(here, spot.location) }))
+      .filter(({ miles }) => miles <= maxMiles)
+      .sort((a, b) => a.miles - b.miles);
+    return nearby[0]?.spot ?? null;
   }
 
   // Starred spots at schools other than this one, so they're one tap away after switching.
@@ -3860,6 +3950,15 @@
   // The name a saved backup file gets, with the date it was saved.
   function backupFileName(date) {
     return `study-spot-backup-${dateKeyFor(date)}.txt`;
+  }
+
+  // Study sessions logged today (by this device's clock).
+  function sessionsToday(log, now) {
+    return log.filter((entry) => dateKeyFor(new Date(entry.endTime)) === dateKeyFor(now)).length;
+  }
+  // A longer 15-minute break after every fourth session in a day, like the Pomodoro method; otherwise 5 minutes.
+  function suggestedBreak(sessionCount) {
+    return sessionCount > 0 && sessionCount % 4 === 0 ? 15 : 5;
   }
 
   // The newest study sessions first, up to limit, with where and when, for the list in Settings.
@@ -4483,6 +4582,11 @@
   // (study more?), with the spot it's about. Null while a timer runs or nothing is asked.
   let sessionPrompt = null;
   let customLengthSpotId = null;
+  // The custom timer length used last, offered as "your usual", and the last session's "working on" label.
+  let usualMinutes = (() => {
+    try { const saved = Number(localStorage.getItem("usualMinutes")); return sessionLength(String(saved)) ?? null; } catch { return null; }
+  })();
+  let lastTask = "";
   let openReminders = loadList("openReminders", (saved) => (Array.isArray(saved)
     ? saved.filter((reminder) => allSpots.some((spot) => spot.id === reminder?.spotId) && Number.isFinite(reminder?.time)) : []));
   const readSetting = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
@@ -4539,9 +4643,9 @@
     const sessionList = document.getElementById("recent-sessions");
     const sessions = recentSessions(studyLog, allSpots);
     sessionList.hidden = sessions.length === 0;
-    sessionList.innerHTML = sessions.map(({ spotName, minutes, endTime }) => {
+    sessionList.innerHTML = sessions.map(({ spotName, minutes, endTime, task }) => {
       const ended = new Date(endTime);
-      return `<li><span>${escapeHtml(spotName)} · ${formatDuration(minutes)} · ${dayNames[ended.getDay()]} ${formatTime(ended.getHours() * 60 + ended.getMinutes())}</span>
+      return `<li><span>${task ? `${escapeHtml(task)} · ` : ""}${escapeHtml(spotName)} · ${formatDuration(minutes)} · ${dayNames[ended.getDay()]} ${formatTime(ended.getHours() * 60 + ended.getMinutes())}</span>
         <button class="clear-reports" data-remove-session="${endTime}" aria-label="Remove ${escapeHtml(spotName)}, ${formatDuration(minutes)}">Remove</button></li>`;
     }).join("");
     const progress = goalProgress(studyLog, now, studyGoalHours);
@@ -4713,8 +4817,10 @@
     const hours = weekHours(spot, displayTime(), viewTime === null).map(({ label, text }, daysAhead) =>
       `<dt>${label}</dt><dd>${text}${miniDayBar(spot, daysLater(displayTime(), daysAhead))}</dd>`).join("");
     const source = hoursSourceFor(spot);
+    const checked = hoursCheckedText(spot.campus ?? "uiuc");
     const sourceLine = source ? `<p class="hours-source">Hours from the official page:
-      <a href="${source}" target="_blank" rel="noopener">${new URL(source).hostname.replace(/^www\./, "")}</a>. Check it before a long trip.</p>` : "";
+      <a href="${source}" target="_blank" rel="noopener">${new URL(source).hostname.replace(/^www\./, "")}</a>${checked ? `, ${checked}` : ""}. Check it before a long trip.</p>`
+      : checked ? `<p class="hours-source">Hours ${checked}. Check before a long trip.</p>` : "";
     const shareHours = `<button class="clear-reports share-hours" data-action="share-hours" data-spot="${spot.id}">Share these hours</button>`;
     return `${offerTags}${timeline}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>${sourceLine}${shareHours}
       <div class="notes"><label for="note-${spot.id}">My notes (only on this device)</label>
@@ -4809,13 +4915,17 @@
         `<button data-spot="${spot.id}" data-level="${busynessLevel}">${label}</button>`).join("")}
         <button class="cancel" data-action="close">Cancel</button></div>
         ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}
+        <label class="session-task-label">Working on (optional)
+          <input type="text" class="session-task" id="session-task-${spot.id}" maxlength="${TASK_LIMIT}" placeholder="Like: CS 124 homework" autocomplete="off"></label>
         <div class="session-choices">
           <button class="share-spot" data-spot="${spot.id}" data-action="start-session" data-minutes="25">Study here 25 min</button>
           <button class="share-spot" data-spot="${spot.id}" data-action="start-session" data-minutes="50">Study here 50 min</button>
+          ${usualMinutes && ![25, 50].includes(usualMinutes) ? `<button class="share-spot usual-length" data-spot="${spot.id}" data-action="start-session"
+            data-minutes="${usualMinutes}">Study here ${formatDuration(usualMinutes)} <span class="usual-tag">your usual</span></button>` : ""}
         </div>
         ${customLengthSpotId === spot.id ? `<div class="custom-length">
             <label for="custom-minutes">Minutes (${SESSION_MIN_MINUTES}–${SESSION_MAX_MINUTES})</label>
-            <input type="number" id="custom-minutes" inputmode="numeric" min="${SESSION_MIN_MINUTES}" max="${SESSION_MAX_MINUTES}" step="5" value="90">
+            <input type="number" id="custom-minutes" inputmode="numeric" min="${SESSION_MIN_MINUTES}" max="${SESSION_MAX_MINUTES}" step="5" value="${usualMinutes ?? 90}">
             <button class="share-spot" data-spot="${spot.id}" data-action="start-custom">Start</button>
             <p class="location-problem" id="custom-minutes-error" role="alert" hidden>Pick a whole number of minutes from ${SESSION_MIN_MINUTES} to ${SESSION_MAX_MINUTES}.</p>
           </div>` : `<button class="clear-reports" data-spot="${spot.id}" data-action="custom-session">Study for a different length</button>`}
@@ -4851,6 +4961,32 @@
     document.getElementById("view-time").value = timeInputValue(viewTime);
     document.getElementById("view-time-error").hidden = true;
     applyViewTime();
+  });
+
+  // "You're at Grainger. How busy is it?" when the last known location is at an open spot, with one-tap levels.
+  // Dismissed spots stay quiet for this visit.
+  const herePromptDismissed = new Set();
+  function renderHerePrompt() {
+    const box = document.getElementById("here-prompt");
+    const spot = !viewTime && lastKnownLocation ? spotYouAreAt(lastKnownLocation, withoutHidden(currentSpots(), hiddenSpotIds), campusNow()) : null;
+    const show = spot && !herePromptDismissed.has(spot.id) && reportsFor(spot, reports).every(({ report }) => Date.now() - report.time > 30 * 60000);
+    box.hidden = !show;
+    if (!show) return;
+    box.setAttribute("aria-label", `You're at ${spot.name}. How busy is it?`);
+    box.innerHTML = `<span class="here-text">You're at ${escapeHtml(spot.name)}. How busy is it?</span>
+      <span class="here-buttons">${Object.entries(busynessLabels).map(([level, label]) =>
+        `<button class="here-level ${level}" data-here-level="${level}" data-spot="${spot.id}">${label}</button>`).join("")}
+      <button class="here-dismiss" data-here-dismiss="${spot.id}" aria-label="Not now">×</button></span>`;
+  }
+  document.getElementById("here-prompt").addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    if (button.dataset.hereDismiss) herePromptDismissed.add(button.dataset.hereDismiss);
+    if (button.dataset.hereLevel) {
+      recordReport(allSpots.find((spot) => spot.id === button.dataset.spot), null, button.dataset.hereLevel);
+      herePromptDismissed.add(button.dataset.spot);
+    }
+    render();
   });
 
   // "Back to Grainger · Open until 12am", one tap to reopen the spot you used last.
@@ -4922,6 +5058,7 @@
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     renderSchoolCounts();
     renderWeekTable();
+    renderHerePrompt();
     renderReminderList();
     renderOutsideNote();
     renderQuickTimes();
@@ -5105,6 +5242,8 @@
         return;
       }
       customLengthSpotId = null;
+      usualMinutes = minutes;
+      try { localStorage.setItem("usualMinutes", String(minutes)); } catch { /* storage unavailable: keep for this visit */ }
       startSession(button.dataset.spot, minutes);
       return;
     } else if (button.dataset.action === "toggle-reminder") {
@@ -5199,7 +5338,10 @@
       return;
     }
     spotMap.setView(spot.location, 17);
-    spotPins.get(spot.id)?.openPopup();
+    // A closed spot's pin may be hidden by "Hide closed spots"; asking for it on the map shows it anyway.
+    const pin = spotPins.get(spot.id);
+    if (pin && !spotMap.hasLayer(pin)) pin.addTo(spotMap);
+    pin?.openPopup();
     panel.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 
@@ -5234,15 +5376,28 @@
   // Current weather per school, fetched at most every 15 minutes. Only the campus's location is sent, never the viewer's.
   const weatherCache = {};
   const WEATHER_REFRESH_MS = 15 * 60000;
+  const weatherIcons = {
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+    moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+    cloud: '<path d="M7 18h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 18z"/>',
+    fog: '<path d="M4 9h16M3 13h18M5 17h14"/>',
+    rain: '<path d="M7 14h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 14z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/>',
+    snow: '<path d="M7 13h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 13z"/><path d="M8 17v.01M12 19v.01M16 17v.01M10 21v.01M14 21v.01"/>',
+    storm: '<path d="M7 13h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.5A3.3 3.3 0 0 0 7 13z"/><path d="M12 14l-2 4h3l-2 4"/>',
+  };
+  let showWeather = (() => { try { return localStorage.getItem("weather") !== "off"; } catch { return true; } })();
   function renderOutsideNote() {
     const campus = selectedCampus;
     const cached = weatherCache[campus];
     // While planning ahead, the line describes the planned time: its daylight and the forecast for that hour.
     const moment = viewTime ? realMoment(campus, viewTime) : new Date();
-    const weather = viewTime ? (cached?.hourly ? forecastAt(cached.hourly, moment.getTime()) : "") : cached?.text;
+    const weather = !showWeather ? "" : viewTime ? (cached?.hourly ? forecastAt(cached.hourly, moment.getTime()) : "") : cached?.text;
+    const code = viewTime ? hourlyCodeAt(cached?.hourly, moment.getTime()) : cached?.code;
+    const icon = weather && Number.isFinite(code) ? weatherIconKind(code, isDarkOutside(campus, allSpots, moment)) : null;
     const label = viewTime && weather ? "Forecast then: " : "";
-    document.getElementById("outside-note").textContent = `${daylightNote(campus, allSpots, moment)}${weather ? ` · ${label}${weather}` : ""}`;
-    if (!navigator.onLine || (cached && Date.now() - cached.time < WEATHER_REFRESH_MS)) return;
+    document.getElementById("outside-note").innerHTML = `${daylightNote(campus, allSpots, moment)}${weather ? ` · ${icon
+      ? `<svg class="weather-icon ${icon}" viewBox="0 0 24 24" aria-hidden="true">${weatherIcons[icon]}</svg>` : ""}${label}${escapeHtml(weather)}` : ""}`;
+    if (!showWeather || !navigator.onLine || (cached && Date.now() - cached.time < WEATHER_REFRESH_MS)) return;
     weatherCache[campus] = { ...cached, time: Date.now() };
     const [latitude, longitude] = campusCenter(allSpots, campus);
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(3)}&longitude=${longitude.toFixed(3)}`
@@ -5250,11 +5405,17 @@
       + "&temperature_unit=fahrenheit&timezone=UTC&forecast_days=16")
       .then((response) => (response.ok ? response.json() : null))
       .then((reply) => {
-        weatherCache[campus] = { text: weatherNote(reply?.current), hourly: reply?.hourly ?? null, time: Date.now() };
+        weatherCache[campus] = { text: weatherNote(reply?.current), code: reply?.current?.weather_code, hourly: reply?.hourly ?? null, time: Date.now() };
         if (selectedCampus === campus) renderOutsideNote();
       })
       .catch(() => { /* no weather is fine: the sunset still shows */ });
   }
+  document.getElementById("show-weather").checked = showWeather;
+  document.getElementById("show-weather").addEventListener("change", (event) => {
+    showWeather = event.target.checked;
+    try { localStorage.setItem("weather", showWeather ? "on" : "off"); } catch { /* storage unavailable */ }
+    renderOutsideNote();
+  });
 
   function applyCampus() {
     if (themeChoice === "sunset") applyDisplaySettings(themeChoice, document.documentElement.dataset.text === "large");
@@ -5326,6 +5487,10 @@
     const now = displayTime();
     const campusFood = foodOnCampus(foodPlaces, selectedCampus)
       .filter((place) => matchesFoodSearch(place, foodSearchText) && (selectedFoodType === "all" || foodType(place) === selectedFoodType));
+    const latest = latestFoodTonight(foodOnCampus(foodPlaces, selectedCampus), now);
+    const latestLine = document.getElementById("food-latest");
+    latestLine.hidden = !latest;
+    latestLine.textContent = latest ? `Open latest tonight: ${latest.place.name}, ${latest.status.text.toLowerCase()}.` : "";
     const fromSpot = currentSpots().find((spot) => spot.id === foodFromSpotId);
     const shownFood = foodToShow(campusFood, now, foodMode, fromSpot?.location ?? lastKnownLocation);
     const results = favoriteFoodFirst(foodSortLatest ? sortByFoodOpenLatest(shownFood, now) : shownFood, foodFavoriteKeys);
@@ -5380,21 +5545,25 @@
     return L.divIcon({ className: "", html: `<span class="map-pin ${className}"></span>`, iconSize: [18, 18], iconAnchor: [9, 9] });
   }
 
+  let mapHidesClosed = false;
+  let mapShowsFood = true;
   function refreshPins() {
     if (!spotMap) return;
     const now = displayTime();
     for (const spot of allSpots) {
       const pin = spotPins.get(spot.id);
-      const onCampus = (spot.campus ?? "uiuc") === selectedCampus;
-      if (onCampus && !spotMap.hasLayer(pin)) pin.addTo(spotMap);
-      if (!onCampus) {
+      const status = openStatus(spot, now);
+      const shown = (spot.campus ?? "uiuc") === selectedCampus && !(mapHidesClosed && status.isOpen === false);
+      if (shown && !spotMap.hasLayer(pin)) pin.addTo(spotMap);
+      if (!shown) {
         pin.remove();
         continue;
       }
-      const status = openStatus(spot, now);
       pin
         .setIcon(pinIcon(`${spot.type}${status.isOpen === false ? " is-closed" : ` ring-${recentLevel(spot, now, visibleReports())}`}`))
-        .setPopupContent(`<strong>${spot.name}</strong><br>${status.text}<br>${walkLink(spot.name, spot.location, "popup-walk", mapsApp)}`);
+        .setPopupContent(`<strong>${spot.name}</strong><br>${status.text}<br>${walkLink(spot.name, spot.location, "popup-walk", mapsApp)}${
+          status.isOpen === true && !viewTime ? `<span class="popup-levels">${Object.entries(busynessLabels).map(([level, label]) =>
+            `<button class="here-level ${level}" data-popup-level="${level}" data-spot="${spot.id}">${label}</button>`).join("")}</span>` : ""}`);
     }
   }
 
@@ -5402,6 +5571,20 @@
   document.getElementById("map-key").innerHTML = ["empty", "some", "packed"].map((level) =>
     `<span class="key-item"><span class="map-pin library ring-${level}" aria-hidden="true"></span>${busynessLabels[level]}</span>`).join("")
     + `<span class="key-item"><span class="map-pin food" aria-hidden="true"></span>Food</span><span class="key-item">Ring = last hour's report</span>`;
+
+  document.getElementById("map-hide-closed").addEventListener("click", (event) => {
+    mapHidesClosed = !mapHidesClosed;
+    event.currentTarget.setAttribute("aria-pressed", String(mapHidesClosed));
+    refreshPins();
+  });
+  document.getElementById("map-food-pins").addEventListener("click", (event) => {
+    mapShowsFood = !mapShowsFood;
+    event.currentTarget.setAttribute("aria-pressed", String(mapShowsFood));
+    if (spotMap && foodPinLayer) {
+      if (mapShowsFood) foodPinLayer.addTo(spotMap);
+      else spotMap.removeLayer(foodPinLayer);
+    }
+  });
 
   function buildMap() {
     if (spotMap) return;
@@ -5418,7 +5601,18 @@
     for (const spot of allSpots) {
       spotPins.set(spot.id, L.marker(spot.location, { title: spot.name, alt: spot.name, icon: pinIcon(spot.type) }).bindPopup(""));
     }
-    foodPinLayer = L.layerGroup().addTo(spotMap);
+    // Report buttons inside a spot's pop-up. Leaflet stops clicks inside pop-ups from bubbling, so this listens on the way
+    // down (capture), which also covers pop-ups redrawn by the minute refresh.
+    mapElement.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-popup-level]");
+      if (!button) return;
+      recordReport(allSpots.find((place) => place.id === button.dataset.spot), null, button.dataset.popupLevel);
+      spotMap.closePopup();
+      render();
+      refreshPins();
+    }, true);
+    foodPinLayer = L.layerGroup();
+    if (mapShowsFood) foodPinLayer.addTo(spotMap);
     refreshPins();
   }
 
@@ -6091,7 +6285,7 @@
   });
 
   function logStudyTime(minutes) {
-    studyLog = addStudyTime(studyLog, studySession.spotId, minutes, Date.now());
+    studyLog = addStudyTime(studyLog, studySession.spotId, minutes, Date.now(), studySession.task);
     saveList("studyLog", studyLog);
     renderStudyTime();
   }
@@ -6103,8 +6297,9 @@
         <button class="plan-reset prompt-skip" data-prompt-action="skip-checkin">Skip</button>`;
     }
     if (prompt.kind === "break") {
-      return `${BREAK_CHOICES.map((minutes) => `<button class="plan-reset" data-prompt-action="start-break" data-break-minutes="${minutes}"
-        aria-label="Start a ${minutes}-minute break">${minutes} min</button>`).join("")}
+      const suggested = suggestedBreak(sessionsToday(studyLog, new Date()));
+      return `${BREAK_CHOICES.map((minutes) => `<button class="plan-reset${minutes === suggested ? " suggested" : ""}" data-prompt-action="start-break" data-break-minutes="${minutes}"
+        aria-label="Start a ${minutes}-minute break${minutes === suggested ? " (suggested)" : ""}">${minutes} min</button>`).join("")}
         <button class="plan-reset prompt-skip" data-prompt-action="dismiss">No thanks</button>`;
     }
     const spot = allSpots.find((studySpot) => studySpot.id === prompt.spotId);
@@ -6117,7 +6312,11 @@
   function sessionPromptText(prompt) {
     const spot = allSpots.find((studySpot) => studySpot.id === prompt.spotId);
     if (prompt.kind === "checkin") return `Session done. How busy is ${spot.name} now?`;
-    if (prompt.kind === "break") return `Nice work. How long a break? ${breakFoodIdea(spot, foodPlaces, campusClock(spot.campus))}`.trim();
+    if (prompt.kind === "break") {
+      const done = sessionsToday(studyLog, new Date());
+      const opener = suggestedBreak(done) === 15 ? `${done} sessions today. Time for a longer break?` : "Nice work. How long a break?";
+      return `${opener} ${breakFoodIdea(spot, foodPlaces, campusClock(spot.campus))}`.trim();
+    }
     return openStatus(spot, campusClock(spot.campus)).isOpen === false ? `Break's over. ${spot.name} has closed for now.` : `Break's over. Back to ${spot.name}?`;
   }
 
@@ -6175,7 +6374,9 @@
       notify(`${spot.name} closes soon`, `${spot.name} closes in about 15 minutes. Time to pack up.`);
       showToast(`${spot.name} closes in about 15 minutes. Time to pack up.`);
     }
-    document.getElementById("session-text").textContent = `Studying at ${spot.name} · ${formatTimer(studySession.endTime - now)} left · ends ${clockTime(studySession.endTime)}${warning}`;
+    const doing = studySession.task ? `${studySession.task} at ` : "Studying at ";
+    const count = sessionsToday(studyLog, new Date(now)) + 1;
+    document.getElementById("session-text").textContent = `${doing}${spot.name} · ${formatTimer(studySession.endTime - now)} left · ends ${clockTime(studySession.endTime)}${count > 1 ? ` · session ${count} today` : ""}${warning}`;
     document.title = timerTitle(studySession.endTime - now);
   }
 
@@ -6201,8 +6402,12 @@
   }
 
   function startSession(spotId, minutes, isBreak = false) {
+    // What you're working on, typed in the spot's panel; a break or "study again" keeps the last session's.
+    const typedTask = document.getElementById(`session-task-${spotId}`)?.value.trim().slice(0, TASK_LIMIT);
+    const task = typedTask || (isBreak ? "" : lastTask);
+    if (!isBreak) lastTask = task;
     sessionPrompt = null;
-    studySession = { spotId, minutes, endTime: Date.now() + minutes * 60000, ...(isBreak ? { isBreak: true } : {}) };
+    studySession = { spotId, minutes, endTime: Date.now() + minutes * 60000, ...(isBreak ? { isBreak: true } : {}), ...(task && !isBreak ? { task } : {}) };
     saveSession(studySession);
     expandedSpotId = null;
     render();
@@ -6375,7 +6580,7 @@
 
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
-    const keys = ["busynessReports", "lastSpot", "recentSchools", "recentSearches", "foodNotes", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "contrast", "studySession", "openOnly",
+    const keys = ["busynessReports", "lastSpot", "recentSchools", "recentSearches", "foodNotes", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "contrast", "usualMinutes", "weather", "studySession", "openOnly",
       "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders", "soundChoice", "soundVolume", "soundWithTimer"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
@@ -6543,7 +6748,8 @@
     // Redrawing would interrupt someone typing a note, so wait for the next minute instead.
     checkReminders();
     if (themeChoice === "sunset") applyDisplaySettings(themeChoice, document.documentElement.dataset.text === "large");
-    if (document.activeElement?.dataset?.noteSpot || document.activeElement?.dataset?.noteFood || document.activeElement?.id === "custom-minutes") return;
+    if (document.activeElement?.dataset?.noteSpot || document.activeElement?.dataset?.noteFood || document.activeElement?.id === "custom-minutes"
+      || document.activeElement?.classList?.contains("session-task")) return;
     render();
     refreshPins();
     if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
