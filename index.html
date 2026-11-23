@@ -408,6 +408,7 @@
         <option value="umich">Michigan (Ann Arbor)</option>
         <option value="umn">Minnesota (Twin Cities)</option>
         <option value="unl">Nebraska (Lincoln)</option>
+        <option value="nu">Northwestern (Evanston)</option>
         <option value="osu">Ohio State (Columbus)</option>
         <option value="psu">Penn State (University Park)</option>
         <option value="purdue">Purdue (West Lafayette)</option>
@@ -1117,6 +1118,49 @@
         ...during("2026-12-22", "2026-12-23", [h(7), h(18)]), ...during("2026-12-24", "2026-12-24", HOURS_UNCONFIRMED),
         ...during("2026-12-25", "2027-01-03", null), ...during("2027-01-04", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // Northwestern (Evanston), from Northwestern Libraries' LibCal hours (library.northwestern.edu/visit/hours.html, posted
+  // through Jun 20, 2027) and Norris University Center's academic term hours (northwestern.edu/norris/about/hours.html),
+  // checked 2026-11-23. Norris doesn't post break hours, so its break days say "Hours not confirmed". Times are Central,
+  // like Illinois.
+  const nuLibraryBreaks = {
+    ...during("2026-11-25", "2026-11-25", [h(8), h(18)]), ...during("2026-11-26", "2026-11-27", null),
+    ...during("2026-11-28", "2026-11-28", [h(10), h(18)]), ...during("2026-12-11", "2026-12-11", [h(0), h(18)]),
+    ...during("2026-12-12", "2026-12-12", [h(10), h(18)]), ...during("2026-12-13", "2026-12-13", null),
+    ...during("2026-12-14", "2026-12-16", [h(8), h(18)]), ...during("2026-12-17", "2026-12-17", [h(8), h(15)]),
+    ...during("2026-12-18", "2026-12-18", [h(8), h(18)]), ...during("2026-12-19", "2026-12-19", [h(10), h(18)]),
+    ...during("2026-12-20", "2026-12-20", null), ...during("2026-12-21", "2026-12-23", [h(8), h(18)]),
+    ...during("2026-12-24", "2027-01-03", null), ...during("2027-01-17", "2027-01-17", [h(8), h(18)]),
+    ...during("2027-01-18", "2027-01-18", null), ...during("2027-03-09", "2027-03-19", [h(0), h(24)]),
+    ...during("2027-03-20", "2027-03-20", [h(10), h(18)]), ...during("2027-03-21", "2027-03-21", null),
+    ...during("2027-03-22", "2027-03-26", [h(8), h(18)]), ...during("2027-03-27", "2027-03-27", [h(10), h(18)]),
+    ...during("2027-03-28", "2027-03-28", null), ...during("2027-03-29", "2027-03-29", [h(8), h(18)]),
+    ...during("2027-05-31", "2027-06-11", [h(0), h(24)]), ...during("2027-06-12", "2027-06-12", [h(10), h(18)]),
+    ...during("2027-06-13", "2027-06-13", null), ...during("2027-06-14", "2027-06-18", [h(8), h(18)]),
+    ...during("2027-06-19", "2027-06-19", [h(10), h(18)]), ...during("2027-06-20", "2027-06-20", null),
+    ...during("2027-06-21", "2027-08-31", HOURS_UNCONFIRMED) };
+  const nuLibraryWeek = [[h(10), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(22)], [h(10), h(22)]];
+  const nuSpots = [
+    { id: "nu-main", campus: "nu", type: "library", name: "University Library", offers: [], location: [42.05299, -87.67342],
+      keywords: "university library main core information commons northwestern nu wildcats",
+      hours: nuLibraryWeek,
+      specialHours: { ...nuLibraryBreaks, ...during("2026-11-30", "2026-12-10", [h(0), h(24)]) } },
+    { id: "nu-deering", campus: "nu", type: "library", name: "Deering Library", offers: [], location: [42.05319, -87.67528],
+      keywords: "deering library reading room northwestern nu wildcats",
+      hours: nuLibraryWeek, specialHours: nuLibraryBreaks },
+    { id: "nu-mudd", campus: "nu", type: "library", name: "Mudd Library", offers: [], location: [42.05826, -87.67435],
+      keywords: "seeley g mudd science engineering library tech northwestern nu wildcats",
+      hours: sameEveryDay(0, 24),
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(0), h(18)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-23", "2026-12-23", [h(0), h(18)]), ...during("2026-12-24", "2027-01-03", HOURS_UNCONFIRMED),
+        ...during("2027-01-17", "2027-01-17", [h(8), h(18)]), ...during("2027-01-18", "2027-01-18", null),
+        ...during("2027-06-21", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "nu-norris", campus: "nu", type: "union", name: "Norris University Center", offers: [], location: [42.05345, -87.67273],
+      keywords: "norris university center student union northwestern nu wildcats",
+      hours: [[h(10), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)]],
+      specialHours: { ...during("2026-11-26", "2026-11-29", HOURS_UNCONFIRMED), ...during("2026-12-12", "2027-01-03", HOURS_UNCONFIRMED),
+        ...during("2027-01-18", "2027-01-18", HOURS_UNCONFIRMED), ...during("2027-03-21", "2027-03-29", HOURS_UNCONFIRMED),
+        ...during("2027-06-12", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
   // UCLA (Los Angeles), from UCLA Library's hours calendar (calendar.library.ucla.edu/hours), checked 2026-11-19. Powell is
   // posted through Dec 19, the Research Library through Feb 6, and SEL/Boelter through Apr 3; later days say "Hours not
   // confirmed". Night Powell, the overnight study hall for BruinCard holders, isn't counted as open. Times are Los Angeles's
@@ -1151,19 +1195,22 @@
         ...during("2027-03-26", "2027-03-28", null), ...during("2027-04-04", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
   const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
-    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...uclaSpots];
+    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...nuSpots, ...uclaSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
-    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland", ucla: "UCLA" };
+    wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland", nu: "Northwestern",
+    ucla: "UCLA" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
     rutgers: "Search: alex, lsm, carr", psu: "Search: pattee, hub, engineering",
     umn: "Search: walter, wilson, coffman", iowa: "Search: main, engineering, imu",
-    unl: "Search: love, adele, union", umd: "Search: mckeldin, stem, stamp", ucla: "Search: powell, yrl, sel" };
+    unl: "Search: love, adele, union", umd: "Search: mckeldin, stem, stamp",
+    nu: "Search: main, mudd, norris", ucla: "Search: powell, yrl, sel" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
     ucla: "UCLA food places haven't been added yet, so this list is empty for now.",
+    nu: "Northwestern food places haven't been added yet, so this list is empty for now.",
     uiuc: `${osmFoodNote} Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.`,
     uic: osmFoodNote,
     uis: "Hours are from UIS Dining (uis.edu/dining), including Thanksgiving and winter break. Summer hours aren't posted yet.",
@@ -2184,6 +2231,10 @@
   spotIcons["umd-hornbake"] = spotIcons.idea;
   spotIcons["umd-stem"] = spotIcons.grainger;
   spotIcons["umd-stamp"] = spotIcons.union;
+  spotIcons["nu-main"] = spotIcons.main;
+  spotIcons["nu-deering"] = spotIcons.main;
+  spotIcons["nu-mudd"] = spotIcons.grainger;
+  spotIcons["nu-norris"] = spotIcons.union;
   spotIcons["ucla-powell"] = spotIcons.main;
   spotIcons["ucla-yrl"] = spotIcons.idea;
   spotIcons["ucla-sel"] = spotIcons.grainger;
