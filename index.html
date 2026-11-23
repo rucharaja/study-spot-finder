@@ -1362,7 +1362,7 @@
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
     ucla: "UCLA food places haven't been added yet, so this list is empty for now.",
-    uw: "Washington food places haven't been added yet, so this list is empty for now.",
+    uw: "Hours are from UW Housing & Food Services, which posts autumn quarter hours only. Thanksgiving week and everything from Dec 19 on say \"Hours TBD\", except days a building is posted closed.",
     usc: "Hours are from USC Hospitality, including Thanksgiving week. Regular hours are posted through Dec 4; finals, winter break, and spring aren't posted yet, so from Dec 5 on days say \"Hours TBD\".",
     uo: "Hours are from University Housing and the EMU, including Thanksgiving. Both post fall term hours only, so from Jan 2 on days say \"Hours TBD\". The EMU doesn't post its restaurants' Thanksgiving or winter break hours, so those days say \"Hours TBD\" unless the building is closed.",
     nu: "Hours are from Northwestern Dining, including Thanksgiving, finals, and winter break, posted through Feb 13. Later days say \"Hours TBD\". Starbucks in Norris and the Market at Foster-Walker list hours that don't match their breaks, so those days say \"Hours TBD\" too.",
@@ -2426,7 +2426,56 @@
       hours: [[[660, 1140]], [[660, 1140]], [[660, 1140]], [[660, 1140]], [[660, 1140]], [[660, 1140]], [[660, 1140]]],
       specialHours: { "2026-11-26": [], "2026-11-27": [] } },
   ].map((place) => ({ ...place, campus: "usc", checked: "2026-11", unknownDates: [["2026-12-05", "2027-08-31"]] }));
+  // Washington food, from UW Housing & Food Services' locations and hours pages (hfs.uw.edu/eat/locations-and-hours, checked
+  // 2026-11-23). HFS posts autumn quarter hours only, with no Thanksgiving or break hours, so Thanksgiving week (Nov 25-29)
+  // and everything from Dec 19 on say "Hours TBD", except days a place's building is posted closed (the HUB Nov 26-28,
+  // Suzzallo Nov 26-27). Dining hall hours run to 11pm because Dawg House Pizza inside stays open late. Times are
+  // Seattle's own (Pacific).
+  const hub = [47.65537, -122.3051];
+  const alderHall = [47.65567, -122.31355];
+  const oakHall = [47.65936, -122.30546];
+  const uwThanksgiving = ["2026-11-25", "2026-11-29"];
+  const hubThanksgiving = { closed: closedOn("2026-11-26", "2026-11-28"), unknown: [["2026-11-25", "2026-11-25"], ["2026-11-29", "2026-11-29"]] };
+  const uwFoodPlaces = [
+    { name: "Center Table", kind: "UW dining hall · pay per item · dining account or card", isHall: true, location: [47.6598, -122.30427],
+      hours: byWeekday([[480, 1380]], [[450, 1380]], [[450, 1380]], [[480, 1380]]), unknownDates: [uwThanksgiving] },
+    { name: "Local Point (Lander Hall)", kind: "UW dining hall · pay per item · dining account or card", isHall: true, location: [47.65566, -122.31468],
+      hours: byWeekday([[480, 1380]], [[450, 1380]], [[450, 1380]], [[480, 1380]]), unknownDates: [uwThanksgiving] },
+    { name: "Husky Den Food Court (HUB)", kind: "Fast food · food court", location: hub,
+      hours: byWeekday([], [[615, 1140]], [[615, 960]], []), specialHours: hubThanksgiving.closed, unknownDates: hubThanksgiving.unknown },
+    { name: "Husky Den Café (HUB)", kind: "Cafe · coffee", location: hub,
+      hours: byWeekday([], [[480, 1020]], [[480, 1020]], []), specialHours: hubThanksgiving.closed, unknownDates: hubThanksgiving.unknown },
+    { name: "Etc. (HUB)", kind: "Fast food · market", location: hub,
+      hours: byWeekday([], [[420, 1140]], [[420, 1140]], [[540, 1020]]), specialHours: hubThanksgiving.closed, unknownDates: hubThanksgiving.unknown },
+    { name: "District Market (Alder Hall)", kind: "Fast food · market", location: alderHall,
+      hours: byWeekday([[480, 1380]], [[420, 1380]], [[420, 1380]], [[480, 1380]]), unknownDates: [uwThanksgiving] },
+    { name: "District Market (Oak Hall)", kind: "Fast food · market", location: oakHall,
+      hours: byWeekday([[480, 1380]], [[420, 1380]], [[420, 1380]], [[480, 1380]]), unknownDates: [uwThanksgiving] },
+    { name: "Husky Grind Café (Alder Hall)", kind: "Cafe · coffee", location: alderHall,
+      hours: byWeekday([[480, 1200]], [[420, 1200]], [[420, 1200]], [[480, 1200]]), unknownDates: [uwThanksgiving] },
+    { name: "Husky Grind Café (Oak Hall)", kind: "Cafe · coffee", location: oakHall,
+      hours: byWeekday([[480, 1200]], [[420, 1200]], [[420, 1200]], [[480, 1200]]), unknownDates: [uwThanksgiving] },
+    { name: "Husky Grind Café (Mercer Court)", kind: "Cafe · coffee", location: [47.65446, -122.31781],
+      hours: byWeekday([[480, 1080]], [[420, 1080]], [[420, 1080]], [[480, 1080]]), unknownDates: [uwThanksgiving] },
+    { name: "By George (Odegaard Library)", kind: "Cafe · coffee", location: [47.65647, -122.31042],
+      hours: byWeekday([], [[450, 1200]], [[450, 1020]], []), unknownDates: [uwThanksgiving] },
+    { name: "Starbucks (Suzzallo Library)", kind: "Cafe · coffee", location: [47.65581, -122.30805],
+      hours: byWeekday([[780, 1140]], [[480, 1140]], [[480, 1020]], []), specialHours: closedOn("2026-11-26", "2026-11-27"),
+      unknownDates: [["2026-11-25", "2026-11-25"], ["2026-11-28", "2026-11-29"]] },
+    { name: "Cultivate (Elm Hall)", kind: "Restaurant · gastropub", location: [47.65653, -122.31525],
+      hours: byWeekday([], [[690, 1230]], [[690, 900]], []), specialHours: { "2026-12-13": [[600, 840]] }, unknownDates: [uwThanksgiving] },
+    { name: "Dawg Bites (IMA)", kind: "Cafe · smoothies and snacks", location: [47.65374, -122.30123],
+      hours: byWeekday([[690, 1140]], [[690, 1260]], [[690, 1260]], []), unknownDates: [uwThanksgiving] },
+    { name: "Microsoft Café (Gates Center)", kind: "Cafe", location: [47.65287, -122.30448],
+      hours: byWeekday([], [[450, 1020]], [[450, 1020]], []), unknownDates: [uwThanksgiving] },
+    { name: "Orin's Place (PACCAR Hall)", kind: "Cafe", location: [47.65909, -122.30867],
+      hours: byWeekday([], [[450, 1140]], [[450, 900]], []), unknownDates: [uwThanksgiving] },
+    { name: "Public Grounds (Parrington Hall)", kind: "Cafe", location: [47.65744, -122.31025],
+      hours: byWeekday([], [[480, 960]], [], []), unknownDates: [uwThanksgiving] },
+  ].map((place) => ({ ...place, campus: "uw", checked: "2026-11",
+    unknownDates: [...(place.unknownDates ?? []), ["2026-12-19", "2027-08-31"]] }));
   const foodPlaces = [
+    ...uwFoodPlaces,
     ...uscFoodPlaces,
     ...uoFoodPlaces,
     ...nuFoodPlaces,
