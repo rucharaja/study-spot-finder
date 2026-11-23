@@ -416,6 +416,7 @@
         <option value="rutgers">Rutgers (New Brunswick)</option>
         <option value="ucla">UCLA (Los Angeles)</option>
         <option value="usc">USC (Los Angeles)</option>
+        <option value="uw">Washington (Seattle)</option>
         <option value="wisc">Wisconsin (Madison)</option>
       </optgroup>
     </select>
@@ -1254,6 +1255,60 @@
         ...during("2027-05-12", "2027-05-13", [h(9), h(17)]), ...during("2027-05-14", "2027-05-14", [h(13), h(17)]),
         ...during("2027-05-17", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // Washington (Seattle), from UW Libraries' LibCal hours (cal.lib.uw.edu/hours, posted through Aug 28, 2027) and the HUB's
+  // building hours (hub.washington.edu/about/plan-your-visit, fall quarter through Dec 18), checked 2026-11-23. Odegaard
+  // needs a Husky Card, and the HUB needs one after 5pm. Times are Seattle's own (Pacific), like UCLA.
+  const odegaardSummerWeek = [[h(12), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(22)], [h(8), h(18)], null];
+  const suzzalloSummerWeek = [[h(13), h(17)], [h(8), h(19)], [h(8), h(19)], [h(8), h(19)], [h(8), h(19)], [h(8), h(17)], null];
+  // From winter quarter on, the Engineering Library closes at 5pm every weekday.
+  const engineeringLaterWeek = [null, [h(9), h(17)], [h(9), h(17)], [h(9), h(17)], [h(9), h(17)], [h(9), h(17)], null];
+  const uwSpots = [
+    { id: "uw-suzzallo", campus: "uw", type: "library", name: "Suzzallo and Allen Libraries", offers: [], location: [47.65581, -122.30805],
+      keywords: "suzzallo allen library reading room harry potter uw washington huskies",
+      hours: [[h(13), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(20)], [h(8), h(17)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-20", "2027-01-03", null), ...during("2027-01-18", "2027-01-18", [h(13), h(20)]),
+        ...during("2027-02-15", "2027-02-15", [h(13), h(20)]), ...during("2027-03-21", "2027-03-21", null),
+        ...during("2027-03-22", "2027-03-26", [h(9), h(17)]), ...during("2027-03-28", "2027-03-28", null),
+        ...during("2027-05-31", "2027-05-31", [h(13), h(20)]), ...during("2027-06-12", "2027-06-12", [h(9), h(13)]),
+        ...during("2027-06-13", "2027-06-13", null), ...during("2027-06-14", "2027-06-17", [h(9), h(17)]),
+        ...during("2027-06-18", "2027-06-20", null), ...weeklyDuring("2027-06-21", "2027-08-21", suzzalloSummerWeek),
+        ...during("2027-07-04", "2027-07-05", null), ...during("2027-08-22", "2027-08-22", null),
+        ...during("2027-08-23", "2027-08-27", [h(9), h(17)]), ...during("2027-08-29", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "uw-odegaard", campus: "uw", type: "library", name: "Odegaard Undergraduate Library", offers: [], location: [47.65647, -122.31042],
+      keywords: "odegaard undergraduate library oug ougl husky card uw washington huskies",
+      hours: [[h(12), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(24)], [h(8), h(20)], [h(12), h(20)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(8), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-04", "2026-12-04", [h(8), h(24)]), ...during("2026-12-05", "2026-12-05", [h(10), h(24)]),
+        ...during("2026-12-11", "2026-12-11", [h(8), h(24)]), ...during("2026-12-12", "2026-12-13", [h(10), h(24)]),
+        ...during("2026-12-18", "2026-12-18", [h(8), h(17)]), ...during("2026-12-19", "2027-01-03", null),
+        ...during("2027-01-18", "2027-01-18", [h(12), h(22)]), ...during("2027-02-15", "2027-02-15", [h(12), h(22)]),
+        ...during("2027-03-05", "2027-03-05", [h(8), h(24)]), ...during("2027-03-06", "2027-03-06", [h(10), h(24)]),
+        ...during("2027-03-12", "2027-03-12", [h(8), h(24)]), ...during("2027-03-13", "2027-03-14", [h(10), h(24)]),
+        ...during("2027-03-19", "2027-03-19", [h(8), h(17)]), ...during("2027-03-20", "2027-03-21", null),
+        ...during("2027-03-22", "2027-03-26", [h(9), h(17)]), ...during("2027-03-27", "2027-03-28", null),
+        ...during("2027-05-28", "2027-05-28", [h(8), h(24)]), ...during("2027-05-29", "2027-05-29", [h(10), h(24)]),
+        ...during("2027-05-31", "2027-05-31", [h(12), h(22)]), ...during("2027-06-04", "2027-06-04", [h(8), h(24)]),
+        ...during("2027-06-05", "2027-06-06", [h(10), h(24)]), ...during("2027-06-11", "2027-06-11", [h(8), h(17)]),
+        ...during("2027-06-12", "2027-06-13", null), ...during("2027-06-14", "2027-06-17", [h(9), h(17)]),
+        ...during("2027-06-18", "2027-06-20", null), ...weeklyDuring("2027-06-21", "2027-08-19", odegaardSummerWeek),
+        ...during("2027-07-03", "2027-07-05", null), ...during("2027-08-20", "2027-08-20", [h(8), h(17)]),
+        ...during("2027-08-21", "2027-08-22", null), ...during("2027-08-23", "2027-08-27", [h(9), h(17)]),
+        ...during("2027-08-28", "2027-08-28", null), ...during("2027-08-29", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "uw-engineering", campus: "uw", type: "library", name: "Engineering Library", offers: [], location: [47.65463, -122.3045],
+      keywords: "engineering library elb uw washington huskies",
+      hours: [null, [h(9), h(18)], [h(9), h(18)], [h(9), h(18)], [h(9), h(18)], [h(9), h(17)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(9), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-21", "2027-01-01", null), ...weeklyDuring("2027-01-04", "2027-08-28", engineeringLaterWeek),
+        ...during("2027-01-18", "2027-01-18", null), ...during("2027-02-15", "2027-02-15", null),
+        ...during("2027-05-31", "2027-05-31", null), ...during("2027-06-18", "2027-06-18", null),
+        ...during("2027-07-05", "2027-07-05", null), ...during("2027-08-29", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "uw-hub", campus: "uw", type: "union", name: "Husky Union Building (HUB)", offers: [], location: [47.65537, -122.3051],
+      keywords: "husky union building hub student union uw washington huskies",
+      hours: [null, [h(7), h(22)], [h(7), h(22)], [h(7), h(22)], [h(7), h(22)], [h(7), h(22)], [h(8), h(23)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(7), h(21)]), ...during("2026-11-26", "2026-11-28", null),
+        ...during("2026-12-19", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
   // UCLA (Los Angeles), from UCLA Library's hours calendar (calendar.library.ucla.edu/hours), checked 2026-11-19. Powell is
   // posted through Dec 19, the Research Library through Feb 6, and SEL/Boelter through Apr 3; later days say "Hours not
   // confirmed". Night Powell, the overnight study hall for BruinCard holders, isn't counted as open. Times are Los Angeles's
@@ -1288,10 +1343,11 @@
         ...during("2027-03-26", "2027-03-28", null), ...during("2027-04-04", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
   const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
-    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...nuSpots, ...uoSpots, ...uclaSpots, ...uscSpots];
+    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...nuSpots, ...uoSpots, ...uclaSpots, ...uscSpots, ...uwSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
     wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland", nu: "Northwestern",
-    uo: "Oregon", ucla: "UCLA", usc: "USC" };
+    uo: "Oregon", ucla: "UCLA", usc: "USC",
+    uw: "Washington" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
@@ -1300,11 +1356,13 @@
     unl: "Search: love, adele, union", umd: "Search: mckeldin, stem, stamp",
     nu: "Search: main, mudd, norris",
     uo: "Search: knight, price, emu", ucla: "Search: powell, yrl, sel",
-    usc: "Search: leavey, doheny, sel" };
+    usc: "Search: leavey, doheny, sel",
+    uw: "Search: suzzallo, odegaard, hub" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
     ucla: "UCLA food places haven't been added yet, so this list is empty for now.",
+    uw: "Washington food places haven't been added yet, so this list is empty for now.",
     usc: "Hours are from USC Hospitality, including Thanksgiving week. Regular hours are posted through Dec 4; finals, winter break, and spring aren't posted yet, so from Dec 5 on days say \"Hours TBD\".",
     uo: "Hours are from University Housing and the EMU, including Thanksgiving. Both post fall term hours only, so from Jan 2 on days say \"Hours TBD\". The EMU doesn't post its restaurants' Thanksgiving or winter break hours, so those days say \"Hours TBD\" unless the building is closed.",
     nu: "Hours are from Northwestern Dining, including Thanksgiving, finals, and winter break, posted through Feb 13. Later days say \"Hours TBD\". Starbucks in Norris and the Market at Foster-Walker list hours that don't match their breaks, so those days say \"Hours TBD\" too.",
@@ -2554,6 +2612,10 @@
   spotIcons["usc-leavey"] = spotIcons.idea;
   spotIcons["usc-doheny"] = spotIcons.main;
   spotIcons["usc-sel"] = spotIcons.grainger;
+  spotIcons["uw-suzzallo"] = spotIcons.main;
+  spotIcons["uw-odegaard"] = spotIcons.idea;
+  spotIcons["uw-engineering"] = spotIcons.grainger;
+  spotIcons["uw-hub"] = spotIcons.union;
   spotIcons["ucla-powell"] = spotIcons.main;
   spotIcons["ucla-yrl"] = spotIcons.idea;
   spotIcons["ucla-sel"] = spotIcons.grainger;
