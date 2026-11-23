@@ -168,6 +168,7 @@
   .campus-choice { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: .9rem; font-weight: 600; color: var(--text); }
   .campus-choice select { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 999px; font: inherit; font-weight: 600;
     background: var(--illini-navy); color: #ffffff; border: 2px solid var(--illini-orange); }
+  .time-zone-note { margin: 0; color: var(--muted); font-size: .8rem; }
   .category-choices { display: flex; gap: 6px; flex-wrap: wrap; }
   button.category { flex: 1 1 auto; min-height: 40px; padding: 0 8px; border-radius: 999px; border-width: 1px; font-size: .85rem;
     background: var(--card); color: var(--text); }
@@ -422,6 +423,7 @@
       </optgroup>
     </select>
   </label>
+  <p class="time-zone-note" id="time-zone-note" hidden></p>
   <section class="empty-now" id="empty-now" aria-live="polite" hidden></section>
   <div class="today-notes" id="today-notes"></div>
   <div class="search">
@@ -1396,15 +1398,26 @@
     purdue: "America/Indiana/Indianapolis", iu: "America/Indiana/Indianapolis", umich: "America/Detroit", msu: "America/Detroit",
     osu: "America/New_York", psu: "America/New_York", rutgers: "America/New_York", umd: "America/New_York",
     uo: "America/Los_Angeles", ucla: "America/Los_Angeles", usc: "America/Los_Angeles", uw: "America/Los_Angeles" };
-  // A Date whose day, hour, and minute read as the clock on campus at that moment, for comparing with opening hours.
+  // A Date whose day, hour, and minute read as the clock in a time zone at that moment, for comparing with opening hours.
   // It also carries the real moment (realTime), so report ages stay measured in real time.
-  function campusClock(campus, moment = new Date()) {
-    const format = new Intl.DateTimeFormat("en-US", { timeZone: campusTimeZones[campus] ?? "America/Chicago", hourCycle: "h23",
+  function zoneClock(zone, moment = new Date()) {
+    const format = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23",
       year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
     const parts = Object.fromEntries(format.formatToParts(moment).map(({ type, value }) => [type, Number(value)]));
     const clock = new Date(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second);
     clock.realTime = moment.getTime();
     return clock;
+  }
+  const campusClock = (campus, moment = new Date()) => zoneClock(campusTimeZones[campus] ?? "America/Chicago", moment);
+  const timeZoneNames = { "America/Chicago": "Central", "America/New_York": "Eastern", "America/Detroit": "Eastern",
+    "America/Indiana/Indianapolis": "Eastern", "America/Los_Angeles": "Pacific" };
+  // "Times are Pacific time, 2 hours behind you." when the campus's clock differs from the viewer's, otherwise "".
+  function timeZoneNote(campus, moment = new Date(), viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+    const hoursAhead = Math.round((campusClock(campus, moment) - zoneClock(viewerZone, moment)) / 1800000) / 2;
+    if (hoursAhead === 0) return "";
+    const amount = Math.abs(hoursAhead);
+    const zoneName = timeZoneNames[campusTimeZones[campus]];
+    return `Times are ${zoneName} time, ${amount} ${amount === 1 ? "hour" : "hours"} ${hoursAhead > 0 ? "ahead of" : "behind"} you.`;
   }
   // The real moment when a campus's clock shows a given time, for reminders that fire on the viewer's device.
   function realMoment(campus, clock) {
@@ -4521,6 +4534,9 @@
     document.getElementById("tagline").textContent = `Find empty study spots at ${campuses[selectedCampus]}`;
     document.getElementById("spot-search").placeholder = searchHints[selectedCampus];
     document.getElementById("food-source").textContent = foodSourceNotes[selectedCampus];
+    const zoneNote = document.getElementById("time-zone-note");
+    zoneNote.textContent = timeZoneNote(selectedCampus);
+    zoneNote.hidden = zoneNote.textContent === "";
     // A kind of place this campus doesn't have would show an empty list.
     if (!currentSpots().some((spot) => spot.type === selectedCategoryId)) selectedCategoryId = "all";
     expandedSpotId = null;
