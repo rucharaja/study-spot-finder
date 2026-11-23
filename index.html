@@ -11,6 +11,7 @@
     if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
     if (localStorage.getItem("textSize") === "large") document.documentElement.dataset.text = "large";
     if (localStorage.getItem("compactList") === "on") document.documentElement.dataset.density = "compact";
+    if (localStorage.getItem("contrast") === "high") document.documentElement.dataset.contrast = "high";
   } catch { /* storage unavailable: use the defaults */ }
 </script>
 <link rel="manifest" href="manifest.webmanifest">
@@ -171,7 +172,7 @@
   .map-pin.food { width: 12px; height: 12px; background: var(--food-pin); border-width: 1.5px; }
   .food-section { display: grid; gap: 8px; }
   .food-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  .food-list li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--card); box-shadow: var(--shadow); font-size: .875rem; }
+  .food-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--card); box-shadow: var(--shadow); font-size: .875rem; }
   .food-text { flex: 1; min-width: 0; }
   button.food-tap { display: block; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; text-align: left; font-weight: inherit; }
   button.food-tap:focus-visible { outline: 2px solid var(--illini-orange); outline-offset: 4px; border-radius: 6px; }
@@ -336,6 +337,11 @@
     background: var(--border); background: color-mix(in srgb, var(--closed) 18%, var(--card)); }
   .notes { display: grid; gap: 4px; margin-top: 10px; }
   .notes label { font-size: .8rem; font-weight: 600; color: var(--muted); }
+  .food-list .notes { flex: 1 1 100%; margin-top: 0; }
+  .food-note-line { display: block; margin-top: 2px; color: var(--accent); font-size: .78rem; }
+  .recent-sessions { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: .85rem; }
+  .recent-sessions li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .recent-sessions button.clear-reports { margin-top: 0; flex: none; }
   .spot-distance { color: var(--muted); font-size: .8rem; white-space: nowrap; }
   .spot.closed.expanded { opacity: 1; }
   .sort-choices { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -431,6 +437,13 @@
     *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
   }
   .note { max-width: 640px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: .8rem; text-align: center; }
+  /* High contrast: muted text becomes full-strength, and borders and outlines darken, in light and dark themes. */
+  :root[data-contrast="high"] { --muted: var(--text); --border: #4a5568; }
+  :root[data-contrast="high"][data-theme="dark"] { --border: #b4c2d9; }
+  @media (prefers-color-scheme: dark) { :root[data-contrast="high"]:not([data-theme="light"]) { --border: #b4c2d9; } }
+  :root[data-contrast="high"] .spot { outline: 1px solid var(--border); }
+  /* Link-style buttons (like Find my school) stay borderless; everything else gets a full-strength border. */
+  :root[data-contrast="high"] button:not(.clear-reports), :root[data-contrast="high"] select, :root[data-contrast="high"] input { border-color: var(--text); }
 </style>
 </head>
 <body>
@@ -595,9 +608,11 @@
         <button class="offer" data-theme-choice="system">System</button>
         <button class="offer" data-theme-choice="light">Light</button>
         <button class="offer" data-theme-choice="dark">Dark</button>
+        <button class="offer" data-theme-choice="sunset">Dark after sunset</button>
       </div>
     </div>
     <label class="switch-row"><input type="checkbox" id="large-text"> Larger text</label>
+    <label class="switch-row"><input type="checkbox" id="high-contrast"> High contrast (darker text and borders)</label>
     <label class="switch-row"><input type="checkbox" id="compact-list"> Compact list (name, status, and busyness only)</label>
     <div class="setting">
       <span class="offer-filter-label" id="maps-label">Walking directions open in</span>
@@ -610,14 +625,18 @@
       <span class="offer-filter-label">Back up favorites, notes, history, and study time</span>
       <p class="map-note">Copy the code here, then paste it on your other device, or in the home screen app, and tap Restore.</p>
       <button class="offer" id="copy-backup">Copy backup code</button>
+      <button class="offer" id="save-backup-file">Save backup as a file</button>
       <button class="offer" id="download-reports">Download my reports (spreadsheet)</button>
       <textarea id="backup-code" rows="3" aria-label="Backup code to restore" placeholder="Paste a backup code here"></textarea>
       <button class="offer" id="restore-backup">Restore from code</button>
+      <button class="offer" id="restore-file-button">Restore from a file</button>
+      <input type="file" id="restore-file" accept=".txt,text/plain" class="visually-hidden" tabindex="-1" aria-hidden="true">
     </div>
     <div class="setting">
       <span class="offer-filter-label">Study time</span>
       <p class="study-summary" id="study-summary"></p>
       <div class="study-chart" id="study-chart" hidden></div>
+      <ul class="recent-sessions" id="recent-sessions" aria-label="Recent study sessions" hidden></ul>
       <span class="offer-filter-label" id="goal-label">Weekly goal</span>
       <div class="offer-choices" role="group" aria-labelledby="goal-label">
         <button class="offer" data-goal="0">None</button>
@@ -632,6 +651,10 @@
       </div>
       <label class="switch-row"><input type="checkbox" id="session-alerts"> Notify me when a timer ends or a spot I asked about opens</label>
       <p class="map-note" id="session-alerts-note">Works while the app is open in a tab. On iPhone, add the app to your home screen first.</p>
+    </div>
+    <div class="setting" id="reminder-setting" hidden>
+      <span class="offer-filter-label">Your reminders</span>
+      <ul class="recent-sessions" id="reminder-list"></ul>
     </div>
     <div class="setting" id="install-setting" hidden>
       <span class="offer-filter-label">Add to your home screen</span>
@@ -1562,6 +1585,14 @@
     return [0, 1].map((index) => onCampus.reduce((total, spot) => total + spot.location[index], 0) / onCampus.length);
   }
 
+  // True between a school's sunset and sunrise, for the "Dark after sunset" theme.
+  function isDarkOutside(campus, spots, moment = new Date()) {
+    const [latitude, longitude] = campusCenter(spots, campus);
+    const clock = campusClock(campus, moment);
+    const { sunrise, sunset } = sunTimes(clock.getFullYear(), clock.getMonth(), clock.getDate(), latitude, longitude);
+    return moment < sunrise || moment >= sunset;
+  }
+
   // "Sunset 4:31pm" during the day, "Dark since 4:31pm" in the evening, and "Sunrise 7:05am" after midnight, on the
   // campus's clock.
   function daylightNote(campus, spots, moment = new Date()) {
@@ -1593,6 +1624,18 @@
     if (!current || !Number.isFinite(current.temperature_2m)) return "";
     const words = weatherWords(current.weather_code);
     return `${Math.round(current.temperature_2m)}°F${words ? `, ${words}` : ""}`;
+  }
+
+  // The forecast for the hour containing a moment, from Open-Meteo's hourly lists (times in UTC), like
+  // "38°F, rain, 60% chance of rain"; "" when that hour isn't in the forecast (past, or more than 16 days out).
+  function forecastAt(hourly, momentMs) {
+    const hour = new Date(momentMs).toISOString().slice(0, 13) + ":00";
+    const index = hourly?.time?.indexOf(hour) ?? -1;
+    if (index < 0) return "";
+    const base = weatherNote({ temperature_2m: hourly.temperature_2m[index], weather_code: hourly.weather_code[index] });
+    const chance = hourly.precipitation_probability?.[index];
+    if (!base || !(chance >= 20)) return base;
+    return `${base}, ${chance}% chance of ${weatherWords(hourly.weather_code[index]).includes("snow") ? "snow" : "rain"}`;
   }
 
   // How many spots are open right now at each school, each on its own clock, as { campus: count }.
@@ -3799,6 +3842,33 @@
     return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
   }
 
+  // Starred spots at schools other than this one, so they're one tap away after switching.
+  function favoritesElsewhere(favoriteIds, spots, campus) {
+    return favoriteIds.map((id) => spots.find((spot) => spot.id === id))
+      .filter((spot) => spot && (spot.campus ?? "uiuc") !== campus);
+  }
+
+  // Reminders to show in Settings, soonest first, with the spot's name and when, like "Tue 7:30am".
+  function upcomingReminders(reminders, spots, nowMs) {
+    return reminders.filter((reminder) => reminder.time > nowMs).sort((a, b) => a.time - b.time).map((reminder) => {
+      const at = new Date(reminder.time);
+      return { ...reminder, spotName: spots.find((spot) => spot.id === reminder.spotId)?.name ?? "A spot",
+        when: `${dayNames[at.getDay()]} ${formatTime(at.getHours() * 60 + at.getMinutes())}` };
+    });
+  }
+
+  // The name a saved backup file gets, with the date it was saved.
+  function backupFileName(date) {
+    return `study-spot-backup-${dateKeyFor(date)}.txt`;
+  }
+
+  // The newest study sessions first, up to limit, with where and when, for the list in Settings.
+  function recentSessions(log, spots, limit = 5) {
+    return [...log].sort((a, b) => b.endTime - a.endTime).slice(0, limit).map((entry) => ({
+      ...entry, spotName: spots.find((spot) => spot.id === entry.spotId)?.name ?? "A spot",
+    }));
+  }
+
   // Minutes studied on each of the last 7 days, oldest first, ending today: [{ label, minutes }].
   function studyMinutesByDay(log, now) {
     return [6, 5, 4, 3, 2, 1, 0].map((daysAgo) => {
@@ -3901,9 +3971,11 @@
   }
 
   // A plain-text summary of the campus right now, for pasting into a group chat.
-  function statusSummary(spots, now, reports, campusName) {
+  // campus (optional) makes the link open on that school.
+  function statusSummary(spots, now, reports, campusName, campus = null) {
+    const link = campus ? schoolLink(campus) : APP_LINK;
     const open = spots.filter((spot) => openStatus(spot, now).isOpen !== false);
-    if (open.length === 0) return `Every study spot at ${campusName} is closed right now. ${APP_LINK}`;
+    if (open.length === 0) return `Every study spot at ${campusName} is closed right now. ${link}`;
     const reported = sortBestFirst(open, now, reports).filter((spot) => recentLevel(spot, now, reports) !== "unknown");
     const lines = reported.map((spot) => {
       const { area, report } = emptiestRecentReport(spot, now, reports);
@@ -3914,7 +3986,7 @@
       `Study spots at ${campusName} right now:`,
       ...lines,
       unreported.length ? `${reported.length ? "Also open" : "Open"}, no recent reports: ${unreported.join(", ")}` : null,
-      `Find a spot: ${APP_LINK}`,
+      `Find a spot: ${link}`,
     ].filter(Boolean).join("\n");
   }
 
@@ -4164,6 +4236,20 @@
   }
 
   // The spot named in a link's "?spot=" part, or null if there isn't a real one.
+  // A link that opens the app on one school, for a friend there.
+  function schoolLink(campus) {
+    return `${APP_LINK}?school=${encodeURIComponent(campus)}`;
+  }
+
+  // The school named in a link's "?school=" part, or null if there isn't a real one.
+  function schoolFromLink(search, knownCampuses) {
+    const match = /[?&]school=([^&#]*)/.exec(search ?? "");
+    if (!match) return null;
+    let campus;
+    try { campus = decodeURIComponent(match[1]); } catch { return null; }
+    return Object.hasOwn(knownCampuses, campus) ? campus : null;
+  }
+
   function spotFromLink(search, spots) {
     const match = /[?&]spot=([^&#]*)/.exec(search ?? "");
     if (!match) return null;
@@ -4227,6 +4313,18 @@
   }
 
   // Notes are short private text per spot; anything else in saved data is dropped.
+  // A notes object with one note changed: trimmed to the limit, and removed when blank.
+  function updateNotes(notes, key, text) {
+    const clipped = text.slice(0, NOTE_LIMIT);
+    if (clipped.trim()) return { ...notes, [key]: clipped };
+    return Object.fromEntries(Object.entries(notes).filter(([other]) => other !== key));
+  }
+  function cleanFoodNotes(saved) {
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+    return Object.fromEntries(Object.entries(saved).filter(([, note]) => typeof note === "string" && note.trim())
+      .map(([key, note]) => [key, note.slice(0, NOTE_LIMIT)]));
+  }
+
   function cleanNotes(saved, spots) {
     if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
     return Object.fromEntries(Object.entries(saved)
@@ -4438,6 +4536,14 @@
       `<li><span class="study-bar-value" aria-hidden="true">${minutes ? shortDuration(minutes) : ""}</span>
         <span class="study-bar" style="height:${Math.max(minutes ? 6 : 2, Math.round(minutes / most * 64))}px"></span>
         <span class="study-bar-label">${label}</span><span class="visually-hidden">: ${minutes ? formatDuration(minutes) : "none"}</span></li>`).join("")}</ul>`;
+    const sessionList = document.getElementById("recent-sessions");
+    const sessions = recentSessions(studyLog, allSpots);
+    sessionList.hidden = sessions.length === 0;
+    sessionList.innerHTML = sessions.map(({ spotName, minutes, endTime }) => {
+      const ended = new Date(endTime);
+      return `<li><span>${escapeHtml(spotName)} · ${formatDuration(minutes)} · ${dayNames[ended.getDay()]} ${formatTime(ended.getHours() * 60 + ended.getMinutes())}</span>
+        <button class="clear-reports" data-remove-session="${endTime}" aria-label="Remove ${escapeHtml(spotName)}, ${formatDuration(minutes)}">Remove</button></li>`;
+    }).join("");
     const progress = goalProgress(studyLog, now, studyGoalHours);
     const box = document.getElementById("goal-progress");
     box.hidden = !progress;
@@ -4480,7 +4586,7 @@
       return;
     }
     if (button.dataset.action === "share-status") {
-      shareText(statusSummary(withoutHidden(currentSpots(), hiddenSpotIds), campusNow(), reports, campuses[selectedCampus]));
+      shareText(statusSummary(withoutHidden(currentSpots(), hiddenSpotIds), campusNow(), reports, campuses[selectedCampus], selectedCampus));
       return;
     }
     const now = campusNow();
@@ -4768,6 +4874,23 @@
       ?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
 
+  function renderReminderList() {
+    const upcoming = upcomingReminders(openReminders, allSpots, Date.now());
+    document.getElementById("reminder-setting").hidden = upcoming.length === 0;
+    document.getElementById("reminder-list").innerHTML = upcoming.map(({ spotId, spotName, when }) =>
+      `<li><span>${escapeHtml(spotName)} opens · ${when}</span>
+        <button class="clear-reports" data-cancel-reminder="${spotId}" aria-label="Cancel the reminder for ${escapeHtml(spotName)}">Cancel</button></li>`).join("");
+  }
+  document.getElementById("reminder-list").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-cancel-reminder]");
+    if (!button) return;
+    const spot = allSpots.find((place) => place.id === button.dataset.cancelReminder);
+    openReminders = openReminders.filter((reminder) => reminder.spotId !== button.dataset.cancelReminder);
+    saveList("openReminders", openReminders);
+    render();
+    showToast(`Reminder for ${spot?.name ?? "that spot"} canceled.`);
+  });
+
   function renderWeekTable() {
     document.getElementById("week-toggle").textContent = `This week's hours at ${campuses[selectedCampus]}`;
     const box = document.getElementById("week-table");
@@ -4799,6 +4922,7 @@
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     renderSchoolCounts();
     renderWeekTable();
+    renderReminderList();
     renderOutsideNote();
     renderQuickTimes();
     renderLastSpot();
@@ -4838,6 +4962,11 @@
     if (hiddenHere) {
       list.insertAdjacentHTML("beforeend", `<button class="closed-toggle hidden-toggle" data-action="toggle-show-hidden"
         aria-expanded="${showHiddenSpots}">Hidden by you (${hiddenHere})</button>`);
+    }
+    const starredElsewhere = favoritesElsewhere(favoriteIds, allSpots, selectedCampus);
+    if (starredElsewhere.length) {
+      list.insertAdjacentHTML("beforeend", `<div class="elsewhere favorites-elsewhere"><span>Starred at other schools:</span>${starredElsewhere.map((spot) =>
+        `<button class="offer" data-action="go-elsewhere" data-spot="${spot.id}">${escapeHtml(spot.name)} (${campuses[spot.campus ?? "uiuc"]})</button>`).join("")}</div>`);
     }
   }
 
@@ -4883,7 +5012,7 @@
               <span class="report">${busynessMeter(level)}<span>${report
                 ? `<span class="visually-hidden">Last report ${busynessLabels[report.level]}, </span>${describeAge(report.time, Date.now(), true)}`
                 : ""}</span></span>
-              ${sortMode === "near" && lastKnownLocation ? distanceTag(spot, now) : ""}
+              ${lastKnownLocation ? distanceTag(spot, now) : ""}
             </span>
             ${usualLine(spot, now, level)}
             ${tagsLine(spot, now)}
@@ -5107,22 +5236,28 @@
   const WEATHER_REFRESH_MS = 15 * 60000;
   function renderOutsideNote() {
     const campus = selectedCampus;
-    const weather = weatherCache[campus]?.text;
-    document.getElementById("outside-note").textContent = `${daylightNote(campus, allSpots)}${weather ? ` · ${weather}` : ""}`;
     const cached = weatherCache[campus];
+    // While planning ahead, the line describes the planned time: its daylight and the forecast for that hour.
+    const moment = viewTime ? realMoment(campus, viewTime) : new Date();
+    const weather = viewTime ? (cached?.hourly ? forecastAt(cached.hourly, moment.getTime()) : "") : cached?.text;
+    const label = viewTime && weather ? "Forecast then: " : "";
+    document.getElementById("outside-note").textContent = `${daylightNote(campus, allSpots, moment)}${weather ? ` · ${label}${weather}` : ""}`;
     if (!navigator.onLine || (cached && Date.now() - cached.time < WEATHER_REFRESH_MS)) return;
-    weatherCache[campus] = { text: weather ?? "", time: Date.now() };
+    weatherCache[campus] = { ...cached, time: Date.now() };
     const [latitude, longitude] = campusCenter(allSpots, campus);
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(3)}&longitude=${longitude.toFixed(3)}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`)
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(3)}&longitude=${longitude.toFixed(3)}`
+      + "&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code,precipitation_probability"
+      + "&temperature_unit=fahrenheit&timezone=UTC&forecast_days=16")
       .then((response) => (response.ok ? response.json() : null))
       .then((reply) => {
-        weatherCache[campus] = { text: weatherNote(reply?.current), time: Date.now() };
+        weatherCache[campus] = { text: weatherNote(reply?.current), hourly: reply?.hourly ?? null, time: Date.now() };
         if (selectedCampus === campus) renderOutsideNote();
       })
       .catch(() => { /* no weather is fine: the sunset still shows */ });
   }
 
   function applyCampus() {
+    if (themeChoice === "sunset") applyDisplaySettings(themeChoice, document.documentElement.dataset.text === "large");
     recentCampuses = addRecentCampus(recentCampuses, selectedCampus);
     saveList("recentSchools", recentCampuses);
     renderRecentSchools();
@@ -5176,7 +5311,7 @@
   function renderFoodFrom() {
     const select = document.getElementById("food-from");
     if (!currentSpots().some((spot) => spot.id === foodFromSpotId)) foodFromSpotId = "";
-    select.innerHTML = `<option value="">${lastKnownLocation ? "you" : "you (tap above)"}</option>${currentSpots().map((spot) =>
+    select.innerHTML = `<option value="">you</option>${currentSpots().map((spot) =>
       `<option value="${spot.id}"${spot.id === foodFromSpotId ? " selected" : ""}>${escapeHtml(spot.name)}</option>`).join("")}`;
   }
   let lastKnownLocation = null;
@@ -5220,10 +5355,14 @@
         return `<li><button class="food-text food-tap" data-food-key="${escapeHtml(foodKey)}" aria-expanded="${isExpanded}">
             <span class="food-name">${escapeHtml(place.name)}</span>
             <span class="status ${statusClass}">${status.text}</span>
-            <span class="food-details">${place.kind}${miles === null ? "" : ` · ${describeDistance(miles)}`}</span>${week}</button>
+            <span class="food-details">${place.kind}${miles === null ? "" : ` · ${describeDistance(miles)}`}</span>${foodNotes[foodKey] && !isExpanded
+              ? `<span class="food-note-line">Note: ${escapeHtml(foodNotes[foodKey])}</span>` : ""}${week}</button>
           <button class="favorite food-favorite" data-food-favorite="${escapeHtml(foodKey)}" aria-pressed="${isFavorite}"
             aria-label="${isFavorite ? "Remove" : "Add"} ${escapeHtml(place.name)} ${isFavorite ? "from" : "to"} favorites">${STAR_ICON}</button>
-          ${walkLink(place.name, place.location, "walk-link food-walk", mapsApp)}</li>`;
+          ${walkLink(place.name, place.location, "walk-link food-walk", mapsApp)}${isExpanded ? `<div class="notes">
+            <label for="food-note-${escapeHtml(foodKey)}">My notes (only on this device)</label>
+            <textarea id="food-note-${escapeHtml(foodKey)}" data-note-food="${escapeHtml(foodKey)}" rows="2" maxlength="${NOTE_LIMIT}"
+              placeholder="Like: mobile order ahead at lunch">${escapeHtml(foodNotes[foodKey] ?? "")}</textarea></div>` : ""}</li>`;
       }).join("")}</ul>${results.length > FOOD_LIST_LENGTH
         ? `<button class="show-all-food" id="show-all-food">${showAllFood ? "Show fewer" : `Show all ${results.length}`}</button>`
         : ""}`;
@@ -5500,6 +5639,17 @@
     }
   });
 
+  // Notes on food places, keyed like starred food, saved as you type.
+  let foodNotes = (() => {
+    try { return cleanFoodNotes(JSON.parse(localStorage.getItem("foodNotes") || "{}")); } catch { return {}; }
+  })();
+  document.getElementById("food-list").addEventListener("input", (event) => {
+    const key = event.target.dataset?.noteFood;
+    if (!key) return;
+    foodNotes = updateNotes(foodNotes, key, event.target.value);
+    try { localStorage.setItem("foodNotes", JSON.stringify(foodNotes)); } catch { /* storage unavailable: keep in memory */ }
+  });
+
   // Notes save as you type, without redrawing, so the text box keeps its place.
   document.getElementById("spot-list").addEventListener("input", (event) => {
     const spotId = event.target.dataset?.noteSpot;
@@ -5569,9 +5719,15 @@
   });
   showTips(readSetting("seenTips", null) !== "yes");
 
+  // The theme picked in Settings: "system", "light", "dark", or "sunset" (dark between the school's sunset and sunrise).
+  let themeChoice = (() => {
+    try { return ["light", "dark", "sunset"].includes(localStorage.getItem("theme")) ? localStorage.getItem("theme") : "system"; } catch { return "system"; }
+  })();
   function applyDisplaySettings(theme, largeText) {
-    if (theme === "system") delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = theme;
+    themeChoice = theme;
+    const shown = theme === "sunset" ? (isDarkOutside(selectedCampus, allSpots) ? "dark" : "light") : theme;
+    if (shown === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = shown;
     if (largeText) document.documentElement.dataset.text = "large";
     else delete document.documentElement.dataset.text;
     for (const button of document.querySelectorAll("[data-theme-choice]")) {
@@ -5588,6 +5744,17 @@
     applyDisplaySettings(theme, document.documentElement.dataset.text === "large");
   });
 
+  function applyHighContrast(isHigh) {
+    if (isHigh) document.documentElement.dataset.contrast = "high";
+    else delete document.documentElement.dataset.contrast;
+    document.getElementById("high-contrast").checked = isHigh;
+  }
+  applyHighContrast(document.documentElement.dataset.contrast === "high");
+  document.getElementById("high-contrast").addEventListener("change", (event) => {
+    try { localStorage.setItem("contrast", event.target.checked ? "high" : "normal"); } catch { /* storage unavailable */ }
+    applyHighContrast(event.target.checked);
+  });
+
   function applyCompactList(isCompact) {
     if (isCompact) document.documentElement.dataset.density = "compact";
     else delete document.documentElement.dataset.density;
@@ -5601,10 +5768,33 @@
 
   document.getElementById("large-text").addEventListener("change", (event) => {
     try { localStorage.setItem("textSize", event.target.checked ? "large" : "normal"); } catch { /* storage unavailable */ }
-    applyDisplaySettings(document.documentElement.dataset.theme ?? "system", event.target.checked);
+    applyDisplaySettings(themeChoice, event.target.checked);
   });
 
   // Backup and restore.
+  // A backup file holds the same code, so restoring one goes through the same checks and Undo.
+  document.getElementById("save-backup-file").addEventListener("click", () => {
+    const code = makeBackup({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([code], { type: "text/plain" }));
+    link.download = backupFileName(new Date());
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast("Backup saved as a file. Keep it somewhere safe, like your cloud drive.");
+  });
+  document.getElementById("restore-file-button").addEventListener("click", () => document.getElementById("restore-file").click());
+  document.getElementById("restore-file").addEventListener("change", async (event) => {
+    const [file] = event.target.files;
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 2_000_000) {
+      showToast("That file is too big to be a backup.");
+      return;
+    }
+    document.getElementById("backup-code").value = (await file.text()).trim();
+    document.getElementById("restore-backup").click();
+  });
+
   document.getElementById("copy-backup").addEventListener("click", async () => {
     const code = makeBackup({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog });
     const box = document.getElementById("backup-code");
@@ -5884,6 +6074,22 @@
     } catch { /* the banner and toast still show */ }
   }
 
+  // Removing a session logged by mistake, with Undo.
+  document.getElementById("recent-sessions").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-remove-session]");
+    if (!button) return;
+    const before = studyLog;
+    studyLog = studyLog.filter((entry) => String(entry.endTime) !== button.dataset.removeSession);
+    saveList("studyLog", studyLog);
+    renderStudyTime();
+    showToast("Session removed from your study time.", () => {
+      studyLog = before;
+      saveList("studyLog", studyLog);
+      renderStudyTime();
+      showToast("Session is back");
+    });
+  });
+
   function logStudyTime(minutes) {
     studyLog = addStudyTime(studyLog, studySession.spotId, minutes, Date.now());
     saveList("studyLog", studyLog);
@@ -6125,10 +6331,13 @@
     try {
       await loadQrLibrary();
       const code = window.qrcode(0, "M");
-      code.addData(APP_LINK);
+      // The code opens on the school being viewed, so a friend there lands on the right campus.
+      const link = schoolLink(selectedCampus);
+      code.addData(link);
       code.make();
-      box.innerHTML = `<div class="qr-image">${code.createSvgTag({ cellSize: 5, margin: 2, scalable: true, alt: "Code that opens Study Spot Finder" })}</div>
-        <a href="${APP_LINK}" target="_blank" rel="noopener">${APP_LINK.replace("https://", "")}</a>`;
+      box.innerHTML = `<div class="qr-image">${code.createSvgTag({ cellSize: 5, margin: 2, scalable: true, alt: `Code that opens Study Spot Finder at ${campuses[selectedCampus]}` })}</div>
+        <p class="map-note">Opens on ${campuses[selectedCampus]}.</p>
+        <a href="${link}" target="_blank" rel="noopener">${link.replace("https://", "")}</a>`;
     } catch {
       box.innerHTML = `Couldn't make the code without internet. Share the link instead: <a href="${APP_LINK}" target="_blank" rel="noopener">${APP_LINK.replace("https://", "")}</a>`;
     }
@@ -6166,13 +6375,14 @@
 
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
-    const keys = ["busynessReports", "lastSpot", "recentSchools", "recentSearches", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "studySession", "openOnly",
+    const keys = ["busynessReports", "lastSpot", "recentSchools", "recentSearches", "foodNotes", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "contrast", "studySession", "openOnly",
       "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders", "soundChoice", "soundVolume", "soundWithTimer"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
       hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders,
-      campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large", lastSpot, recentCampuses, recentSearches, compact: document.documentElement.dataset.density === "compact" };
+      campus: selectedCampus, theme: themeChoice, large: document.documentElement.dataset.text === "large", lastSpot, recentCampuses, recentSearches, foodNotes, compact: document.documentElement.dataset.density === "compact",
+      contrast: document.documentElement.dataset.contrast === "high" };
     favoriteIds = [];
     reportHistory = [];
     spotNotes = {};
@@ -6182,6 +6392,7 @@
     lastSpot = null;
     recentCampuses = [];
     recentSearches = [];
+    foodNotes = {};
     openReminders = [];
     hiddenSpotIds = [];
     foodFavoriteKeys = [];
@@ -6193,14 +6404,16 @@
     selectedCampus = "uiuc";
     applyDisplaySettings("system", false);
     applyCompactList(false);
+    applyHighContrast(false);
     applyCampus();
     updateSessionBanner();
     showToast("Erased everything on this device.", () => {
       try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
       ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus,
-        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot, recentCampuses, recentSearches } = before);
+        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot, recentCampuses, recentSearches, foodNotes } = before);
       applyDisplaySettings(before.theme, before.large);
       applyCompactList(before.compact);
+      applyHighContrast(before.contrast);
       applyCampus();
       updateSessionBanner();
       showToast("Your data is back");
@@ -6289,11 +6502,18 @@
   renderOfferButtons();
   applyMapsChoice();
   document.getElementById("session-alerts").checked = sessionAlerts && "Notification" in window && Notification.permission === "granted";
-  applyDisplaySettings(document.documentElement.dataset.theme ?? "system", document.documentElement.dataset.text === "large");
+  applyDisplaySettings(themeChoice, document.documentElement.dataset.text === "large");
   // A shared link opens on its spot, switching campus if needed.
   const linkedSpot = spotFromLink(location.search, allSpots);
   if (linkedSpot) selectedCampus = linkedSpot.campus ?? "uiuc";
   const linkedSpotId = linkedSpot?.id ?? null;
+  // A "?school=" link opens on that school and remembers it, then leaves the address plain.
+  const linkedSchool = linkedSpot ? null : schoolFromLink(location.search, campuses);
+  if (linkedSchool) {
+    selectedCampus = linkedSchool;
+    saveCampus(selectedCampus);
+    history.replaceState(null, "", location.pathname);
+  }
   applyCampus();
   if (linkedSpotId) {
     expandedSpotId = linkedSpotId;
@@ -6322,7 +6542,8 @@
   setInterval(() => {
     // Redrawing would interrupt someone typing a note, so wait for the next minute instead.
     checkReminders();
-    if (document.activeElement?.dataset?.noteSpot || document.activeElement?.id === "custom-minutes") return;
+    if (themeChoice === "sunset") applyDisplaySettings(themeChoice, document.documentElement.dataset.text === "large");
+    if (document.activeElement?.dataset?.noteSpot || document.activeElement?.dataset?.noteFood || document.activeElement?.id === "custom-minutes") return;
     render();
     refreshPins();
     if (!document.getElementById("map-panel").hidden || !document.getElementById("food-panel").hidden) renderFood();
