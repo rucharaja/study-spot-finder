@@ -1258,7 +1258,7 @@
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
     ucla: "UCLA food places haven't been added yet, so this list is empty for now.",
-    uo: "Oregon food places haven't been added yet, so this list is empty for now.",
+    uo: "Hours are from University Housing and the EMU, including Thanksgiving. Both post fall term hours only, so from Jan 2 on days say \"Hours TBD\". The EMU doesn't post its restaurants' Thanksgiving or winter break hours, so those days say \"Hours TBD\" unless the building is closed.",
     nu: "Hours are from Northwestern Dining, including Thanksgiving, finals, and winter break, posted through Feb 13. Later days say \"Hours TBD\". Starbucks in Norris and the Market at Foster-Walker list hours that don't match their breaks, so those days say \"Hours TBD\" too.",
     uiuc: `${osmFoodNote} Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.`,
     uic: osmFoodNote,
@@ -2185,7 +2185,71 @@
       specialHours: { ...closedOn("2026-11-23", "2026-11-29"), ...closedOn("2026-12-11", "2027-01-03") } },
   ].map((place) => ({ ...place, campus: "nu", checked: "2026-11",
     unknownDates: [...(place.unknownDates ?? []), ["2027-02-14", "2027-08-31"]] }));
+  // Oregon food, from University Housing's venue pages and Thanksgiving and winter break pages (housing.uoregon.edu/dining,
+  // /thanksgiving-break, /winter-break) and the EMU's food page (emu.uoregon.edu/food), checked 2026-11-23. Both post fall
+  // term hours only, so from Jan 2 on days say "Hours TBD". The EMU doesn't post Thanksgiving or break hours for its
+  // restaurants; on days the building is closed they're closed, and other break days are unconfirmed. Times are Eugene's
+  // own (Pacific).
+  const unthankHall = [44.04379, -123.06892];
+  const uoHousingWinter = closedOn("2026-12-12", "2027-01-01");
+  // Thanksgiving Day only Agate Street Market opens; the Saturday after, four venues reopen.
+  const uoHousingThanksgiving = closedOn("2026-11-26", "2026-11-28");
+  const uoHousingFood = [
+    { name: "Carson Dining", kind: "Oregon dining hall · buffet · meal plan, Duck Bucks, or card", isHall: true, location: [44.04509, -123.07167],
+      hours: byWeekday([[540, 990], [1020, 1200]], [[420, 630], [660, 990], [1020, 1200]], [[420, 630], [660, 990], [1020, 1200]], [[540, 990], [1020, 1200]]),
+      specialHours: { ...uoHousingWinter, ...closedOn("2026-11-26", "2026-11-27"), "2026-12-11": [[450, 630], [660, 840]] } },
+    { name: "Agate Street Market (Unthank Hall)", kind: "Fast food · market", location: unthankHall,
+      hours: byWeekday([[480, 1320]], [[420, 1320]], [[420, 1320]], [[480, 1320]]),
+      specialHours: { ...uoHousingWinter, "2026-11-26": [[600, 960]], "2026-11-27": [[600, 1080]], "2026-11-28": [[480, 1260]],
+        "2026-12-11": [[420, 1080]] } },
+    { name: "Duck's House (Unthank Hall)", kind: "Restaurant · burgers and wings", location: unthankHall, hours: Array(7).fill([[480, 660], [720, 1260]]),
+      specialHours: { ...uoHousingWinter, ...closedOn("2026-11-26", "2026-11-27"), "2026-11-28": [[720, 1260]],
+        "2026-12-11": [[480, 660], [720, 1080]], "2026-12-12": [[480, 720]] } },
+    { name: "Bullseye Taco (Unthank Hall)", kind: "Fast food · Mexican", location: unthankHall,
+      hours: byWeekday([[720, 1260]], [[480, 840]], [[480, 840]], [[720, 1260]]),
+      specialHours: { ...uoHousingWinter, ...uoHousingThanksgiving, "2026-12-11": [[480, 660], [720, 840]] } },
+    { name: "Drake's Deli (Unthank Hall)", kind: "Fast food · sandwiches", location: unthankHall, hours: Array(7).fill([[660, 1200]]),
+      specialHours: { ...uoHousingWinter, ...uoHousingThanksgiving }, unknownDates: [["2026-12-11", "2026-12-11"]] },
+    { name: "Gyro Works (Unthank Hall)", kind: "Fast food · Mediterranean", location: unthankHall, hours: byWeekday([], [[660, 1200]], [[660, 1200]], []),
+      specialHours: { ...uoHousingWinter, ...uoHousingThanksgiving }, unknownDates: [["2026-12-11", "2026-12-11"]] },
+    { name: "Hearth & Soul (Unthank Hall)", kind: "Fast food · pizza and soup", location: unthankHall, hours: Array(7).fill([[660, 1260]]),
+      specialHours: { ...uoHousingWinter, ...uoHousingThanksgiving }, unknownDates: [["2026-12-11", "2026-12-11"]] },
+    { name: "Steam (Unthank Hall)", kind: "Fast food · ramen", location: unthankHall, hours: byWeekday([], [[660, 1260]], [[660, 1260]], []),
+      specialHours: { ...uoHousingWinter, ...uoHousingThanksgiving }, unknownDates: [["2026-12-11", "2026-12-11"]] },
+    { name: "Watershed (Unthank Hall)", kind: "Fast food · bowls and juice", location: unthankHall, hours: Array(7).fill([[480, 1200]]),
+      specialHours: { ...uoHousingWinter, ...uoHousingThanksgiving, "2026-12-11": [[480, 840]] } },
+    { name: "PNW Café (Unthank Hall)", kind: "Cafe · coffee", location: unthankHall,
+      hours: byWeekday([[480, 1200]], [[420, 1200]], [[420, 1200]], [[480, 1200]]),
+      specialHours: { ...uoHousingWinter, ...uoHousingThanksgiving, "2026-12-11": [[420, 840]] } },
+    { name: "Fresh Marketcafé (Global Scholars Hall)", kind: "Cafe · deli and market", location: [44.04272, -123.06706],
+      hours: byWeekday([[480, 1260]], [[420, 1260]], [[420, 1260]], [[480, 1260]]),
+      specialHours: { ...uoHousingWinter, ...closedOn("2026-11-26", "2026-11-27"), "2026-12-11": [[420, 840]] } },
+    { name: "DUX Market (Living Learning Center)", kind: "Fast food · market and burgers", location: [44.04427, -123.07199],
+      hours: byWeekday([], [[480, 1200]], [[480, 1200]], []),
+      specialHours: { ...uoHousingWinter, ...uoHousingThanksgiving, "2026-12-11": [[480, 720]] } },
+  ];
+  // The EMU building is closed Thanksgiving Day through Saturday and Dec 12-13; its Dec 14 to Jan 2 hours for restaurants
+  // aren't posted.
+  const emu = [44.04469, -123.07395];
+  const emuFood = (name, kind, hours, finalsWeek) => ({ name: `${name} (EMU)`, kind, location: emu, hours,
+    specialHours: { ...closedOn("2026-11-26", "2026-11-28"), ...during("2026-12-07", "2026-12-11", [finalsWeek]),
+      ...closedOn("2026-12-12", "2026-12-13") },
+    unknownDates: [["2026-11-25", "2026-11-25"], ["2026-11-29", "2026-11-29"], ["2026-12-14", "2027-01-02"]] });
+  const uoFoodPlaces = [
+    ...uoHousingFood,
+    emuFood("ACE Sushi", "Fast food · sushi", byWeekday([], [[420, 1140]], [[420, 1140]], [[540, 1020]]), [480, 1050]),
+    emuFood("Bartolotti's Pizza Bistro", "Restaurant · pizza", byWeekday([[720, 1020]], [[660, 1200]], [[660, 1200]], [[720, 1020]]), [660, 840]),
+    emuFood("Chicken Bonz", "Fast food · chicken", byWeekday([], [[630, 1110]], [[630, 1110]], []), [660, 840]),
+    emuFood("Chipotle", "Fast food · Mexican", Array(7).fill([[600, 1260]]), [645, 1050]),
+    emuFood("Fresh Corner Market", "Fast food · market and Mediterranean", byWeekday([], [[480, 1140]], [[480, 1140]], []), [480, 1020]),
+    emuFood("Jamba", "Cafe · smoothies", byWeekday([[600, 1080]], [[480, 1200]], [[480, 1200]], [[600, 1080]]), [480, 1050]),
+    emuFood("Panda Express", "Fast food · Chinese", byWeekday([[600, 1020]], [[600, 1260]], [[600, 1260]], [[600, 1020]]), [600, 1020]),
+    emuFood("Starbucks", "Cafe · coffee", byWeekday([[600, 1140]], [[420, 1260]], [[420, 1260]], [[480, 1140]]), [480, 1050]),
+    emuFood("Subway", "Fast food · sandwiches", byWeekday([[660, 1260]], [[480, 1320]], [[480, 1320]], [[660, 1260]]), [600, 1020]),
+  ].map((place) => ({ ...place, campus: "uo", checked: "2026-11",
+    unknownDates: [...(place.unknownDates ?? []), ["2027-01-02", "2027-08-31"]] }));
   const foodPlaces = [
+    ...uoFoodPlaces,
     ...nuFoodPlaces,
     ...umdFoodPlaces,
     ...unlFoodPlaces,
