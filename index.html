@@ -1388,6 +1388,28 @@
     wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland", nu: "Northwestern",
     uo: "Oregon", ucla: "UCLA", usc: "USC",
     uw: "Washington", msu: "Michigan State" };
+  // Each campus's time zone. Opening hours are written in the campus's own clock time, so they're checked against that
+  // clock, not the viewer's: 9pm at UCLA is 11pm in Illinois.
+  const campusTimeZones = {
+    uiuc: "America/Chicago", uic: "America/Chicago", uis: "America/Chicago", iowa: "America/Chicago", umn: "America/Chicago",
+    unl: "America/Chicago", nu: "America/Chicago", wisc: "America/Chicago",
+    purdue: "America/Indiana/Indianapolis", iu: "America/Indiana/Indianapolis", umich: "America/Detroit", msu: "America/Detroit",
+    osu: "America/New_York", psu: "America/New_York", rutgers: "America/New_York", umd: "America/New_York",
+    uo: "America/Los_Angeles", ucla: "America/Los_Angeles", usc: "America/Los_Angeles", uw: "America/Los_Angeles" };
+  // A Date whose day, hour, and minute read as the clock on campus at that moment, for comparing with opening hours.
+  // It also carries the real moment (realTime), so report ages stay measured in real time.
+  function campusClock(campus, moment = new Date()) {
+    const format = new Intl.DateTimeFormat("en-US", { timeZone: campusTimeZones[campus] ?? "America/Chicago", hourCycle: "h23",
+      year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+    const parts = Object.fromEntries(format.formatToParts(moment).map(({ type, value }) => [type, Number(value)]));
+    const clock = new Date(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second);
+    clock.realTime = moment.getTime();
+    return clock;
+  }
+  // The real moment when a campus's clock shows a given time, for reminders that fire on the viewer's device.
+  function realMoment(campus, clock) {
+    return new Date(clock.getTime() - (campusClock(campus, clock).getTime() - clock.getTime()));
+  }
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
@@ -3115,7 +3137,7 @@
   // Recent reports for a spot, emptiest first; ties keep the newest first.
   function recentReportsFor(spot, now, reports) {
     return reportsFor(spot, reports)
-      .filter(({ report }) => now.getTime() - report.time < reportLifetimeMs)
+      .filter(({ report }) => (now.realTime ?? now.getTime()) - report.time < reportLifetimeMs)
       .sort((a, b) => busynessRank[a.report.level] - busynessRank[b.report.level]);
   }
 
@@ -3517,8 +3539,10 @@
     return `${formatTimer(msLeft)} left · Study Spot Finder`;
   }
 
-  // A calendar file (.ics) for studying at a spot. Times are local, the way calendar apps expect plain dates.
+  // A calendar file (.ics) for studying at a spot. start is on the campus's clock, so the times are tagged with the campus's
+  // time zone and calendar apps show them correctly wherever the viewer is.
   function calendarFile(spot, start, minutes, stampTime = new Date()) {
+    const zone = campusTimeZones[spot.campus] ?? "America/Chicago";
     const pad = (number) => String(number).padStart(2, "0");
     const local = (date) => `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
     const utc = (date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -3527,7 +3551,7 @@
     return [
       "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Study Spot Finder//EN", "BEGIN:VEVENT",
       `UID:${spot.id}-${start.getTime()}@study-spot-finder`, `DTSTAMP:${utc(stampTime)}`,
-      `DTSTART:${local(start)}`, `DTEND:${local(end)}`,
+      `DTSTART;TZID=${zone}:${local(start)}`, `DTEND;TZID=${zone}:${local(end)}`,
       `SUMMARY:${text(`Study at ${spot.name}`)}`, `LOCATION:${text(spot.name)}`, `GEO:${spot.location[0]};${spot.location[1]}`,
       `DESCRIPTION:${text(`${openStatus(spot, start).text}. Hours can change, so check before you go: ${spotLink(spot)}`)}`,
       "END:VEVENT", "END:VCALENDAR", "",
@@ -3921,7 +3945,9 @@
   let selectedOfferIds = [];
   // A future time being planned for, or null when showing right now.
   let viewTime = null;
-  const displayTime = () => viewTime ?? new Date();
+  // Right now on the selected campus's clock.
+  const campusNow = () => campusClock(selectedCampus);
+  const displayTime = () => viewTime ?? campusNow();
   // Reports describe right now, so they don't apply to a planned time.
   const visibleReports = () => (viewTime ? {} : reports);
   let favoriteIds = loadFavorites();
@@ -4017,15 +4043,15 @@
     if (button.dataset.action === "dismiss-notice") {
       dismissedHoursNotice = button.dataset.date;
       try { localStorage.setItem("dismissedHoursNotice", dismissedHoursNotice); } catch { /* storage unavailable */ }
-      renderTodayNotes(new Date());
+      renderTodayNotes(campusNow());
       document.querySelector(".pick-spot")?.focus();
       return;
     }
     if (button.dataset.action === "share-status") {
-      shareText(statusSummary(withoutHidden(currentSpots(), hiddenSpotIds), new Date(), reports, campuses[selectedCampus]));
+      shareText(statusSummary(withoutHidden(currentSpots(), hiddenSpotIds), campusNow(), reports, campuses[selectedCampus]));
       return;
     }
-    const now = new Date();
+    const now = campusNow();
     const pick = pickSpotForMe(spotsMatchingNow(now), now, reports, favoriteIds, lastKnownLocation);
     if (!pick) {
       const filtered = searchText.trim() || selectedOfferIds.length || selectedCategoryId !== "all";
@@ -4171,7 +4197,7 @@
 
   // For a closed spot: a reminder when it opens, while this page stays open.
   function reminderButton(spot) {
-    const opening = nextOpenTime(spot, new Date());
+    const opening = nextOpenTime(spot, campusClock(spot.campus));
     if (!opening) return "";
     const isSet = openReminders.some((reminder) => reminder.spotId === spot.id);
     const when = describeViewTime(opening);
@@ -4185,9 +4211,10 @@
 
   // Up to three open places within a 5-minute walk, so a study break doesn't need the Food panel.
   function nearbyFoodHtml(spot) {
-    const nearby = foodNearSpot(spot, foodPlaces, new Date());
+    const now = campusClock(spot.campus);
+    const nearby = foodNearSpot(spot, foodPlaces, now);
     const items = nearby.map(({ place, miles }) => `<li><span class="food-name">${escapeHtml(place.name)}</span>
-      <span class="status ${foodStatus(place, new Date()).closingSoon ? "closing" : "open"}">${foodStatus(place, new Date()).text}</span>
+      <span class="status ${foodStatus(place, now).closingSoon ? "closing" : "open"}">${foodStatus(place, now).text}</span>
       <span class="food-details">${place.kind} · ${describeDistance(miles)}</span></li>`).join("");
     return `<div class="nearby-food"><p class="where">Food within a 5-minute walk</p>${nearby.length
       ? `<ul>${items}</ul>` : `<p class="food-empty">Nothing open within a 5-minute walk right now. Try the Food button above.</p>`}</div>`;
@@ -4229,8 +4256,8 @@
 
   function render() {
     const now = displayTime();
-    renderEmptyNow(new Date());
-    renderTodayNotes(new Date());
+    renderEmptyNow(campusNow());
+    renderTodayNotes(campusNow());
     if (!document.getElementById("filters-panel").hidden) renderOfferButtons();
     renderStudyTime();
     const openCount = currentSpots().filter((spot) => openStatus(spot, now).isOpen).length;
@@ -4660,7 +4687,7 @@
   }
 
   document.getElementById("view-time").addEventListener("change", (event) => {
-    viewTime = parseViewTime(event.target.value, new Date());
+    viewTime = parseViewTime(event.target.value, campusNow());
     document.getElementById("view-time-error").hidden = viewTime !== null || !event.target.value;
     applyViewTime();
   });
@@ -5171,7 +5198,7 @@
         <button class="plan-reset prompt-skip" data-prompt-action="dismiss">No thanks</button>`;
     }
     const spot = allSpots.find((studySpot) => studySpot.id === prompt.spotId);
-    return openStatus(spot, new Date()).isOpen === false
+    return openStatus(spot, campusClock(spot.campus)).isOpen === false
       ? `<button class="plan-reset" data-prompt-action="dismiss">OK</button>`
       : `<button class="plan-reset" data-prompt-action="study-again">Study 25 more min</button>
         <button class="plan-reset prompt-skip" data-prompt-action="dismiss">I'm done</button>`;
@@ -5181,7 +5208,7 @@
     const spot = allSpots.find((studySpot) => studySpot.id === prompt.spotId);
     if (prompt.kind === "checkin") return `Session done. How busy is ${spot.name} now?`;
     if (prompt.kind === "break") return "Nice work. Take a break before the next one?";
-    return openStatus(spot, new Date()).isOpen === false ? `Break's over. ${spot.name} has closed for now.` : `Break's over. Back to ${spot.name}?`;
+    return openStatus(spot, campusClock(spot.campus)).isOpen === false ? `Break's over. ${spot.name} has closed for now.` : `Break's over. Back to ${spot.name}?`;
   }
 
   function setSessionPrompt(prompt) {
@@ -5240,7 +5267,7 @@
     notify("Study session done", `Your session at ${spot.name} is done. Take a ${BREAK_MINUTES}-minute break.`);
     showToast(`Study session done. Take a ${BREAK_MINUTES}-minute break.`);
     // Only ask about a spot that's still open, since a report means "right now".
-    setSessionPrompt({ kind: openStatus(spot, new Date()).isOpen !== false ? "checkin" : "break", spotId: spot.id });
+    setSessionPrompt({ kind: openStatus(spot, campusClock(spot.campus)).isOpen !== false ? "checkin" : "break", spotId: spot.id });
   }
 
   function startSession(spotId, minutes, isBreak = false) {
@@ -5256,7 +5283,7 @@
       return;
     }
     const spot = allSpots.find((studySpot) => studySpot.id === spotId);
-    showToast(closesBeforeSessionEnds(spot, new Date(), studySession.endTime)
+    showToast(closesBeforeSessionEnds(spot, campusClock(spot.campus), campusClock(spot.campus, new Date(studySession.endTime)).getTime())
       ? `Session started. Heads up: ${spot.name} closes before it ends.`
       : `${minutes}-minute session started at ${spot.name}.`);
   }
@@ -5297,9 +5324,9 @@
   // Reminders fire while the page is open: checked every minute, and right away when the page comes back into view.
   function toggleReminder(spot) {
     const isSet = openReminders.some((reminder) => reminder.spotId === spot.id);
-    const opening = nextOpenTime(spot, new Date());
+    const opening = nextOpenTime(spot, campusClock(spot.campus));
     openReminders = isSet ? openReminders.filter((reminder) => reminder.spotId !== spot.id)
-      : [...openReminders, { spotId: spot.id, time: opening.getTime() }];
+      : [...openReminders, { spotId: spot.id, time: realMoment(spot.campus, opening).getTime() }];
     saveList("openReminders", openReminders);
     showToast(isSet ? `Reminder for ${spot.name} canceled.`
       : `We'll remind you when ${spot.name} opens (${describeViewTime(opening)}) if this page is open${sessionAlerts ? "" : ". Turn on notifications in Settings to get it in another tab"}.`);
@@ -5312,7 +5339,7 @@
     saveList("openReminders", openReminders);
     for (const { spotId } of due) {
       const spot = allSpots.find((studySpot) => studySpot.id === spotId);
-      notify(`${spot.name} is open`, `${spot.name} just opened. ${openStatus(spot, new Date()).text}.`);
+      notify(`${spot.name} is open`, `${spot.name} just opened. ${openStatus(spot, campusClock(spot.campus)).text}.`);
       showToast(`${spot.name} is open now.`);
     }
     render();
@@ -5431,7 +5458,7 @@
   applyCampus();
   if (linkedSpotId) {
     expandedSpotId = linkedSpotId;
-    if (openStatus(linkedSpot, new Date()).isOpen === false) showClosed = true;
+    if (openStatus(linkedSpot, campusClock(linkedSpot.campus)).isOpen === false) showClosed = true;
     // Drop "?spot=" from the address so a later reload starts normally.
     history.replaceState(null, "", location.pathname);
     render();
