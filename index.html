@@ -1402,7 +1402,7 @@
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
     ucla: "Hours are from UCLA Dining and ASUCLA, which post one week at a time. This is Thanksgiving week, so from Nov 30 on every place says \"Hours TBD\" until it's checked again.",
-    msu: "Michigan State food places haven't been added yet, so this list is empty for now.",
+    msu: "Hours are from Eat at State (MSU Culinary Services), including Thanksgiving break and the 3pm closing on Dec 18. Winter break hours aren't posted yet, so from Dec 19 on every place says \"Hours TBD\".",
     uw: "Hours are from UW Housing & Food Services, which posts autumn quarter hours only. Thanksgiving week and everything from Dec 19 on say \"Hours TBD\", except days a building is posted closed.",
     usc: "Hours are from USC Hospitality, including Thanksgiving week. Regular hours are posted through Dec 4; finals, winter break, and spring aren't posted yet, so from Dec 5 on days say \"Hours TBD\".",
     uo: "Hours are from University Housing and the EMU, including Thanksgiving. Both post fall term hours only, so from Jan 2 on days say \"Hours TBD\". The EMU doesn't post its restaurants' Thanksgiving or winter break hours, so those days say \"Hours TBD\" unless the building is closed.",
@@ -2631,7 +2631,125 @@
       specialHours: { "2026-11-25": [[540, 1020]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [[720, 1440]] } },
   ].map((place) => ({ ...place, campus: "ucla", checked: "2026-11",
     unknownDates: [...(place.unknownDates ?? []), ["2026-11-30", "2027-08-31"]] }));
+  // Michigan State food, from Eat at State's dining hours (eatatstate.msu.edu/dining-hall-hours, regular in-semester hours plus
+  // Thanksgiving break hours) and key dates (eatatstate.msu.edu/special-hours), checked 2026-11-23. Dining plans end and
+  // locations close at 3pm on Dec 18; winter break hours aren't posted, so from Dec 19 on every place says "Hours TBD".
+  // Two page typos are read as meant: The Edge's Thanksgiving Sunday dinner "4:30 am" (pm) and Sparty's Owen's Friday
+  // "12:00 am" (noon). Holden Hall's places are left out (more than 0.7 mi from every spot), as are the micro-markets with
+  // no hours and MSU Bakers. Times are Michigan's own (Eastern).
+  const msuHallKind = "MSU dining hall · all you care to eat · meal plan or pay at the door";
+  const brody = [42.73149, -84.49543];
+  const landon = [42.73393, -84.48514];
+  const caseHall = [42.72449, -84.48849];
+  const akers = [42.72443, -84.46592];
+  const snyder = [42.72999, -84.47298];
+  const holmes = [42.7264, -84.46556];
+  const shaw = [42.72671, -84.47537];
+  const owen = [42.72645, -84.47054];
+  const intlCenter = [42.72661, -84.48063];
+  const kellogg = [42.73185, -84.49339];
+  const place1855 = [42.72794, -84.4958];
+  const msuUnion = [42.73419, -84.48286];
+  const msuFoodPlaces = [
+    { name: "Brody Square", kind: msuHallKind, isHall: true, location: brody,
+      hours: [[[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]]],
+      specialHours: { "2026-11-25": [[540, 900]], "2026-11-26": [], "2026-11-27": [[660, 900]], "2026-11-28": [[660, 900]], "2026-11-29": [[660, 900], [990, 1260]], "2026-12-18": [[540, 900]] } },
+    { name: "Heritage Commons at Landon", kind: msuHallKind, isHall: true, location: landon,
+      hours: [[[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[540, 900], [990, 1260]]],
+      specialHours: { "2026-11-25": [[420, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [[990, 1260]], "2026-12-18": [[420, 900]] } },
+    { name: "South Pointe at Case", kind: msuHallKind, isHall: true, location: caseHall,
+      hours: [[[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]], [[420, 900], [990, 1260]]],
+      specialHours: { "2026-11-25": [[420, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [[990, 1260]], "2026-12-18": [[420, 900]] } },
+    { name: "The Edge at Akers", kind: msuHallKind, isHall: true, location: akers,
+      hours: [[[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]]],
+      specialHours: { "2026-11-25": [[540, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [[990, 1260]], "2026-12-18": [[540, 900]] } },
+    { name: "The Gallery at Snyder Phillips", kind: msuHallKind, isHall: true, location: snyder,
+      hours: [[[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]], [[540, 900], [990, 1260]]],
+      specialHours: { "2026-11-25": [[540, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [[990, 1260]], "2026-12-18": [[540, 900]] } },
+    { name: "The Nucleus at Holmes", kind: msuHallKind, isHall: true, location: holmes,
+      hours: [[[900, 1320]], [[900, 1320]], [[900, 1320]], [[900, 1320]], [[900, 1320]], [], []],
+      specialHours: { "2026-11-25": [], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [] } },
+    { name: "The Vista at Shaw", kind: msuHallKind, isHall: true, location: shaw,
+      hours: [[[600, 900]], [[420, 900], [990, 1200]], [[420, 900], [990, 1200]], [[420, 900], [990, 1200]], [[420, 900], [990, 1200]], [[420, 900], [990, 1200]], [[600, 900]]],
+      specialHours: { "2026-11-25": [[420, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[420, 900]] } },
+    { name: "Thrive at Owen", kind: msuHallKind, isHall: true, location: owen,
+      hours: [[], [[660, 1200]], [[660, 1200]], [[660, 1200]], [[660, 1200]], [[660, 1200]], []],
+      specialHours: { "2026-11-25": [[660, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [[660, 900]], "2026-11-29": [[660, 900]], "2026-12-18": [[660, 900]] } },
+    { name: "Thrive To Go (Shaw)", kind: "Fast food · grab and go", location: shaw,
+      hours: [[[600, 1020]], [], [], [], [], [], [[600, 1020]]],
+      specialHours: { "2026-11-28": [], "2026-11-29": [] } },
+    { name: "Panda Express (International Center)", kind: "Fast food · Chinese", location: intlCenter,
+      hours: [[], [[600, 990]], [[600, 990]], [[600, 990]], [[600, 990]], [[600, 960]], []],
+      specialHours: { "2026-11-25": [[600, 900]], "2026-11-26": [], "2026-11-27": [], "2026-12-18": [[600, 900]] } },
+    { name: "Sabor (International Center)", kind: "Fast food · Latin", location: intlCenter,
+      hours: [[], [[600, 1020]], [[600, 1020]], [[600, 1020]], [[600, 1020]], [[600, 960]], []],
+      specialHours: { "2026-11-25": [[600, 900]], "2026-11-26": [], "2026-11-27": [], "2026-12-18": [[600, 900]] } },
+    { name: "Subway (International Center)", kind: "Fast food · sandwiches", location: intlCenter,
+      hours: [[], [[450, 1200]], [[450, 1200]], [[450, 1200]], [[450, 1200]], [[450, 960]], []],
+      specialHours: { "2026-11-25": [[450, 900]], "2026-11-26": [], "2026-11-27": [], "2026-12-18": [[450, 900]] } },
+    { name: "Woody's Oasis (International Center)", kind: "Fast food · Mediterranean", location: intlCenter,
+      hours: [[], [[600, 990]], [[600, 990]], [[600, 990]], [[600, 990]], [[600, 960]], []],
+      specialHours: { "2026-11-25": [[600, 900]], "2026-11-26": [], "2026-11-27": [], "2026-12-18": [[600, 900]] } },
+    { name: "Sparty's (International Center)", kind: "Fast food · convenience store", location: intlCenter,
+      hours: [[], [[450, 900]], [[450, 900]], [[450, 900]], [[450, 900]], [[450, 900]], []],
+      specialHours: { "2026-11-26": [], "2026-11-27": [] } },
+    { name: "Sparty's (Case Hall)", kind: "Fast food · convenience store", location: caseHall,
+      hours: [[[660, 1380]], [[540, 1380]], [[540, 1380]], [[540, 1380]], [[540, 1380]], [[540, 1380]], [[660, 1380]]],
+      specialHours: { "2026-11-25": [[540, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-12-18": [[540, 900]] } },
+    { name: "Sparty's (Owen Hall)", kind: "Fast food · convenience store", location: owen,
+      hours: [[[600, 1140]], [[480, 1200]], [[480, 1200]], [[480, 1200]], [[480, 1200]], [[480, 1200]], [[600, 1140]]],
+      specialHours: { "2026-11-25": [[480, 900]], "2026-11-26": [[720, 1020]], "2026-11-27": [[720, 1020]], "2026-11-28": [[720, 1020]], "2026-12-18": [[480, 900]] } },
+    { name: "Sparty's (McDonel Hall)", kind: "Fast food · convenience store", location: [42.7265, -84.46774],
+      hours: [[[720, 1140]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[720, 1140]]],
+      specialHours: { "2026-11-25": [[480, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[480, 900]] } },
+    { name: "Sparty's (Brody)", kind: "Fast food · convenience store", location: brody,
+      hours: [[[660, 1380]], [[420, 1380]], [[420, 1380]], [[420, 1380]], [[420, 1380]], [[420, 1380]], [[660, 1380]]],
+      specialHours: { "2026-11-25": [[420, 900]], "2026-11-26": [[720, 1020]], "2026-11-27": [[720, 1020]], "2026-11-28": [[720, 1020]], "2026-12-18": [[420, 900]] } },
+    { name: "Sparty's (Snyder Hall)", kind: "Fast food · convenience store", location: snyder,
+      hours: [[[720, 1140]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[720, 1140]]],
+      specialHours: { "2026-11-25": [[480, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[480, 900]] } },
+    { name: "Sparty's (Hubbard Hall)", kind: "Fast food · convenience store", location: [42.72342, -84.46385],
+      hours: [[[660, 1380]], [[450, 1380]], [[450, 1380]], [[450, 1380]], [[450, 1380]], [[450, 1380]], [[660, 1380]]],
+      specialHours: { "2026-11-25": [[450, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-12-18": [[450, 900]] } },
+    { name: "Sparty's (Wonders Hall)", kind: "Fast food · convenience store", location: [42.72433, -84.49],
+      hours: [[[720, 1140]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[480, 1320]], [[720, 1140]]],
+      specialHours: { "2026-11-25": [[480, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[480, 900]] } },
+    { name: "Sparty's (Biomedical and Physical Sciences)", kind: "Fast food · convenience store", location: [42.72402, -84.47618],
+      hours: [[], [[450, 1020]], [[450, 1020]], [[450, 1020]], [[450, 1020]], [[450, 900]], []],
+      specialHours: { "2026-11-25": [[450, 900]], "2026-11-26": [], "2026-11-27": [] } },
+    { name: "Kellogg Market (Kellogg Center)", kind: "Fast food · market", location: kellogg,
+      hours: [[[540, 1140]], [[420, 1140]], [[420, 1140]], [[420, 1140]], [[420, 1140]], [[420, 1140]], [[540, 1140]]],
+      specialHours: { "2026-11-25": [[450, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[420, 900]] } },
+    { name: "Sparty's Market (1855 Place)", kind: "Fast food · market", location: place1855,
+      hours: [[[540, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1140]], [[540, 1140]]],
+      specialHours: { "2026-11-25": [[450, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[450, 900]] } },
+    { name: "Sparty's Market (Holmes Hall)", kind: "Fast food · market", location: holmes,
+      hours: [[], [[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]], [[420, 1260]], []],
+      specialHours: { "2026-11-25": [[420, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[420, 900]] } },
+    { name: "Sparty's Market (MSU Union)", kind: "Fast food · market", location: msuUnion,
+      hours: [[[480, 1380]], [[480, 1380]], [[480, 1380]], [[480, 1380]], [[480, 1380]], [[540, 1320]], [[540, 1320]]],
+      specialHours: { "2026-11-25": [[480, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [[660, 1380]], "2026-12-18": [[540, 900]] } },
+    { name: "The State Room (Kellogg Center)", kind: "Restaurant · breakfast and lunch buffet", location: kellogg,
+      hours: [[], [[450, 600], [660, 840]], [[450, 600], [660, 840]], [[450, 600], [660, 840]], [[450, 600], [660, 840]], [[450, 600], [660, 840]], []],
+      specialHours: { "2026-11-26": [], "2026-11-27": [] } },
+    { name: "Panera (Minskoff Pavilion)", kind: "Fast food · bakery-cafe", location: [42.72682, -84.47359],
+      hours: [[], [[420, 1200]], [[420, 1200]], [[420, 1200]], [[420, 1200]], [[420, 1020]], []],
+      specialHours: { "2026-11-24": [[420, 900]], "2026-11-25": [], "2026-11-26": [], "2026-11-27": [], "2026-12-18": [[420, 900]] } },
+    { name: "The Workshop (STEM Teaching and Learning Facility)", kind: "Cafe", location: [42.72656, -84.48303],
+      hours: [[], [[450, 1020]], [[450, 1020]], [[450, 1020]], [[450, 1020]], [[450, 900]], []],
+      specialHours: { "2026-11-25": [[450, 900]], "2026-11-26": [], "2026-11-27": [] } },
+    { name: "Strange Matter Coffee (MSU Union)", kind: "Cafe · coffee", location: msuUnion,
+      hours: [[[540, 1200]], [[420, 1200]], [[420, 1200]], [[420, 1200]], [[420, 1200]], [[420, 1200]], [[420, 1200]]],
+      specialHours: { "2026-11-25": [[420, 960]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [[420, 1080]], "2026-11-29": [[540, 1080]], "2026-12-18": [[420, 900]] } },
+    { name: "Starbucks (1855 Place)", kind: "Cafe · coffee", location: place1855,
+      hours: [[[540, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1140]], [[540, 1140]]],
+      specialHours: { "2026-11-25": [[450, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[450, 900]] } },
+    { name: "Starbucks (Main Library)", kind: "Cafe · coffee", location: [42.73089, -84.48321],
+      hours: [[[600, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1140]], [[450, 1020]], [[600, 1020]]],
+      specialHours: { "2026-11-25": [[450, 900]], "2026-11-26": [], "2026-11-27": [], "2026-11-28": [], "2026-11-29": [], "2026-12-18": [[450, 900]] } },
+  ].map((place) => ({ ...place, campus: "msu", checked: "2026-11", unknownDates: [["2026-12-19", "2027-08-31"]] }));
   const foodPlaces = [
+    ...msuFoodPlaces,
     ...uclaFoodPlaces,
     ...uwFoodPlaces,
     ...uscFoodPlaces,
