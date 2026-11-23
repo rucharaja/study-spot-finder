@@ -97,6 +97,31 @@
   button.toast-undo:hover { background: #ffffff; color: var(--illini-navy); }
   .toast.show { visibility: visible; opacity: 1; }
   .plan-picker { display: grid; gap: 6px; }
+  .timeline { margin: 8px 0 4px; }
+  button.last-spot { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: .85rem; font-weight: 600; text-align: left; }
+  button.last-spot .last-spot-status { margin-left: auto; font-weight: 600; white-space: nowrap; }
+  button.last-spot .last-spot-status.open { color: var(--open); }
+  button.last-spot .last-spot-status.closed { color: var(--closed); }
+  .hours-source { margin: 4px 0 0; color: var(--muted); font-size: .75rem; }
+  .hours-source a { color: var(--accent); overflow-wrap: anywhere; }
+  .timeline-bar { position: relative; height: 12px; border-radius: 6px; background: var(--border); background: color-mix(in srgb, var(--closed) 18%, var(--card)); overflow: hidden; }
+  .timeline-open { position: absolute; top: 0; bottom: 0; background: var(--open); }
+  .timeline-now { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--text); }
+  .timeline-labels { display: flex; justify-content: space-between; margin-top: 2px; color: var(--muted); font-size: .65rem; }
+  button.week-toggle { margin-top: 0; }
+  .week-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+  .week-table { border-collapse: collapse; font-size: .75rem; white-space: nowrap; }
+  .week-table th, .week-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  .week-table thead th { color: var(--muted); font-weight: 600; }
+  .week-table th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--card); font-weight: 600; color: var(--text);
+    min-width: 8em; max-width: 9em; white-space: normal; line-height: 1.25; }
+  .week-scroll-note { position: sticky; left: 0; margin: 0; padding: 6px 8px 0; color: var(--muted); font-size: .75rem; }
+  @media (min-width: 900px) { .week-scroll-note { display: none; } }
+  .week-table td.wk-open { color: var(--open); font-weight: 600; }
+  .week-table td.wk-closed { color: var(--closed); }
+  .week-table td.wk-tbd { color: var(--muted); font-style: italic; }
+  .week-table tr:last-child th, .week-table tr:last-child td { border-bottom: none; }
   .plan-picker input { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border);
     background: var(--card); color: var(--text); font: inherit; font-size: 1rem; }
   .plan-picker input:focus { outline: 2px solid var(--illini-orange); outline-offset: 1px; }
@@ -169,6 +194,9 @@
   .campus-choice select { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 999px; font: inherit; font-weight: 600;
     background: var(--illini-navy); color: #ffffff; border: 2px solid var(--illini-orange); }
   .time-zone-note { margin: 0; color: var(--muted); font-size: .8rem; }
+  .find-school-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-top: -8px; }
+  .find-school-row .time-zone-note:empty { display: none; }
+  button.find-school { margin-top: 0; padding: 0; }
   .category-choices { display: flex; gap: 6px; flex-wrap: wrap; }
   button.category { flex: 1 1 auto; min-height: 40px; padding: 0 8px; border-radius: 999px; border-width: 1px; font-size: .85rem;
     background: var(--card); color: var(--text); }
@@ -300,6 +328,7 @@
   .session-checkin [data-prompt-level="packed"] { border-color: #ff8c7c; color: #ff8c7c; }
   .session-checkin .prompt-skip { flex: none; border-color: transparent; text-decoration: underline; }
   .session-banner.on-break { background: #1b5a3a; }
+  .session-banner.paused { background: #4a5568; }
   .today-notes { display: grid; gap: 8px; }
   .today-notes[hidden] { display: none; }
   .today-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
@@ -382,6 +411,7 @@
 <main>
   <div class="plan-banner session-banner" id="session-banner" hidden>
     <span id="session-text" aria-live="off"></span>
+    <button class="plan-reset" id="session-pause">Pause</button>
     <button class="plan-reset" id="session-stop">Stop</button>
     <div class="session-checkin" id="session-checkin" role="group" hidden></div>
   </div>
@@ -424,6 +454,9 @@
     </select>
   </label>
   <p class="time-zone-note" id="time-zone-note" hidden></p>
+  <div class="find-school-row"><button class="clear-reports find-school" id="find-school" type="button">Find my school near me</button>
+    <p class="time-zone-note" id="find-school-status" aria-live="polite"></p></div>
+  <button class="last-spot" id="last-spot" type="button" hidden></button>
   <section class="empty-now" id="empty-now" aria-live="polite" hidden></section>
   <div class="today-notes" id="today-notes"></div>
   <div class="search">
@@ -465,6 +498,12 @@
       <button class="offer" data-food-mode="late" aria-pressed="false">Late night (past 10pm)</button>
       <button class="offer" data-food-mode="dining" aria-pressed="false">Dining halls</button>
     </div>
+    <div class="offer-choices" id="food-types" role="group" aria-label="Kind of food">
+      <button class="offer" data-food-type="all" aria-pressed="true">All kinds</button>
+      <button class="offer" data-food-type="meals" aria-pressed="false">Meals</button>
+      <button class="offer" data-food-type="coffee" aria-pressed="false">Coffee &amp; snacks</button>
+      <button class="offer" data-food-type="market" aria-pressed="false">Markets</button>
+    </div>
     <button class="find-closest" id="sort-food-by-distance">Sort by distance from me</button>
     <div class="closest-result" id="food-location-result" role="status"></div>
     <input type="search" id="food-search" class="food-search" placeholder="Search food: pizza, coffee" aria-label="Search food">
@@ -479,6 +518,8 @@
       <input type="datetime-local" id="view-time">
       <p class="location-problem" id="view-time-error" role="alert" hidden>Pick a time in the future.</p>
     </div>
+    <button class="share-spot week-toggle" id="week-toggle" aria-expanded="false" aria-controls="week-table">This week's hours</button>
+    <div class="week-table-wrap" id="week-table" hidden></div>
     <div class="offer-filter">
       <span class="offer-filter-label" id="offer-filter-label">Show spots with</span>
       <div class="offer-choices" id="offer-choices" role="group" aria-labelledby="offer-filter-label"></div>
@@ -544,6 +585,11 @@
       </div>
       <label class="switch-row"><input type="checkbox" id="session-alerts"> Notify me when a timer ends or a spot I asked about opens</label>
       <p class="map-note" id="session-alerts-note">Works while the app is open in a tab. On iPhone, add the app to your home screen first.</p>
+    </div>
+    <div class="setting" id="install-setting" hidden>
+      <span class="offer-filter-label">Add to your home screen</span>
+      <p class="map-note" id="install-note"></p>
+      <button class="offer" id="install-app" hidden>Add Study Spot Finder</button>
     </div>
     <div class="setting">
       <span class="offer-filter-label">Share the app</span>
@@ -1411,6 +1457,45 @@
   const campusClock = (campus, moment = new Date()) => zoneClock(campusTimeZones[campus] ?? "America/Chicago", moment);
   const timeZoneNames = { "America/Chicago": "Central", "America/New_York": "Eastern", "America/Detroit": "Eastern",
     "America/Indiana/Indianapolis": "Eastern", "America/Los_Angeles": "Pacific" };
+  // Where each school's spot hours come from, so a spot's panel can link to the official page. Academic buildings at
+  // UIUC come from a campus building schedule with no stable page, so they have no link.
+  const hoursSources = {
+    uiuc: { library: "https://www.library.illinois.edu/hours/", union: "https://union.illinois.edu/semester-building-hours" },
+    uic: { library: "https://library.uic.edu/hours/", union: "https://studentcenters.uic.edu/" },
+    uis: { library: "https://uis.libcal.com/hours", union: "https://www.uis.edu/student-union" },
+    purdue: { library: "https://calendar.lib.purdue.edu/hours", union: "https://www.purdue.edu/operations/pmu/visit/hours" },
+    iu: { library: "https://libraries.indiana.edu/hours", union: "https://imu.indiana.edu/about/index.html" },
+    umich: { library: "https://www.lib.umich.edu/locations-and-hours", union: "https://uunions.umich.edu/union/" },
+    osu: { library: "https://osul.libcal.com/hours", union: "https://ohiounion.osu.edu/visiting/hours" },
+    wisc: { library: "https://www.library.wisc.edu/locations/", union: "https://union.wisc.edu/visit/hours/" },
+    rutgers: { library: "https://www.libraries.rutgers.edu/visit-study/library-hours", union: "https://sca.rutgers.edu/student-centers/hours-and-directions" },
+    psu: { library: "https://libraries.psu.edu/hours", union: "https://studentaffairs.psu.edu/hub" },
+    umn: { library: "https://www.lib.umn.edu/spaces", union: "https://sua.umn.edu/building-hours" },
+    iowa: { library: "https://www.lib.uiowa.edu/hours/", union: "https://imu.uiowa.edu/directory" },
+    unl: { library: "https://libraries.unl.edu/hours", union: "https://unions.unl.edu/todays-schedule" },
+    umd: { library: "https://umd.libcal.com/hours", union: "https://stamp.umd.edu/visit/hours_operation" },
+    nu: { library: "https://northwestern.libcal.com/hours", union: "https://www.northwestern.edu/norris/about/hours.html" },
+    uo: { library: "https://uoregon.libcal.com/hours", union: "https://emu.uoregon.edu/hours" },
+    ucla: { library: "https://calendar.library.ucla.edu/hours" },
+    usc: { library: "https://libraries.usc.edu/hours" },
+    uw: { library: "https://cal.lib.uw.edu/hours/", union: "https://hub.washington.edu/about/plan-your-visit/" },
+    msu: { library: "https://msu.libcal.com/hours", union: "https://union.msu.edu/" },
+  };
+  // The official page a spot's hours come from, or null when there isn't one to link.
+  function hoursSourceFor(spot) {
+    return hoursSources[spot.campus ?? "uiuc"]?.[spot.type] ?? null;
+  }
+
+  // How many spots are open right now at each school, each on its own clock, as { campus: count }.
+  function openCountsByCampus(spots, moment = new Date()) {
+    const counts = {};
+    for (const campus of Object.keys(campusTimeZones)) {
+      const now = campusClock(campus, moment);
+      counts[campus] = spotsOnCampus(spots, campus).filter((spot) => openStatus(spot, now).isOpen === true).length;
+    }
+    return counts;
+  }
+
   // "Times are Pacific time, 2 hours behind you." when the campus's clock differs from the viewer's, otherwise "".
   function timeZoneNote(campus, moment = new Date(), viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
     const hoursAhead = Math.round((campusClock(campus, moment) - zoneClock(viewerZone, moment)) / 1800000) / 2;
@@ -3304,7 +3389,10 @@
       const [nextPeriod] = foodHoursOn(place, daysLater(now, daysAhead));
       if (!nextPeriod) continue;
       const soon = daysAhead === 1 ? shortWait(24 * 60 - minutes + nextPeriod[0]) : null;
-      return { isOpen: false, text: `Closed · opens ${soon ?? `${daysAhead === 1 ? "" : `${dayNames[day]} `}${formatTime(nextPeriod[0])}`}` };
+      // A week away is the same weekday as today, so it names the date instead ("opens Nov 30, 7:30am").
+      const date = daysLater(now, daysAhead);
+      const when = daysAhead === 1 ? "" : daysAhead === 7 ? `${monthNames[date.getMonth()]} ${date.getDate()}, ` : `${dayNames[day]} `;
+      return { isOpen: false, text: `Closed · opens ${soon ?? `${when}${formatTime(nextPeriod[0])}`}` };
     }
     return { isOpen: false, text: "Closed" };
   }
@@ -3358,6 +3446,16 @@
   }
 
   // A food search matches part of the name or the kind of place, ignoring case and extra spaces.
+  // A food place's broad kind, from its description: "coffee" (cafés), "market" (markets and convenience stores), or "meals".
+  function foodType(place) {
+    const kind = place.kind.toLowerCase();
+    if (/market|convenience|grocery|\bstore\b/.test(kind)) return "market";
+    if (/^(cafe|café|bakery|ice cream)|(^|· | )(cafe|café)(\b| ·)/.test(kind)) return "coffee";
+    // Restaurants and fast food that also sell drinks (chicken and boba, bowls and juice) are meals.
+    if (!/^(fast food|restaurant)/.test(kind) && /coffee|tea\b|boba|smoothie|juice/.test(kind)) return "coffee";
+    return "meals";
+  }
+
   function matchesFoodSearch(place, query) {
     const cleanQuery = query.trim().toLowerCase();
     return !cleanQuery || `${place.name} ${place.kind}`.toLowerCase().includes(cleanQuery);
@@ -3398,6 +3496,39 @@
   function formatTimer(msLeft) {
     const totalSeconds = Math.max(0, Math.ceil(msLeft / 1000));
     return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+  }
+
+  // The spot you last reported at or studied at, if it's in this list and was within maxDays; otherwise null.
+  function lastSpotToShow(lastSpot, spots, nowMs, maxDays = 14) {
+    if (!lastSpot || nowMs - lastSpot.time > maxDays * 24 * 60 * 60000) return null;
+    return spots.find((spot) => spot.id === lastSpot.spotId) ?? null;
+  }
+
+  // How to offer installing the app: "prompt" when the browser can show its own install dialog, "ios" for the manual
+  // Share-sheet steps on iPhone and iPad, or null when it's already installed or there's no way to offer it.
+  function installMode(userAgent, isStandalone, canPrompt) {
+    if (isStandalone) return null;
+    if (canPrompt) return "prompt";
+    if (/iPhone|iPad|iPod/.test(userAgent)) return "ios";
+    return null;
+  }
+
+  // Pausing keeps the time left; resuming starts the countdown again from there.
+  function pauseSession(session, nowMs) {
+    return session.pausedLeft === undefined ? { ...session, pausedLeft: Math.max(0, session.endTime - nowMs) } : session;
+  }
+  function resumeSession(session, nowMs) {
+    if (session.pausedLeft === undefined) return session;
+    const { pausedLeft, ...rest } = session;
+    return { ...rest, endTime: nowMs + pausedLeft };
+  }
+  function sessionTimeLeft(session, nowMs) {
+    return session.pausedLeft ?? Math.max(0, session.endTime - nowMs);
+  }
+
+  // True when a spot that's open now closes within the next few minutes, for a heads-up during a session.
+  function closesWithin(spot, now, minutes) {
+    return openStatus(spot, now).isOpen === true && openStatus(spot, new Date(now.getTime() + minutes * 60000)).isOpen === false;
   }
 
   // True when a spot that's open now will be closed before the session ends.
@@ -3705,6 +3836,16 @@
     return "Couldn't find your location. Please try again, or use the map to find a spot.";
   }
 
+  // The school with a spot closest to here, as { campus, miles }, or null when no school is within maxMiles.
+  function nearestCampus(here, spots, maxMiles = 25) {
+    let best = null;
+    for (const spot of spots) {
+      const miles = distanceMiles(here, spot.location);
+      if (miles <= maxMiles && (!best || miles < best.miles)) best = { campus: spot.campus ?? "uiuc", miles };
+    }
+    return best;
+  }
+
   // What to say when no spot is empty right now, or null when something is empty or everything is closed.
   function noEmptySpotsMessage(spots, now, reports) {
     if (spots.some((spot) => isEmptyNow(spot, now, reports))) return null;
@@ -3802,6 +3943,33 @@
       else if (hours) text = `${formatTime(hours[0])} – ${formatTime(hours[1])}`;
       return { label, text };
     });
+  }
+
+  // Every spot's hours for the next 7 days, for one table: { days: ["Today", "Tue 24", ...], rows: [{ spot, cells }] }.
+  // Each cell is { text, state } with state "open", "closed", or "tbd" (hours not posted).
+  function weekTable(spots, now) {
+    const dates = [0, 1, 2, 3, 4, 5, 6].map((daysAhead) => daysLater(now, daysAhead));
+    const days = dates.map((date, index) => (index === 0 ? "Today" : `${dayNames[date.getDay()]} ${date.getDate()}`));
+    const rows = spots.map((spot) => ({ spot, cells: dates.map((date) => {
+      const hours = hoursOn(spot, date);
+      if (hours === HOURS_UNCONFIRMED) return { text: "TBD", state: "tbd" };
+      if (!hours) return { text: "Closed", state: "closed" };
+      if (hours[0] === 0 && hours[1] >= h(24)) return { text: "24 hrs", state: "open" };
+      return { text: `${formatTime(hours[0])}–${formatTime(hours[1])}`, state: "open" };
+    }) }));
+    return { days, rows };
+  }
+
+  // The stretches of today a spot is open, as [startMinute, endMinute] within 0-1440, including the end of last night's
+  // overnight hours. null when today's hours aren't posted.
+  function todayOpenStretches(spot, now) {
+    const today = hoursOn(spot, now);
+    if (today === HOURS_UNCONFIRMED) return null;
+    const yesterday = hoursOn(spot, daysLater(now, -1));
+    const stretches = [];
+    if (Array.isArray(yesterday) && yesterday[1] > h(24)) stretches.push([0, yesterday[1] - h(24)]);
+    if (Array.isArray(today)) stretches.push([today[0], Math.min(today[1], h(24))]);
+    return stretches;
   }
 
   // Open late means open at 11pm tonight; in the small hours, it means open now.
@@ -4183,11 +4351,30 @@
   function spotInfo(spot) {
     const offerTags = spot.offers?.length ? `<span class="offer-tags">${spot.offers.map((offerId) =>
       `<span class="offer-tag">${offerLabels[offerId]}</span>`).join("")}</span>` : "";
+    const timeline = todayTimelineHtml(spot);
     const hours = weekHours(spot, displayTime(), viewTime === null).map(({ label, text }) => `<dt>${label}</dt><dd>${text}</dd>`).join("");
-    return `${offerTags}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>
+    const source = hoursSourceFor(spot);
+    const sourceLine = source ? `<p class="hours-source">Hours from the official page:
+      <a href="${source}" target="_blank" rel="noopener">${new URL(source).hostname.replace(/^www\./, "")}</a>. Check it before a long trip.</p>` : "";
+    return `${offerTags}${timeline}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>${sourceLine}
       <div class="notes"><label for="note-${spot.id}">My notes (only on this device)</label>
         <textarea id="note-${spot.id}" data-note-spot="${spot.id}" rows="2" maxlength="${NOTE_LIMIT}"
           placeholder="Like: outlets by the east windows">${escapeHtml(spotNotes[spot.id] ?? "")}</textarea></div>`;
+  }
+
+  // A bar across the day: green while open, with a line at the current time (or the planned time).
+  function todayTimelineHtml(spot) {
+    const now = displayTime();
+    const stretches = todayOpenStretches(spot, now);
+    if (!stretches) return "";
+    const percent = (minutes) => `${(minutes / 1440 * 100).toFixed(2)}%`;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const summary = stretches.length ? `Open ${stretches.map(([start, end]) => `${formatTime(start)} to ${formatTime(end)}`).join(" and ")}` : "Closed all day";
+    return `<div class="timeline" role="img" aria-label="${viewTime ? "That day" : "Today"}: ${summary}">
+      <div class="timeline-bar">${stretches.map(([start, end]) =>
+        `<span class="timeline-open" style="left:${percent(start)};width:${percent(end - start)}"></span>`).join("")}
+        <span class="timeline-now" style="left:${percent(nowMinutes)}"></span></div>
+      <div class="timeline-labels" aria-hidden="true"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>12am</span></div></div>`;
   }
 
   // A small chart of the viewer's own reports: rows are days, columns are parts of the day, colored by the usual level.
@@ -4267,6 +4454,48 @@
         ${hideButton(spot)}`;
   }
 
+  // "Back to Grainger · Open until 12am", one tap to reopen the spot you used last.
+  function renderLastSpot() {
+    const button = document.getElementById("last-spot");
+    const spot = viewTime ? null : lastSpotToShow(lastSpot, withoutHidden(currentSpots(), hiddenSpotIds), Date.now());
+    button.hidden = !spot;
+    if (!spot) return;
+    const status = openStatus(spot, campusClock(spot.campus));
+    button.dataset.spot = spot.id;
+    button.innerHTML = `<span>Back to ${escapeHtml(spot.name)}</span><span class="last-spot-status ${status.isOpen === false ? "closed" : "open"}">${status.text}</span>`;
+  }
+
+  document.getElementById("last-spot").addEventListener("click", (event) => {
+    const spot = allSpots.find((place) => place.id === event.currentTarget.dataset.spot);
+    if (!spot) return;
+    expandedSpotId = spot.id;
+    if (openStatus(spot, campusClock(spot.campus)).isOpen === false) showClosed = true;
+    render();
+    document.querySelector(`.card-tap[data-spot="${spot.id}"]`)?.closest(".spot")
+      ?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+
+  function renderWeekTable() {
+    document.getElementById("week-toggle").textContent = `This week's hours at ${campuses[selectedCampus]}`;
+    const box = document.getElementById("week-table");
+    if (box.hidden) return;
+    const { days, rows } = weekTable(withoutHidden(currentSpots(), hiddenSpotIds), campusNow());
+    box.innerHTML = `<p class="week-scroll-note">Swipe the table sideways for more days.</p><table class="week-table"><caption class="visually-hidden">Hours for the next 7 days</caption>
+      <thead><tr><th scope="col">Spot</th>${days.map((day) => `<th scope="col">${day}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(({ spot, cells }) => `<tr><th scope="row" title="${escapeHtml(spot.name)}">${escapeHtml(spot.name)}</th>${cells
+        .map(({ text, state }) => `<td class="wk-${state}">${text}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  }
+
+  // "Ohio State (Columbus) · 3 open" in the School menu, so a closed campus is clear before switching to it. The selected
+  // school keeps its plain name, since the header already shows its count and the name has to fit on a phone.
+  function renderSchoolCounts() {
+    const counts = openCountsByCampus(allSpots);
+    for (const option of document.querySelectorAll("#campus-select option")) {
+      option.dataset.label ??= option.textContent;
+      option.textContent = option.value === selectedCampus ? option.dataset.label : `${option.dataset.label} · ${counts[option.value] ?? 0} open`;
+    }
+  }
+
   function render() {
     const now = displayTime();
     renderEmptyNow(campusNow());
@@ -4275,6 +4504,9 @@
     renderStudyTime();
     const openCount = currentSpots().filter((spot) => openStatus(spot, now).isOpen).length;
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
+    renderSchoolCounts();
+    renderWeekTable();
+    renderLastSpot();
     const list = document.getElementById("spot-list");
     list.innerHTML = "";
     const shown = spotsToShow(withoutHidden(currentSpots(), hiddenSpotIds, showHiddenSpots), now, visibleReports(), searchText, selectedCategoryId, favoriteIds, selectedOfferIds);
@@ -4494,6 +4726,7 @@
     const previousReport = reports[key];
     const historyBefore = reportHistory;
     reports[key] = { level, time: Date.now() };
+    rememberLastSpot(spot.id);
     reportHistory = addToHistory(reportHistory, spot.id, level, reports[key].time);
     saveHistory(reportHistory);
     showToast(reportConfirmation(spot, area, level, saveReports(reports)), () => {
@@ -4571,6 +4804,7 @@
   let youAreHerePin = null;
   let foodPinLayer = null;
   let foodMode = "open";
+  let selectedFoodType = "all";
   let lastKnownLocation = null;
   let showAllFood = false;
   let foodSearchText = "";
@@ -4581,12 +4815,17 @@
 
   function renderFood() {
     const now = displayTime();
-    const campusFood = foodOnCampus(foodPlaces, selectedCampus).filter((place) => matchesFoodSearch(place, foodSearchText));
+    const campusFood = foodOnCampus(foodPlaces, selectedCampus)
+      .filter((place) => matchesFoodSearch(place, foodSearchText) && (selectedFoodType === "all" || foodType(place) === selectedFoodType));
     const results = favoriteFoodFirst(foodToShow(campusFood, now, foodMode, lastKnownLocation), foodFavoriteKeys);
     const listed = showAllFood ? results : results.slice(0, FOOD_LIST_LENGTH);
     const foodList = document.getElementById("food-list");
     if (foodOnCampus(foodPlaces, selectedCampus).length === 0) {
       foodList.innerHTML = `<p class="food-empty">No food places are listed for ${campuses[selectedCampus]} yet.</p>`;
+    } else if (results.length === 0 && selectedFoodType !== "all" && !foodSearchText.trim()) {
+      const typeName = { meals: "meals", coffee: "coffee or snacks", market: "markets" }[selectedFoodType];
+      const listName = { open: "open right now", late: "open late tonight", dining: "in the dining halls" }[foodMode];
+      foodList.innerHTML = `<p class="food-empty">No ${typeName} ${listName}. Try All kinds.</p>`;
     } else if (results.length === 0 && foodSearchText.trim()) {
       const listName = { open: "open right now", late: "open late tonight", dining: "in the dining halls" }[foodMode];
       foodList.innerHTML = `<p class="food-empty">Nothing ${listName} matches "${escapeHtml(foodSearchText.trim())}". Try another list above.</p>`;
@@ -4715,6 +4954,33 @@
     applyViewTime();
   });
 
+  document.getElementById("week-toggle").addEventListener("click", (event) => {
+    const box = document.getElementById("week-table");
+    box.hidden = !box.hidden;
+    event.currentTarget.setAttribute("aria-expanded", String(!box.hidden));
+    renderWeekTable();
+  });
+
+  // Switches to the school closest to the viewer, using their location once.
+  document.getElementById("find-school").addEventListener("click", () => {
+    const status = document.getElementById("find-school-status");
+    requestLocation(status, (here) => {
+      const nearest = nearestCampus(here, allSpots);
+      if (!nearest) {
+        status.textContent = "No school in the app is within 25 miles of you. Pick one from the list.";
+        return;
+      }
+      status.textContent = "";
+      lastKnownLocation = here;
+      if (nearest.campus !== selectedCampus) {
+        selectedCampus = nearest.campus;
+        saveCampus(selectedCampus);
+        applyCampus();
+      }
+      showToast(`${campuses[nearest.campus]} is your closest school (${describeDistance(nearest.miles)} away).`);
+    });
+  });
+
   document.getElementById("find-closest").addEventListener("click", () => {
     requestLocation(document.getElementById("closest-result"), showClosestSpots);
   });
@@ -4741,6 +5007,17 @@
     showAllFood = false;
     for (const modeButton of document.querySelectorAll("[data-food-mode]")) {
       modeButton.setAttribute("aria-pressed", String(modeButton === button));
+    }
+    renderFood();
+  });
+
+  document.getElementById("food-types").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-food-type]");
+    if (!button) return;
+    selectedFoodType = button.dataset.foodType;
+    showAllFood = false;
+    for (const typeButton of document.querySelectorAll("[data-food-type]")) {
+      typeButton.setAttribute("aria-pressed", String(typeButton === button));
     }
     renderFood();
   });
@@ -5003,6 +5280,13 @@
     } catch { /* storage unavailable: keep in memory */ }
   }
   let studySession = loadSession();
+  let lastSpot = (() => {
+    try { return JSON.parse(localStorage.getItem("lastSpot") || "null"); } catch { return null; }
+  })();
+  function rememberLastSpot(spotId) {
+    lastSpot = { spotId, time: Date.now() };
+    try { localStorage.setItem("lastSpot", JSON.stringify(lastSpot)); } catch { /* storage unavailable: keep in memory */ }
+  }
 
   const APP_TITLE = document.title;
 
@@ -5240,8 +5524,12 @@
     banner.hidden = !studySession && !sessionPrompt;
     document.getElementById("session-checkin").hidden = !sessionPrompt;
     document.getElementById("session-stop").hidden = Boolean(sessionPrompt);
+    const pauseButton = document.getElementById("session-pause");
+    pauseButton.hidden = Boolean(sessionPrompt) || !studySession;
+    pauseButton.textContent = studySession?.pausedLeft !== undefined ? "Resume" : "Pause";
     banner.classList.toggle("checking-in", Boolean(sessionPrompt));
     banner.classList.toggle("on-break", Boolean(studySession?.isBreak));
+    banner.classList.toggle("paused", studySession?.pausedLeft !== undefined && !sessionPrompt);
     if (!studySession) document.title = APP_TITLE;
     if (banner.hidden) return;
     banner.style.top = `${document.querySelector("header").offsetHeight}px`;
@@ -5251,6 +5539,12 @@
     }
     const now = Date.now();
     const spot = allSpots.find((studySpot) => studySpot.id === studySession.spotId);
+    if (studySession.pausedLeft !== undefined) {
+      const left = formatTimer(studySession.pausedLeft);
+      document.getElementById("session-text").textContent = studySession.isBreak ? `Break paused · ${left} left` : `Paused at ${spot.name} · ${left} left`;
+      document.title = `Paused · ${left} left · Study Spot Finder`;
+      return;
+    }
     if (now >= studySession.endTime) {
       finishTimer(spot);
       return;
@@ -5260,7 +5554,16 @@
       document.title = timerTitle(studySession.endTime - now).replace("left", "left on break");
       return;
     }
-    const warning = closesBeforeSessionEnds(spot, new Date(now), studySession.endTime) ? ` · ${spot.name} closes first` : "";
+    const campusNowClock = campusClock(spot.campus, new Date(now));
+    const warning = closesBeforeSessionEnds(spot, campusNowClock, campusClock(spot.campus, new Date(studySession.endTime)).getTime())
+      ? ` · ${spot.name} closes first` : "";
+    // One heads-up per session, 15 minutes before the spot closes.
+    if (!studySession.closingWarned && closesWithin(spot, campusNowClock, 15)) {
+      studySession = { ...studySession, closingWarned: true };
+      saveSession(studySession);
+      notify(`${spot.name} closes soon`, `${spot.name} closes in about 15 minutes. Time to pack up.`);
+      showToast(`${spot.name} closes in about 15 minutes. Time to pack up.`);
+    }
     document.getElementById("session-text").textContent = `Studying at ${spot.name} · ${formatTimer(studySession.endTime - now)} left${warning}`;
     document.title = timerTitle(studySession.endTime - now);
   }
@@ -5299,6 +5602,7 @@
       return;
     }
     const spot = allSpots.find((studySpot) => studySpot.id === spotId);
+    rememberLastSpot(spot.id);
     showToast(closesBeforeSessionEnds(spot, campusClock(spot.campus), campusClock(spot.campus, new Date(studySession.endTime)).getTime())
       ? `Session started. Heads up: ${spot.name} closes before it ends.`
       : `${minutes}-minute session started at ${spot.name}.`);
@@ -5306,7 +5610,7 @@
 
   document.getElementById("session-stop").addEventListener("click", () => {
     const wasBreak = studySession.isBreak;
-    const studied = !wasBreak && studySession.minutes ? Math.floor(studySession.minutes - (studySession.endTime - Date.now()) / 60000) : 0;
+    const studied = !wasBreak && studySession.minutes ? Math.floor(studySession.minutes - sessionTimeLeft(studySession, Date.now()) / 60000) : 0;
     if (studied >= 1) logStudyTime(studied);
     studySession = null;
     saveSession(null);
@@ -5314,6 +5618,16 @@
     soundForTimer("timer-stop");
     if (wasBreak) showToast("Break ended");
     else showToast(studied >= 1 ? `Session stopped. Logged ${formatDuration(studied)} of study.` : "Session stopped");
+  });
+
+  document.getElementById("session-pause").addEventListener("click", () => {
+    if (!studySession) return;
+    const paused = studySession.pausedLeft !== undefined;
+    studySession = paused ? resumeSession(studySession, Date.now()) : pauseSession(studySession, Date.now());
+    saveSession(studySession);
+    soundForTimer(paused ? (studySession.isBreak ? "break-start" : "study-start") : "timer-stop");
+    updateSessionBanner();
+    showToast(paused ? "Timer resumed" : "Timer paused");
   });
 
   document.getElementById("session-checkin").addEventListener("click", (event) => {
@@ -5400,21 +5714,52 @@
     }
   });
 
+  // Install: the browser's own dialog where it offers one (Chrome, Edge, Android), the Share-sheet steps on iPhone.
+  let installPromptEvent = null;
+  function renderInstall() {
+    const isStandalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+    const mode = installMode(navigator.userAgent, isStandalone, Boolean(installPromptEvent));
+    document.getElementById("install-setting").hidden = !mode;
+    document.getElementById("install-app").hidden = mode !== "prompt";
+    document.getElementById("install-note").textContent = mode === "ios"
+      ? "In Safari, tap the Share button, then Add to Home Screen. It opens full-screen and works without signal."
+      : "It opens full-screen like an app and works without signal.";
+  }
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    installPromptEvent = event;
+    renderInstall();
+  });
+  window.addEventListener("appinstalled", () => {
+    installPromptEvent = null;
+    renderInstall();
+    showToast("Study Spot Finder is on your home screen.");
+  });
+  document.getElementById("install-app").addEventListener("click", async () => {
+    if (!installPromptEvent) return;
+    installPromptEvent.prompt();
+    await installPromptEvent.userChoice.catch(() => null);
+    installPromptEvent = null;
+    renderInstall();
+  });
+  renderInstall();
+
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
-    const keys = ["busynessReports", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
+    const keys = ["busynessReports", "lastSpot", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "studySession", "openOnly",
       "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders", "soundChoice", "soundVolume", "soundWithTimer"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
       hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders,
-      campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large" };
+      campus: selectedCampus, theme: document.documentElement.dataset.theme ?? "system", large: document.documentElement.dataset.text === "large", lastSpot };
     favoriteIds = [];
     reportHistory = [];
     spotNotes = {};
     reports = {};
     studySession = null;
     sessionPrompt = null;
+    lastSpot = null;
     openReminders = [];
     hiddenSpotIds = [];
     foodFavoriteKeys = [];
@@ -5430,7 +5775,7 @@
     showToast("Erased everything on this device.", () => {
       try { Object.entries(saved).forEach(([key, value]) => { if (value !== null) localStorage.setItem(key, value); }); } catch { /* storage unavailable */ }
       ({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession, campus: selectedCampus,
-        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders } = before);
+        hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot } = before);
       applyDisplaySettings(before.theme, before.large);
       applyCampus();
       updateSessionBanner();
