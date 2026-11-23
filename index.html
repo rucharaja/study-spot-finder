@@ -82,7 +82,7 @@
   .spot.closed { opacity: .55; }
   /* Compact list: each card keeps its name, status, and busyness, and folds the extra lines away until it's opened. */
   html[data-density="compact"] .spot { min-height: 0; padding-top: 8px; padding-bottom: 8px; }
-  html[data-density="compact"] .spot:not(.expanded) :is(.food-line, .usual-line, .report-tags, .special-tag:not(.hidden-tag)) { display: none; }
+  html[data-density="compact"] .spot:not(.expanded) :is(.food-line, .usual-line, .report-tags, .card-note, .special-tag:not(.hidden-tag)) { display: none; }
   html[data-density="compact"] .icon-tile { width: 36px; height: 36px; }
   /* Star and Walk sit side by side at the top right, so a one-line card stays short. */
   html[data-density="compact"] a.walk-link { top: 2px; right: 46px; }
@@ -153,6 +153,8 @@
   .week-table td.wk-closed { color: var(--closed); }
   .week-table td.wk-tbd { color: var(--muted); font-style: italic; }
   .week-table tr:last-child th, .week-table tr:last-child td { border-bottom: none; }
+  .week-key { position: sticky; left: 0; margin: 0; padding: 6px 8px 8px; color: var(--muted); font-size: .75rem; }
+  .week-key .wk-open { color: var(--open); font-weight: 700; } .week-key .wk-closed { color: var(--closed); font-weight: 700; } .week-key .wk-tbd { font-style: italic; }
   .plan-picker input { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border);
     background: var(--card); color: var(--text); font: inherit; font-size: 1rem; }
   .plan-picker input:focus { outline: 2px solid var(--illini-orange); outline-offset: 1px; }
@@ -366,6 +368,11 @@
   .notes label { font-size: .8rem; font-weight: 600; color: var(--muted); }
   .food-list .notes { flex: 1 1 100%; margin-top: 0; }
   .note-count { justify-self: end; color: var(--muted); font-size: .72rem; }
+  .skip-link { position: absolute; left: 12px; top: -60px; z-index: 50; padding: 10px 14px; border-radius: 10px; background: var(--illini-navy);
+    color: #ffffff; font-weight: 700; }
+  .skip-link:focus { top: 12px; outline: 2px solid var(--illini-orange); }
+  #spot-list:focus { outline: none; }
+  .card-note { display: block; margin-top: 2px; color: var(--muted); font-size: .78rem; font-style: italic; }
   .spot-stats { margin: 4px 0 0; color: var(--accent); font-size: .8rem; font-weight: 600; }
   button.empty-now-spot { min-height: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
   button.week-spot { min-height: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
@@ -485,6 +492,7 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#spot-list">Skip to the spot list</a>
 <header>
   <div class="header-inner">
     <div>
@@ -593,7 +601,7 @@
     <h2 class="category-heading" id="food-heading">Food nearby</h2>
     <div class="offer-choices" id="food-modes" role="group" aria-label="Which food places to show">
       <button class="offer" data-food-mode="open" aria-pressed="true">Open now</button>
-      <button class="offer" data-food-mode="late" aria-pressed="false">Late night (past 10pm)</button>
+      <button class="offer" data-food-mode="late" aria-pressed="false" id="late-food-button">Late night (past 10pm)</button>
       <button class="offer" data-food-mode="dining" aria-pressed="false">Dining halls</button>
     </div>
     <div class="offer-choices" id="food-types" role="group" aria-label="Kind of food">
@@ -622,6 +630,7 @@
       <div class="offer-choices" id="quick-times" role="group" aria-label="Quick times to plan for"></div>
       <p class="location-problem" id="view-time-error" role="alert" hidden>Pick a time in the future.</p>
     </div>
+    <button class="clear-reports reset-filters" id="reset-filters" hidden>Reset all filters</button>
     <button class="share-spot week-toggle" id="week-toggle" aria-expanded="false" aria-controls="week-table">This week's hours</button>
     <div class="week-table-wrap" id="week-table" hidden></div>
     <div class="offer-filter">
@@ -643,7 +652,7 @@
     <span id="plan-banner-text"></span>
     <button class="plan-reset" id="plan-reset">Back to now</button>
   </div>
-  <div id="spot-list"></div>
+  <div id="spot-list" tabindex="-1"></div>
 </main>
 <details class="settings" id="settings">
   <summary>Settings and backup</summary>
@@ -659,6 +668,8 @@
     </div>
     <label class="switch-row"><input type="checkbox" id="large-text"> Larger text</label>
     <label class="switch-row"><input type="checkbox" id="high-contrast"> High contrast (darker text and borders)</label>
+    <label class="switch-row"><input type="checkbox" id="clock-24"> 24-hour clock (20:00 instead of 8pm)</label>
+    <label class="switch-row"><input type="checkbox" id="use-kilometers"> Metric units (kilometers and °C)</label>
     <label class="switch-row"><input type="checkbox" id="show-weather"> Show the weather (asks Open-Meteo, sending only the school's location)</label>
     <label class="switch-row"><input type="checkbox" id="compact-list"> Compact list (name, status, and busyness only)</label>
     <div class="setting">
@@ -674,6 +685,7 @@
       <button class="offer" id="copy-backup">Copy backup code</button>
       <button class="offer" id="save-backup-file">Save backup as a file</button>
       <button class="offer" id="download-reports">Download my reports (spreadsheet)</button>
+      <button class="offer" id="download-notes">Download my notes</button>
       <textarea id="backup-code" rows="3" aria-label="Backup code to restore" placeholder="Paste a backup code here"></textarea>
       <button class="offer" id="restore-backup">Restore from code</button>
       <button class="offer" id="restore-file-button">Restore from a file</button>
@@ -1686,7 +1698,8 @@
   function weatherNote(current) {
     if (!current || !Number.isFinite(current.temperature_2m)) return "";
     const words = weatherWords(current.weather_code);
-    return `${Math.round(current.temperature_2m)}°F${words ? `, ${words}` : ""}`;
+    const temperature = displayUnits.kilometers ? `${Math.round((current.temperature_2m - 32) * 5 / 9)}°C` : `${Math.round(current.temperature_2m)}°F`;
+    return `${temperature}${words ? `, ${words}` : ""}`;
   }
 
   // The forecast for the hour containing a moment, from Open-Meteo's hourly lists (times in UTC), like
@@ -3207,9 +3220,16 @@
   const busynessRank = { empty: 0, some: 1, unknown: 2, packed: 3 };
   const busynessLabels = { empty: "Empty", some: "Some seats", packed: "Packed" };
 
+  // How times and distances are shown, from Settings: a 24-hour clock ("20:00") and kilometers instead of miles.
+  const displayUnits = { clock24: false, kilometers: false };
+  function setDisplayUnits(changes) {
+    Object.assign(displayUnits, changes);
+  }
+
   function formatTime(minutes) {
     const hour24 = Math.floor(minutes / 60) % 24;
     const minute = minutes % 60;
+    if (displayUnits.clock24) return `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
     const suffix = hour24 < 12 ? "am" : "pm";
     const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
     return minute === 0 ? `${hour12}${suffix}` : `${hour12}:${String(minute).padStart(2, "0")}${suffix}`;
@@ -3614,6 +3634,10 @@
   }
 
   function describeMiles(miles) {
+    if (displayUnits.kilometers) {
+      const kilometers = miles * 1.609344;
+      return kilometers < 0.1 ? "less than 0.1 km" : `${kilometers.toFixed(1)} km`;
+    }
     return miles < 0.1 ? "less than 0.1 mi" : `${miles.toFixed(1)} mi`;
   }
 
@@ -3959,6 +3983,16 @@
       return { ...reminder, spotName: spots.find((spot) => spot.id === reminder.spotId)?.name ?? "A spot",
         when: `${dayNames[at.getDay()]} ${formatTime(at.getHours() * 60 + at.getMinutes())}` };
     });
+  }
+
+  // All your notes as plain text, study spots first, then food places, for keeping or printing.
+  function notesText(spotNotes, foodNotes, spots) {
+    const spotLines = Object.entries(spotNotes).map(([spotId, note]) =>
+      `${spots.find((spot) => spot.id === spotId)?.name ?? spotId}\n${note.trim()}`);
+    const foodLines = Object.entries(foodNotes).map(([key, note]) => `${key.split("|")[0]}\n${note.trim()}`);
+    if (!spotLines.length && !foodLines.length) return "";
+    return [spotLines.length ? `Study spots\n\n${spotLines.join("\n\n")}` : "", foodLines.length ? `Food\n\n${foodLines.join("\n\n")}` : ""]
+      .filter(Boolean).join("\n\n\n") + "\n";
   }
 
   // The name a saved backup file gets, with the date it was saved.
@@ -4343,9 +4377,9 @@
     };
     return [
       { label: "In 1 hour", time: inAnHour },
-      ...(now.getHours() < 20 ? [{ label: "Tonight 9pm", time: at(0, 21) }] : []),
-      { label: "Tomorrow 10am", time: at(1, 10) },
-      { label: "Tomorrow 7pm", time: at(1, 19) },
+      ...(now.getHours() < 20 ? [{ label: `Tonight ${formatTime(21 * 60)}`, time: at(0, 21) }] : []),
+      { label: `Tomorrow ${formatTime(10 * 60)}`, time: at(1, 10) },
+      { label: `Tomorrow ${formatTime(19 * 60)}`, time: at(1, 19) },
     ];
   }
 
@@ -4353,6 +4387,12 @@
   function timeInputValue(time) {
     const pad = (number) => String(number).padStart(2, "0");
     return `${time.getFullYear()}-${pad(time.getMonth() + 1)}-${pad(time.getDate())}T${pad(time.getHours())}:${pad(time.getMinutes())}`;
+  }
+
+  // The first line of a note, cut to fit a card, like "Outlets by the east windows".
+  function noteSnippet(text, max = 60) {
+    const firstLine = (text ?? "").trim().split("\n")[0].trim();
+    return firstLine.length > max ? `${firstLine.slice(0, max - 1).trimEnd()}…` : firstLine;
   }
 
   // A spot's next 7 days of hours as plain text, for a group chat.
@@ -4972,11 +5012,14 @@
       : "";
     const hasHistory = reportHistory.some((entry) => entry.spotId === spot.id);
     const historyLine = `<p class="history-line">${historyMessage(spot.id, reportHistory)}</p>${hasHistory ? historyGridHtml(spot.id) : ""}`;
+    const lastLevel = [...reportHistory].reverse().find((entry) => entry.spotId === spot.id)?.level;
+    const sameAgain = lastLevel ? `<button class="clear-reports same-again" data-spot="${spot.id}" data-level="${lastLevel}">Same as last time: ${busynessLabels[lastLevel]}</button>` : "";
     const tagPicker = `<p class="where">Anything to add? (optional)</p><div class="area-choices">${Object.entries(reportTagLabels).map(([tag, label]) =>
       `<button class="area" data-action="toggle-tag" data-tag="${tag}" aria-pressed="${pickedTags.includes(tag)}">${label}</button>`).join("")}</div>`;
     return `${spotInfo(spot)}${historyLine}${areaPicker}${tagPicker}<div class="buttons">${Object.entries(busynessLabels).map(([busynessLevel, label]) =>
         `<button data-spot="${spot.id}" data-level="${busynessLevel}">${label}</button>`).join("")}
         <button class="cancel" data-action="close">Cancel</button></div>
+        ${sameAgain}
         ${reportsFor(spot, reports).length ? `<button class="clear-reports" data-spot="${spot.id}" data-action="clear-reports">Clear my reports</button>` : ""}
         <label class="session-task-label">Working on (optional)
           <input type="text" class="session-task" id="session-task-${spot.id}" maxlength="${TASK_LIMIT}" placeholder="Like: CS 124 homework" autocomplete="off"></label>
@@ -5107,7 +5150,8 @@
     box.innerHTML = `<p class="week-scroll-note">Swipe the table sideways for more days.</p><table class="week-table"><caption class="visually-hidden">Hours for the next 7 days</caption>
       <thead><tr><th scope="col">Spot</th>${days.map((day, index) => `<th scope="col"${index === 0 ? ' class="wk-today"' : ""}>${day}</th>`).join("")}</tr></thead>
       <tbody>${rows.map(({ spot, cells }) => `<tr><th scope="row"><button class="week-spot" data-focus-spot="${spot.id}">${escapeHtml(spot.name)}</button></th>${cells
-        .map(({ text, state }, index) => `<td class="wk-${state}${index === 0 ? " wk-today" : ""}">${text}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+        .map(({ text, state }, index) => `<td class="wk-${state}${index === 0 ? " wk-today" : ""}">${text}</td>`).join("")}</tr>`).join("")}</tbody></table>
+      <p class="week-key"><span class="wk-open">Green</span>: open · <span class="wk-closed">Red</span>: closed · <span class="wk-tbd">TBD</span>: hours not posted yet · Shaded: today · Tap a name to open it</p>`;
   }
 
   // "Ohio State (Columbus) · 3 open" in the School menu, so a closed campus is clear before switching to it. The selected
@@ -5130,6 +5174,7 @@
     document.getElementById("open-count").textContent = `${openCount} of ${currentSpots().length} open`;
     renderSchoolCounts();
     renderWeekTable();
+    document.getElementById("reset-filters").hidden = !filtersAreSet();
     document.getElementById("center-on-me").hidden = !lastKnownLocation;
     renderReportCount();
     renderHerePrompt();
@@ -5227,6 +5272,7 @@
             </span>
             ${usualLine(spot, now, level)}
             ${tagsLine(spot, now)}
+            ${noteSnippet(spotNotes[spot.id]) ? `<span class="card-note"><span class="visually-hidden">Your note: </span>${escapeHtml(noteSnippet(spotNotes[spot.id]))}</span>` : ""}
             ${hasSpecialHours(spot, now) ? `<span class="special-tag">Special hours today</span>` : ""}
             ${hiddenSpotIds.includes(spot.id) ? `<span class="special-tag hidden-tag">Hidden</span>` : ""}
             ${foodLine(spot, status, now)}
@@ -5470,7 +5516,7 @@
     const cached = weatherCache[campus];
     // While planning ahead, the line describes the planned time: its daylight and the forecast for that hour.
     const moment = viewTime ? realMoment(campus, viewTime) : new Date();
-    const weather = !showWeather ? "" : viewTime ? (cached?.hourly ? forecastAt(cached.hourly, moment.getTime()) : "") : cached?.text;
+    const weather = !showWeather ? "" : viewTime ? (cached?.hourly ? forecastAt(cached.hourly, moment.getTime()) : "") : weatherNote(cached?.current);
     const code = viewTime ? hourlyCodeAt(cached?.hourly, moment.getTime()) : cached?.code;
     const icon = weather && Number.isFinite(code) ? weatherIconKind(code, isDarkOutside(campus, allSpots, moment)) : null;
     const label = viewTime && weather ? "Forecast then: " : "";
@@ -5484,7 +5530,7 @@
       + "&temperature_unit=fahrenheit&timezone=UTC&forecast_days=16")
       .then((response) => (response.ok ? response.json() : null))
       .then((reply) => {
-        weatherCache[campus] = { text: weatherNote(reply?.current), code: reply?.current?.weather_code, hourly: reply?.hourly ?? null, time: Date.now() };
+        weatherCache[campus] = { current: reply?.current ?? null, code: reply?.current?.weather_code, hourly: reply?.hourly ?? null, time: Date.now() };
         if (selectedCampus === campus) renderOutsideNote();
       })
       .catch(() => { /* no weather is fine: the sunset still shows */ });
@@ -5644,7 +5690,8 @@
         .setIcon(pinIcon(`${spot.type}${status.isOpen === false ? " is-closed" : ` ring-${recentLevel(spot, now, visibleReports())}`}`))
         .setPopupContent(`<strong>${spot.name}</strong><br>${status.text}<br>${walkLink(spot.name, spot.location, "popup-walk", mapsApp)}${
           status.isOpen === true && !viewTime ? `<span class="popup-levels">${Object.entries(busynessLabels).map(([level, label]) =>
-            `<button class="here-level ${level}" data-popup-level="${level}" data-spot="${spot.id}">${label}</button>`).join("")}</span>` : ""}`);
+            `<button class="here-level ${level}" data-popup-level="${level}" data-spot="${spot.id}">${label}</button>`).join("")}</span>` : ""}
+          <button class="clear-reports popup-details" data-popup-details="${spot.id}">Details</button>`);
     }
   }
 
@@ -5692,6 +5739,12 @@
     // Report buttons inside a spot's pop-up. Leaflet stops clicks inside pop-ups from bubbling, so this listens on the way
     // down (capture), which also covers pop-ups redrawn by the minute refresh.
     mapElement.addEventListener("click", (event) => {
+      const details = event.target.closest("[data-popup-details]");
+      if (details) {
+        spotMap.closePopup();
+        focusSpot(details.dataset.popupDetails);
+        return;
+      }
       const button = event.target.closest("[data-popup-level]");
       if (!button) return;
       recordReport(allSpots.find((place) => place.id === button.dataset.spot), null, button.dataset.popupLevel);
@@ -5892,6 +5945,26 @@
     render();
   });
 
+  // Turns every filter, the kind of place, the order, the search, and the planned time back to their defaults.
+  function filtersAreSet() {
+    return selectedOfferIds.length > 0 || selectedCategoryId !== "all" || sortMode !== "best" || viewTime !== null || searchText.trim() !== "";
+  }
+  document.getElementById("reset-filters").addEventListener("click", () => {
+    selectedOfferIds = [];
+    selectedCategoryId = "all";
+    searchText = "";
+    document.getElementById("spot-search").value = "";
+    document.getElementById("search-clear").hidden = true;
+    viewTime = null;
+    document.getElementById("view-time").value = "";
+    document.getElementById("view-time-error").hidden = true;
+    renderOfferButtons();
+    renderCategoryButtons();
+    setSortMode("best");
+    applyViewTime();
+    showToast("Filters reset. Showing every spot, best first.");
+  });
+
   // Nearest first asks for the location the first time.
   function setSortMode(mode) {
     sortMode = mode;
@@ -6036,6 +6109,28 @@
     applyDisplaySettings(theme, document.documentElement.dataset.text === "large");
   });
 
+  // Clock and distance units, remembered in this browser.
+  function applyUnits(changes) {
+    setDisplayUnits(changes);
+    document.getElementById("late-food-button").textContent = `Late night (past ${formatTime(22 * 60)})`;
+    document.getElementById("clock-24").checked = displayUnits.clock24;
+    document.getElementById("use-kilometers").checked = displayUnits.kilometers;
+  }
+  try { applyUnits({ clock24: localStorage.getItem("clock") === "24", kilometers: localStorage.getItem("units") === "km" }); } catch { /* storage unavailable */ }
+  document.getElementById("clock-24").addEventListener("change", (event) => {
+    try { localStorage.setItem("clock", event.target.checked ? "24" : "12"); } catch { /* storage unavailable */ }
+    applyUnits({ clock24: event.target.checked });
+    render();
+    renderFood();
+  });
+  document.getElementById("use-kilometers").addEventListener("change", (event) => {
+    try { localStorage.setItem("units", event.target.checked ? "km" : "mi"); } catch { /* storage unavailable */ }
+    applyUnits({ kilometers: event.target.checked });
+    renderOutsideNote();
+    render();
+    renderFood();
+  });
+
   function applyHighContrast(isHigh) {
     if (isHigh) document.documentElement.dataset.contrast = "high";
     else delete document.documentElement.dataset.contrast;
@@ -6064,6 +6159,20 @@
   });
 
   // Backup and restore.
+  document.getElementById("download-notes").addEventListener("click", () => {
+    const text = notesText(spotNotes, foodNotes, allSpots);
+    if (!text) {
+      showToast("No notes yet. Open a spot or food place to write one.");
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+    link.download = `study-spot-notes-${dateKeyFor(new Date())}.txt`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast("Your notes are saved as a file.");
+  });
+
   // A backup file holds the same code, so restoring one goes through the same checks and Undo.
   document.getElementById("save-backup-file").addEventListener("click", () => {
     const code = makeBackup({ favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog });
@@ -6678,14 +6787,14 @@
 
   // Reset everything this browser has saved, with a chance to undo.
   document.getElementById("reset-data").addEventListener("click", () => {
-    const keys = ["busynessReports", "lastFloors", "lastSpot", "recentSchools", "recentSearches", "foodNotes", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "contrast", "usualMinutes", "weather", "studySession", "openOnly",
+    const keys = ["busynessReports", "lastFloors", "lastSpot", "recentSchools", "recentSearches", "foodNotes", "favoriteSpots", "reportHistory", "spotNotes", "campus", "theme", "textSize", "compactList", "contrast", "usualMinutes", "weather", "clock", "units", "studySession", "openOnly",
       "hiddenSpots", "foodFavorites", "studyLog", "dismissedHoursNotice", "mapsApp", "studyGoal", "sessionAlerts", "seenTips", "openReminders", "soundChoice", "soundVolume", "soundWithTimer"];
     let saved = {};
     try { saved = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)])); keys.forEach((key) => localStorage.removeItem(key)); } catch { /* nothing saved */ }
     const before = { favorites: favoriteIds, history: reportHistory, notes: spotNotes, reports, session: studySession,
       hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders,
       campus: selectedCampus, theme: themeChoice, large: document.documentElement.dataset.text === "large", lastSpot, lastFloors, recentCampuses, recentSearches, foodNotes, compact: document.documentElement.dataset.density === "compact",
-      contrast: document.documentElement.dataset.contrast === "high" };
+      contrast: document.documentElement.dataset.contrast === "high", units: { ...displayUnits } };
     favoriteIds = [];
     reportHistory = [];
     spotNotes = {};
@@ -6707,6 +6816,7 @@
     sessionAlerts = false;
     selectedCampus = "uiuc";
     applyDisplaySettings("system", false);
+    applyUnits({ clock24: false, kilometers: false });
     applyCompactList(false);
     applyHighContrast(false);
     applyCampus();
@@ -6717,6 +6827,7 @@
         hidden: hiddenSpotIds, foodFavorites: foodFavoriteKeys, studyLog, dismissed: dismissedHoursNotice, mapsApp, studyGoalHours, sessionAlerts, openReminders, lastSpot, lastFloors, recentCampuses, recentSearches, foodNotes } = before);
       applyDisplaySettings(before.theme, before.large);
       applyCompactList(before.compact);
+      applyUnits(before.units);
       applyHighContrast(before.contrast);
       applyCampus();
       updateSessionBanner();
@@ -6727,7 +6838,7 @@
   // Keyboard shortcuts: "/" searches, f, m, and w open Food, Map, and this week's hours, "?" lists them all, and Escape
   // closes an open spot or leaves the search box.
   const shortcutList = [["/", "Search spots"], ["f", "Open or close Food"], ["m", "Open or close the map"],
-    ["w", "This week's hours for every spot"], ["?", "Show this list"], ["Esc", "Close an open spot, or leave a text box"]];
+    ["w", "This week's hours for every spot"], ["↑ ↓", "Move between spots (once one is selected)"], ["?", "Show this list"], ["Esc", "Close an open spot, or leave a text box"]];
   function showShortcuts() {
     document.getElementById("shortcut-list").innerHTML = shortcutList.map(([key, action]) => `<dt><kbd>${escapeHtml(key)}</kbd></dt><dd>${action}</dd>`).join("");
     const dialog = document.getElementById("shortcuts");
@@ -6755,6 +6866,17 @@
       return;
     }
     if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
+    // Up and down arrows move between spot cards once one has focus (Tab gets you to the first).
+    if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.target.classList?.contains("card-tap")) {
+      const cards = [...document.querySelectorAll(".card-tap")];
+      const next = cards[cards.indexOf(event.target) + (event.key === "ArrowDown" ? 1 : -1)];
+      if (next) {
+        event.preventDefault();
+        next.focus();
+        next.scrollIntoView({ block: "nearest" });
+      }
+      return;
+    }
     if (event.key === "/") {
       event.preventDefault();
       document.getElementById("spot-search").focus();
