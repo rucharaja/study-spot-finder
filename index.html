@@ -415,6 +415,7 @@
         <option value="purdue">Purdue (West Lafayette)</option>
         <option value="rutgers">Rutgers (New Brunswick)</option>
         <option value="ucla">UCLA (Los Angeles)</option>
+        <option value="usc">USC (Los Angeles)</option>
         <option value="wisc">Wisconsin (Madison)</option>
       </optgroup>
     </select>
@@ -1208,6 +1209,51 @@
         ...during("2027-03-20", "2027-03-21", null), ...during("2027-03-22", "2027-03-27", [h(8), h(17.5)]),
         ...during("2027-03-28", "2027-03-28", [h(12), h(21)]), ...during("2027-03-29", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
+  // USC (Los Angeles), from USC Libraries' LibCal hours (libraries.usc.edu/hours, posted through mid-May 2027), checked
+  // 2026-11-23. Leavey is open 24 hours most of the semester; overnight it's for USC ID holders. The Tutor Campus Center
+  // doesn't post building hours, so it isn't listed. Times are Los Angeles's own (Pacific), like UCLA.
+  const uscSpots = [
+    { id: "usc-leavey", campus: "usc", type: "library", name: "Leavey Library", offers: [], location: [34.02178, -118.28294],
+      keywords: "leavey library 24 hour usc trojans",
+      hours: [[h(9), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(0), h(24)], [h(9), h(21)]],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(0), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-11-28", "2026-11-28", [h(9), h(17)]), ...during("2026-12-05", "2026-12-05", [h(8), h(24)]),
+        ...during("2026-12-06", "2026-12-06", [h(0), h(24)]), ...during("2026-12-12", "2026-12-13", [h(0), h(24)]),
+        ...during("2026-12-16", "2026-12-16", [h(0), h(20)]), ...during("2026-12-17", "2026-12-18", [h(9), h(17)]),
+        ...during("2026-12-19", "2027-01-03", null), ...during("2027-01-04", "2027-01-09", [h(9), h(17)]),
+        ...during("2027-01-10", "2027-01-10", [h(12), h(20)]), ...during("2027-01-11", "2027-01-15", [h(8), h(24)]),
+        ...during("2027-01-17", "2027-01-17", [h(12), h(20)]), ...during("2027-01-18", "2027-01-18", null),
+        ...during("2027-02-14", "2027-02-14", [h(12), h(20)]), ...during("2027-02-15", "2027-02-15", null),
+        ...during("2027-02-16", "2027-02-16", [h(8), h(24)]), ...during("2027-03-13", "2027-03-13", [h(9), h(17)]),
+        ...during("2027-03-14", "2027-03-14", [h(12), h(20)]), ...during("2027-03-15", "2027-03-20", [h(9), h(17)]),
+        ...during("2027-03-21", "2027-03-21", [h(12), h(20)]), ...during("2027-03-22", "2027-03-22", [h(8), h(24)]),
+        ...during("2027-05-01", "2027-05-01", [h(8), h(24)]), ...during("2027-05-02", "2027-05-02", [h(0), h(24)]),
+        ...during("2027-05-08", "2027-05-09", [h(0), h(24)]), ...during("2027-05-12", "2027-05-12", [h(0), h(20)]),
+        ...during("2027-05-13", "2027-05-15", [h(9), h(17)]), ...during("2027-05-16", "2027-05-16", [h(12), h(20)]),
+        ...during("2027-05-17", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "usc-doheny", campus: "usc", type: "library", name: "Doheny Memorial Library", offers: [], location: [34.02016, -118.28374],
+      keywords: "doheny memorial library usc trojans",
+      hours: [[h(12), h(20)], [h(9), h(20)], [h(9), h(20)], [h(9), h(20)], [h(9), h(20)], [h(9), h(17)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(9), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-07", "2026-12-10", [h(9), h(22)]), ...during("2026-12-12", "2026-12-12", [h(9), h(17)]),
+        ...during("2026-12-14", "2026-12-15", [h(9), h(22)]), ...during("2026-12-16", "2026-12-17", [h(9), h(17)]),
+        ...during("2026-12-20", "2027-01-03", null), ...during("2027-01-04", "2027-01-07", [h(9), h(17)]),
+        ...during("2027-01-10", "2027-01-10", null), ...during("2027-01-17", "2027-01-18", null),
+        ...during("2027-02-15", "2027-02-15", null), ...during("2027-03-14", "2027-03-14", null),
+        ...during("2027-03-15", "2027-03-18", [h(9), h(17)]), ...during("2027-05-03", "2027-05-06", [h(9), h(22)]),
+        ...during("2027-05-08", "2027-05-08", [h(9), h(17)]), ...during("2027-05-10", "2027-05-11", [h(9), h(22)]),
+        ...during("2027-05-12", "2027-05-13", [h(9), h(17)]), ...during("2027-05-16", "2027-05-16", null),
+        ...during("2027-05-17", "2027-08-31", HOURS_UNCONFIRMED) } },
+    { id: "usc-sel", campus: "usc", type: "library", name: "Science & Engineering Library", offers: [], location: [34.01958, -118.28876],
+      keywords: "science engineering library sel seaver usc trojans",
+      hours: [null, [h(9), h(20)], [h(9), h(20)], [h(9), h(20)], [h(9), h(20)], [h(9), h(17)], null],
+      specialHours: { ...during("2026-11-25", "2026-11-25", [h(9), h(17)]), ...during("2026-11-26", "2026-11-27", null),
+        ...during("2026-12-16", "2026-12-17", [h(9), h(17)]), ...during("2026-12-21", "2027-01-01", null),
+        ...during("2027-01-04", "2027-01-07", [h(9), h(17)]), ...during("2027-01-18", "2027-01-18", null),
+        ...during("2027-02-15", "2027-02-15", null), ...during("2027-03-15", "2027-03-18", [h(9), h(17)]),
+        ...during("2027-05-12", "2027-05-13", [h(9), h(17)]), ...during("2027-05-14", "2027-05-14", [h(13), h(17)]),
+        ...during("2027-05-17", "2027-08-31", HOURS_UNCONFIRMED) } },
+  ];
   // UCLA (Los Angeles), from UCLA Library's hours calendar (calendar.library.ucla.edu/hours), checked 2026-11-19. Powell is
   // posted through Dec 19, the Research Library through Feb 6, and SEL/Boelter through Apr 3; later days say "Hours not
   // confirmed". Night Powell, the overnight study hall for BruinCard holders, isn't counted as open. Times are Los Angeles's
@@ -1242,10 +1288,10 @@
         ...during("2027-03-26", "2027-03-28", null), ...during("2027-04-04", "2027-08-31", HOURS_UNCONFIRMED) } },
   ];
   const allSpots = [...studySpots, ...uicSpots, ...uisSpots, ...purdueSpots, ...iuSpots, ...umichSpots, ...osuSpots, ...wiscSpots, ...rutgersSpots,
-    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...nuSpots, ...uoSpots, ...uclaSpots];
+    ...psuSpots, ...umnSpots, ...iowaSpots, ...unlSpots, ...umdSpots, ...nuSpots, ...uoSpots, ...uclaSpots, ...uscSpots];
   const campuses = { uiuc: "UIUC", uic: "UIC", uis: "UIS", purdue: "Purdue", iu: "IU", umich: "Michigan", osu: "Ohio State",
     wisc: "Wisconsin", rutgers: "Rutgers", psu: "Penn State", umn: "Minnesota", iowa: "Iowa", unl: "Nebraska", umd: "Maryland", nu: "Northwestern",
-    uo: "Oregon", ucla: "UCLA" };
+    uo: "Oregon", ucla: "UCLA", usc: "USC" };
   const searchHints = { uiuc: "Search: law, sie, gies", uic: "Search: daley, lhs, sce", uis: "Search: brookens, union",
     purdue: "Search: walc, hicks, pmu", iu: "Search: wells, imu, kelley", umich: "Search: ugli, hatcher, dude",
     osu: "Search: thompson, 18th, union", wisc: "Search: college, memorial, union south",
@@ -1253,11 +1299,13 @@
     umn: "Search: walter, wilson, coffman", iowa: "Search: main, engineering, imu",
     unl: "Search: love, adele, union", umd: "Search: mckeldin, stem, stamp",
     nu: "Search: main, mudd, norris",
-    uo: "Search: knight, price, emu", ucla: "Search: powell, yrl, sel" };
+    uo: "Search: knight, price, emu", ucla: "Search: powell, yrl, sel",
+    usc: "Search: leavey, doheny, sel" };
   // Where each campus's food hours come from, shown under the food list.
   const osmFoodNote = "Restaurant and cafe hours come from OpenStreetMap volunteers, checked in 2026. They can be out of date and don't include holidays, so call ahead if it matters.";
   const foodSourceNotes = {
     ucla: "UCLA food places haven't been added yet, so this list is empty for now.",
+    usc: "USC food places haven't been added yet, so this list is empty for now.",
     uo: "Hours are from University Housing and the EMU, including Thanksgiving. Both post fall term hours only, so from Jan 2 on days say \"Hours TBD\". The EMU doesn't post its restaurants' Thanksgiving or winter break hours, so those days say \"Hours TBD\" unless the building is closed.",
     nu: "Hours are from Northwestern Dining, including Thanksgiving, finals, and winter break, posted through Feb 13. Later days say \"Hours TBD\". Starbucks in Norris and the Market at Foster-Walker list hours that don't match their breaks, so those days say \"Hours TBD\" too.",
     uiuc: `${osmFoodNote} Dining hall and Housing store hours are from University Housing and each private hall's website; breaks aren't known, so check before you go.`,
@@ -2430,6 +2478,9 @@
   spotIcons["uo-knight"] = spotIcons.main;
   spotIcons["uo-price"] = spotIcons.grainger;
   spotIcons["uo-emu"] = spotIcons.union;
+  spotIcons["usc-leavey"] = spotIcons.idea;
+  spotIcons["usc-doheny"] = spotIcons.main;
+  spotIcons["usc-sel"] = spotIcons.grainger;
   spotIcons["ucla-powell"] = spotIcons.main;
   spotIcons["ucla-yrl"] = spotIcons.idea;
   spotIcons["ucla-sel"] = spotIcons.grainger;
