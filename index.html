@@ -372,6 +372,19 @@
     color: #ffffff; font-weight: 700; }
   .skip-link:focus { top: 12px; outline: 2px solid var(--illini-orange); }
   #spot-list:focus { outline: none; }
+  .leave-by { margin: 4px 0 6px; color: var(--accent); font-size: .85rem; font-weight: 600; }
+  .tips-school { margin: 8px 0; font-size: .9rem; }
+  .tips-school button.clear-reports { display: inline; min-height: 0; margin: 0; padding: 0; font-size: inherit; }
+  mark { background: color-mix(in srgb, var(--illini-orange) 25%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+  button.back-to-top { position: fixed; right: 16px; bottom: 20px; z-index: 20; min-height: 44px; padding: 0 14px; border-radius: 999px;
+    background: var(--illini-navy); color: #ffffff; border: 1px solid var(--illini-orange); box-shadow: var(--shadow); font-weight: 700; }
+  .exam-actions { display: flex; gap: 10px; flex: none; }
+  @media print {
+    body.printing-week * { visibility: hidden; }
+    body.printing-week #week-table, body.printing-week #week-table * { visibility: visible; }
+    body.printing-week #week-table { position: absolute; left: 0; top: 0; overflow: visible; border: 0; }
+    body.printing-week .week-scroll-note, body.printing-week [data-share-week], body.printing-week [data-print-week] { display: none !important; }
+  }
   .instead-line { margin: 4px 0 6px; color: var(--open); font-size: .85rem; font-weight: 600; }
   .stale-hours { margin: 4px 0 0; color: var(--closed); font-size: .78rem; font-weight: 600; }
   .exam-note { margin: 0; color: var(--accent); font-size: .85rem; font-weight: 700; }
@@ -527,6 +540,17 @@
     <div class="session-checkin" id="session-checkin" role="group" hidden></div>
     <span class="session-progress" aria-hidden="true"><span id="session-progress-fill"></span></span>
   </div>
+  <section class="tips whats-new" id="whats-new" aria-labelledby="whats-new-heading" hidden>
+    <h2 id="whats-new-heading">What's new</h2>
+    <ul>
+      <li>All 18 Big Ten schools, with food, on each school's own clock.</li>
+      <li>This week's hours for every spot (in Filters), and today's timeline in each spot.</li>
+      <li>Sunset and weather under the School menu, and a Dark after sunset theme.</li>
+      <li>Study timer: pause, +5 min, your usual length, and a progress bar.</li>
+      <li>My exams countdown, 24-hour clock, and metric units in Settings.</li>
+    </ul>
+    <button class="pick-spot" id="whats-new-done">Got it</button>
+  </section>
   <section class="tips" id="tips" aria-labelledby="tips-heading" hidden>
     <h2 id="tips-heading">How it works</h2>
     <ul>
@@ -535,6 +559,8 @@
       <li>Can't decide? Tap <strong>Pick a spot for me</strong>.</li>
       <li>Reports, favorites, and notes are saved only on this device.</li>
     </ul>
+    <p class="tips-school">Not at UIUC? Pick your school in the School menu above, or
+      <button class="clear-reports" id="tips-find-school" type="button">find it from my location</button>.</p>
     <button class="pick-spot" id="tips-done">Got it</button>
   </section>
   <label class="campus-choice" for="campus-select">School
@@ -638,6 +664,7 @@
     <p class="food-latest" id="food-latest" hidden></p>
     <div id="food-list" role="status"></div>
     <p class="map-note" id="food-source"></p>
+    <p class="map-note"><a id="dining-link" href="#" target="_blank" rel="noopener">Menus and official dining hours</a></p>
     <p class="map-note">Your location stays on this device and isn't saved. Distances are straight lines, not walking routes.</p>
   </section>
   <div class="filters-panel" id="filters-panel" hidden>
@@ -661,6 +688,7 @@
         <button class="offer" data-sort="best" aria-pressed="true">Best first</button>
         <button class="offer" data-sort="near" aria-pressed="false">Nearest first</button>
         <button class="offer" data-sort="longest" aria-pressed="false">Open longest</button>
+        <button class="offer" data-sort="name" aria-pressed="false">Name A–Z</button>
       </div>
       <div class="closest-result" id="sort-location-result" role="status"></div>
     </div>
@@ -767,6 +795,7 @@
     <button class="offer" id="show-tips">Show "How it works" again</button>
   </div>
 </details>
+<button class="back-to-top" id="back-to-top" aria-label="Back to the top" hidden>↑ Top</button>
 <dialog class="shortcuts" id="shortcuts" aria-labelledby="shortcuts-heading">
   <h2 id="shortcuts-heading">Keyboard shortcuts</h2>
   <dl class="week-hours" id="shortcut-list"></dl>
@@ -4384,6 +4413,62 @@
     return `${next.name} ${when} (${dayNames[date.getDay()]}, ${monthNames[date.getMonth()]} ${date.getDate()})`;
   }
 
+  // When to leave to get stayMinutes at a spot before it closes today, as { leaveBy, closesAt }, checked in 5-minute
+  // steps. null when it isn't open now, doesn't close within 12 hours, or there isn't enough time left.
+  function leaveByTime(spot, now, miles, stayMinutes = 60) {
+    if (openStatus(spot, now).isOpen !== true) return null;
+    // Steps land on the clock's 5-minute marks, so a spot closing at 11pm reads 11pm, not 11:02pm.
+    const firstMark = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), Math.floor(now.getMinutes() / 5) * 5 + 5);
+    for (let minutes = 0; minutes <= 12 * 60; minutes += 5) {
+      const later = new Date(firstMark.getTime() + minutes * 60000);
+      if (openStatus(spot, later).isOpen === false) {
+        const closesAt = later;
+        // Rounded down to a 5-minute mark ("9:55pm", not "9:58pm"), which errs on the side of more time there.
+        const exact = new Date(closesAt.getTime() - (stayMinutes + walkMinutes(miles)) * 60000);
+        const leaveBy = new Date(exact.getFullYear(), exact.getMonth(), exact.getDate(), exact.getHours(), Math.floor(exact.getMinutes() / 5) * 5);
+        return leaveBy > now ? { leaveBy, closesAt } : null;
+      }
+    }
+    return null;
+  }
+
+  // A spot's name with the searched-for text marked, safe to put in the page.
+  function highlightMatch(name, query) {
+    const clean = query.trim();
+    const index = clean ? name.toLowerCase().indexOf(clean.toLowerCase()) : -1;
+    if (index < 0) return escapeHtml(name);
+    return `${escapeHtml(name.slice(0, index))}<mark>${escapeHtml(name.slice(index, index + clean.length))}</mark>${escapeHtml(name.slice(index + clean.length))}`;
+  }
+
+  // Spots by name, A to Z.
+  function sortByName(spots) {
+    return [...spots].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  // An all-day calendar event for an exam, as an .ics file's text.
+  function examCalendarFile(exam, stampTime = new Date()) {
+    const [year, month, day] = exam.date.split("-").map(Number);
+    const next = new Date(Date.UTC(year, month - 1, day + 1));
+    const compact = (date) => date.toISOString().slice(0, 10).replace(/-/g, "");
+    const text = (value) => value.replace(/[\\;,]/g, (character) => `\\${character}`);
+    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Study Spot Finder//EN", "BEGIN:VEVENT",
+      `UID:exam-${exam.date}-${exam.name.replace(/[^a-z0-9]/gi, "")}@study-spot-finder`,
+      `DTSTAMP:${stampTime.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}`,
+      `DTSTART;VALUE=DATE:${exam.date.replace(/-/g, "")}`, `DTEND;VALUE=DATE:${compact(next)}`,
+      `SUMMARY:${text(exam.name)}`, "END:VEVENT", "END:VCALENDAR", ""].join("\r\n");
+  }
+
+  // Each school's official dining page, for menus and the newest hours.
+  const diningLinks = {
+    uiuc: "https://housing.illinois.edu/dining", uic: "https://dining.uic.edu/", uis: "https://www.uis.edu/dining",
+    purdue: "https://dining.purdue.edu/", iu: "https://dining.indiana.edu/", umich: "https://dining.umich.edu/",
+    osu: "https://dining.osu.edu/", wisc: "https://union.wisc.edu/dine/", rutgers: "https://food.rutgers.edu/",
+    psu: "https://liveon.psu.edu/dining", umn: "https://dining.umn.edu/", iowa: "https://dining.uiowa.edu/",
+    unl: "https://dining.unl.edu/", umd: "https://dining.umd.edu/", nu: "https://dineoncampus.com/northwestern",
+    uo: "https://housing.uoregon.edu/dining", ucla: "https://dining.ucla.edu/", usc: "https://hospitality.usc.edu/",
+    uw: "https://hfs.uw.edu/eat/locations-and-hours/", msu: "https://eatatstate.msu.edu/",
+  };
+
   // The day and part of the day a report falls in. Late night counts toward the evening it started.
   function timeBlock(time) {
     const date = new Date(time);
@@ -5027,10 +5112,13 @@
     const closure = nextUnusualClosure(spot, displayTime());
     const closureLine = closure ? `<p class="hours-source">Next unusual closure: ${dayNames[closure.getDay()]}, ${monthNames[closure.getMonth()]} ${closure.getDate()}.</p>` : "";
     const stats = spotStats(spot.id, studyLog, reportHistory);
+    const leave = !viewTime && lastKnownLocation ? leaveByTime(spot, campusClock(spot.campus), distanceMiles(lastKnownLocation, spot.location)) : null;
+    const leaveLine = leave ? `<p class="leave-by">Leave by ${formatTime(leave.leaveBy.getHours() * 60 + leave.leaveBy.getMinutes())} to get an hour here before it closes at ${formatTime(leave.closesAt.getHours() * 60 + leave.closesAt.getMinutes())}.</p>` : "";
     const statsLine = stats.sessions || stats.reports ? `<p class="spot-stats">You: ${[
       stats.sessions ? `${stats.sessions} ${stats.sessions === 1 ? "session" : "sessions"} here (${formatDuration(stats.minutes)})` : "",
       stats.reports ? `${stats.reports} ${stats.reports === 1 ? "report" : "reports"}` : ""].filter(Boolean).join(", ")}.</p>` : "";
-    return `${insteadLine}${offerTags}${timeline}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>${closureLine}${staleLine}${sourceLine}${shareHours}${statsLine}
+    return `${insteadLine}${leaveLine}${offerTags}${timeline}<dl class="week-hours" aria-label="Hours this week">${hours}</dl>${closureLine}${staleLine}${sourceLine}${shareHours}<button class="clear-reports share-hours" data-action="spot-qr" data-spot="${spot.id}">Show a code for this spot</button>
+      <div class="app-qr spot-qr" id="spot-qr-${spot.id}" hidden></div>${statsLine}
       <div class="notes"><label for="note-${spot.id}">My notes (only on this device)</label>
         <textarea id="note-${spot.id}" data-note-spot="${spot.id}" rows="2" maxlength="${NOTE_LIMIT}"
           placeholder="Like: outlets by the east windows">${escapeHtml(spotNotes[spot.id] ?? "")}</textarea>
@@ -5225,6 +5313,12 @@
   }
   document.getElementById("last-spot").addEventListener("click", (event) => focusSpot(event.currentTarget.dataset.spot));
   document.getElementById("week-table").addEventListener("click", (event) => {
+    if (event.target.closest("[data-print-week]")) {
+      document.body.classList.add("printing-week");
+      window.print();
+      document.body.classList.remove("printing-week");
+      return;
+    }
     if (event.target.closest("[data-share-week]")) shareText(weekTableText(withoutHidden(currentSpots(), hiddenSpotIds), campusNow(), campuses[selectedCampus]));
   });
   for (const id of ["empty-now", "week-table"]) {
@@ -5244,7 +5338,8 @@
     const todayKey = dateKeyFor(now);
     document.getElementById("exam-list").innerHTML = exams.filter((exam) => exam.date >= todayKey).map((exam, index) =>
       `<li><span>${escapeHtml(exam.name)} · ${(() => { const [year, month, day] = exam.date.split("-").map(Number); const date = new Date(year, month - 1, day);
-        return `${dayNames[date.getDay()]}, ${monthNames[date.getMonth()]} ${date.getDate()}`; })()}</span><button class="clear-reports" data-remove-exam="${escapeHtml(exam.name)}|${exam.date}">Remove</button></li>`).join("");
+        return `${dayNames[date.getDay()]}, ${monthNames[date.getMonth()]} ${date.getDate()}`; })()}</span><span class="exam-actions"><button class="clear-reports" data-exam-calendar="${escapeHtml(exam.name)}|${exam.date}">Calendar</button>
+        <button class="clear-reports" data-remove-exam="${escapeHtml(exam.name)}|${exam.date}">Remove</button></span></li>`).join("");
   }
   document.getElementById("add-exam").addEventListener("click", () => {
     const added = addExam(exams, document.getElementById("exam-name").value, document.getElementById("exam-date").value);
@@ -5258,6 +5353,18 @@
     showToast("Exam added. The countdown is at the top of the page.");
   });
   document.getElementById("exam-list").addEventListener("click", (event) => {
+    const calendarButton = event.target.closest("[data-exam-calendar]");
+    if (calendarButton) {
+      const exam = exams.find((item) => `${item.name}|${item.date}` === calendarButton.dataset.examCalendar);
+      if (!exam) return;
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([examCalendarFile(exam)], { type: "text/calendar" }));
+      link.download = `${exam.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.ics`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      showToast("Opening it adds the exam to your calendar.");
+      return;
+    }
     const button = event.target.closest("[data-remove-exam]");
     if (!button) return;
     exams = exams.filter((exam) => `${exam.name}|${exam.date}` !== button.dataset.removeExam);
@@ -5292,6 +5399,7 @@
       <tbody>${rows.map(({ spot, cells }) => `<tr><th scope="row"><button class="week-spot" data-focus-spot="${spot.id}">${escapeHtml(spot.name)}</button></th>${cells
         .map(({ text, state }, index) => `<td class="wk-${state}${index === 0 ? " wk-today" : ""}">${text}</td>`).join("")}</tr>`).join("")}</tbody></table>
       <button class="clear-reports share-week" data-share-week>Share this table</button>
+      <button class="clear-reports share-week" data-print-week>Print this table</button>
       <p class="week-key"><span class="wk-open">Green</span>: open · <span class="wk-closed">Red</span>: closed · <span class="wk-tbd">TBD</span>: hours not posted yet · Shaded: today · Tap a name to open it</p>`;
   }
 
@@ -5330,6 +5438,7 @@
     // Nearest first and Open longest keep the same groups, but reorder each one.
     const byDistance = (spots) => {
       if (sortMode === "near" && lastKnownLocation) return sortByDistance(spots, lastKnownLocation);
+      if (sortMode === "name") return sortByName(spots);
       return sortMode === "longest" ? sortByOpenLongest(spots, now) : spots;
     };
     const favoriteSpots = byDistance(shown.favoriteSpots);
@@ -5404,7 +5513,7 @@
         <span class="card-main">
           <span class="icon-tile ${spot.type}">${spotIcon(spot.id)}</span>
           <span class="card-text">
-            <span class="name">${spot.name}</span>
+            <span class="name">${highlightMatch(spot.name, searchText)}</span>
             <span class="report-row">
               <span class="status ${status.isOpen === null ? "unknown" : status.closingSoon ? "closing" : status.isOpen ? "open" : "closed"}">${status.text}</span>
               <span class="report">${busynessMeter(level)}<span>${report
@@ -5518,6 +5627,9 @@
     } else if (button.dataset.action === "invite-friend") {
       const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
       shareText(planInviteText(spot, viewTime, campuses[spot.campus ?? "uiuc"]));
+      return;
+    } else if (button.dataset.action === "spot-qr") {
+      showSpotQr(allSpots.find((studySpot) => studySpot.id === button.dataset.spot), button);
       return;
     } else if (button.dataset.action === "share-hours") {
       const spot = allSpots.find((studySpot) => studySpot.id === button.dataset.spot);
@@ -5697,6 +5809,8 @@
     document.getElementById("tagline").textContent = `Find empty study spots at ${campuses[selectedCampus]}`;
     document.getElementById("spot-search").placeholder = searchHints[selectedCampus];
     document.getElementById("food-source").textContent = foodSourceNotes[selectedCampus];
+    document.getElementById("dining-link").href = diningLinks[selectedCampus];
+    document.getElementById("dining-link").textContent = `Menus and official dining hours at ${campuses[selectedCampus]}`;
     renderOutsideNote();
     renderFoodFrom();
     const zoneNote = document.getElementById("time-zone-note");
@@ -5963,6 +6077,27 @@
     box.hidden = !box.hidden;
     event.currentTarget.setAttribute("aria-expanded", String(!box.hidden));
     renderWeekTable();
+  });
+
+  document.getElementById("tips-find-school").addEventListener("click", () => document.getElementById("find-school").click());
+
+  // A Back to top button once the page is scrolled well down.
+  window.addEventListener("scroll", () => {
+    document.getElementById("back-to-top").hidden = window.scrollY < 1200;
+  }, { passive: true });
+  document.getElementById("back-to-top").addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    document.getElementById("spot-search").focus({ preventScroll: true });
+  });
+
+  // What's new shows once for people who have used the app before (they've seen How it works), until they dismiss it.
+  const WHATS_NEW_VERSION = "2026-11-23";
+  try {
+    document.getElementById("whats-new").hidden = !(localStorage.getItem("seenTips") === "yes" && localStorage.getItem("seenWhatsNew") !== WHATS_NEW_VERSION);
+  } catch { /* storage unavailable: skip it */ }
+  document.getElementById("whats-new-done").addEventListener("click", () => {
+    document.getElementById("whats-new").hidden = true;
+    try { localStorage.setItem("seenWhatsNew", WHATS_NEW_VERSION); } catch { /* storage unavailable */ }
   });
 
   // Switches to the school closest to the viewer, using their location once.
@@ -6899,6 +7034,30 @@
   // The QR library is loaded only when asked for, so the page stays small for everyone else.
   const QR_SCRIPT = { src: "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js",
     integrity: "sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" };
+  // A scannable code for one spot's link, shown inside its panel.
+  async function showSpotQr(spot, button) {
+    const box = document.getElementById(`spot-qr-${spot.id}`);
+    if (!box) return;
+    if (!box.hidden) {
+      box.hidden = true;
+      button.textContent = "Show a code for this spot";
+      return;
+    }
+    box.hidden = false;
+    button.textContent = "Hide the code";
+    box.textContent = "Making the code…";
+    try {
+      await loadQrLibrary();
+      const code = window.qrcode(0, "M");
+      code.addData(spotLink(spot));
+      code.make();
+      box.innerHTML = `<div class="qr-image">${code.createSvgTag({ cellSize: 4, margin: 2, scalable: true, alt: `Code that opens ${spot.name} in Study Spot Finder` })}</div>
+        <p class="map-note">Scan to open ${escapeHtml(spot.name)}.</p>`;
+    } catch {
+      box.textContent = "Couldn't make the code without internet. Use Share this spot instead.";
+    }
+  }
+
   function loadQrLibrary() {
     if (window.qrcode) return Promise.resolve();
     return new Promise((resolve, reject) => {
